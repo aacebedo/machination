@@ -1,0 +1,30 @@
+#  - include_vars: vars.yml
+  - name: Update apt cache
+    apt: update_cache=yes
+
+  - name: Install base software
+    apt: name={{ item }} state=present
+    with_items:
+    - zsh
+    - wget
+    - software-properties-common
+    - git
+    - vim-athena
+    - locate
+  
+  - name: Clone oh-my-zsh repo
+    git: repo=https://github.com/robbyrussell/oh-my-zsh.git dest=/home/{{ user }}/.oh-my-zsh
+  - name: Copy zshrc
+    shell: cp /home/{{ user }}/.oh-my-zsh/templates/zshrc.zsh-template /home/{{ user }}/.zshrc
+
+  - name: Change ownership of oh-my-zsh
+    file: path=/home/{{ user }}/.oh-my-zsh owner={{ user }} group={{ user }} mode="0700" recurse=true
+
+  - name: Change ownership of zshrc
+    file: path=/home/{{ user }}/.zshrc owner={{ user }} group={{ user }} mode="0600"
+
+  - name: Replace zsh theme
+    shell: sed -i "s/ZSH_THEME=.*/ZSH_THEME=\"gianu\"/g" ~/.zshrc
+
+  - name: Change user shell
+    user: name=vagrant shell=/bin/zsh

@@ -1,0 +1,45 @@
+##########################################################################
+# Vagrantfile
+# Copyright (c) 2014, Alexandre ACEBEDO, All rights reserved.
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 3.0 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.
+##########################################################################
+ENV['ANSIBLE_CONFIG'] = "./provisioner/playbook/ansible.cfg"
+require 'yaml'
+cwd 		 = File.dirname(File.expand_path(__FILE__))
+machine_config    = YAML.load_file("#{cwd}/config.yml")
+
+Vagrant.configure("2") do |config|
+  config.ssh.forward_agent = true
+  config.vm.network "public_network"
+  config.ssh.forward_x11 = true
+  config.vm.hostname = machine_config["name"]
+ 
+  config.vm.define machine_config["name"] do |a|
+   a.vm.provider "docker" do |d|
+      d.image = machine_config["image"]
+      d.name = machine_config["name"]
+      d.remains_running = true
+      d.create_args = ["-t","-i"]
+      d.privileged = true
+      d.volumes = machine_config["volumes"]
+      d.cmd = ["/sbin/init"]
+      d.has_ssh = true 
+   end
+  end
+  config.vm.provision :ansible do |ansible|
+    ansible.playbook = machine_config["playbook"]
+    ansible.sudo = true
+  end
+end 

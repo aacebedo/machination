@@ -1,0 +1,33 @@
+
+  - name: Update apt cache
+    apt: update_cache=yes
+
+  - name: Install base build utilities
+    apt: name={{ item }} state=present
+    with_items:
+      - build-essential 
+      - llvm
+    
+  - name: Add oracle java PPA
+    apt_repository: repo='ppa:webupd8team/java' state=present update_cache=yes
+      
+  - name: Force java licence validation
+    shell: echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections
+
+  - name: Install Java
+    apt: name={{ item }} state=present
+    with_items:
+        - oracle-java7-installer
+        - oracle-java7-set-default
+     
+  - name: Add google tools
+    apt: name={{ item }} state=present
+    with_items:
+      - libgtest-dev
+      - google-mock
+      
+  - name: Add jenkins repository
+    apt_repository: repo='deb http://pkg.jenkins-ci.org/debian binary/' state=present
+
+  - name: Install jenkins
+    apt: name=jenkins state=present force=yes
