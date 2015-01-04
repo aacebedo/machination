@@ -16,6 +16,7 @@
 # License along with this library.
 ##########################################################################
 ENV['ANSIBLE_CONFIG'] = "./provisioner/playbook/ansible.cfg"
+ENV['VAGRANT_DEFAULT_PROVIDER'] = "docker"
 require 'yaml'
 cwd 		 = File.dirname(File.expand_path(__FILE__))
 machine_config    = YAML.load_file("#{cwd}/config.yml")
@@ -38,8 +39,8 @@ Vagrant.configure("2") do |config|
       d.has_ssh = true 
    end
   end
-  config.vm.provision :ansible do |ansible|
-    ansible.playbook = machine_config["playbook"]
-    ansible.sudo = true
-  end
+  #config.vm.provision :ansible do |ansible|
+  #  ansible.playbook = machine_config["playbook"]
+  #  ansible.sudo = true
+  #end
 end 
