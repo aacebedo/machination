@@ -24,7 +24,7 @@
     file: path=/home/{{ user }}/.zshrc owner={{ user }} group={{ user }} mode="0600"
 
   - name: Replace zsh theme
-    shell: sed -i "s/ZSH_THEME=.*/ZSH_THEME=\"gianu\"/g" ~/.zshrc
+    shell: sed -i "s/ZSH_THEME=.*/ZSH_THEME=\"gianu\"/g" /home/{{ user }}/.zshrc
 
   - name: Change user shell
     user: name=vagrant shell=/bin/zsh

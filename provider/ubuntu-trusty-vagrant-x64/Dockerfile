@@ -30,6 +30,7 @@ RUN chown -R $user:$user /home/$user/.ssh
 RUN chmod 700 /home/$user/.ssh
 RUN chmod 600 /home/$user/.ssh/authorized_keys
 RUN echo "$user ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+RUN mv /sbin/dhclient /usr/sbin/dhclient
 
 # Stuff coming from upstart image for docker (https://registry.hub.docker.com/u/library/ubuntu-upstart/)
 ADD init-fake.conf /etc/init/fake-container-events.conf

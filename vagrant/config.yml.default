@@ -23,3 +23,6 @@ name: "jenkins"
 image: "aacebedo/ubuntu-trusty-vagrant-i386" 
 playbook: "provisioner/playbooks/jenkins.playbook"  
 volumes: []
+interface: "interface"
+ipaddress: "dhcp"
+macaddress: "xx:xx:xx:xx:xx:xx"
