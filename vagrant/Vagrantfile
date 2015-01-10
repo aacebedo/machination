@@ -21,7 +21,7 @@ machine_config    = YAML.load_file("#{cwd}/config.yml")
 
 ENV['ANSIBLE_CONFIG'] = machine_config["ansiblecfg"]
 ENV['VAGRANT_DEFAULT_PROVIDER'] = "docker"
-pipeworkCommand = "pipework " + machine_config["interface"] + " " + machine_config["name"] + " " + machine_config["ipaddress"] + " " + machine_config["macaddress"]
+pipeworkCommand = "unshare -u -- sh -c 'sysctl kernel.hostname=" + machine_config["name"]  + "; pipework " + machine_config["interface"] + " " + machine_config["name"] + " " + machine_config["ipaddress"] + " " + machine_config["macaddress"]+"'"
 
 Vagrant.configure("2") do |config|
   config.ssh.forward_agent = true
@@ -41,13 +41,8 @@ Vagrant.configure("2") do |config|
       d.has_ssh = true 
    end
   end
- { 
-    [:up, :resume,:reload] => pipeworkCommand
- }.each do |command, trigger|
-    config.trigger.after command, :stdout => true do
-      info "Getting IP address from DHCP..."
-      run pipeworkCommand
-    end
+  config.vm.provision :host_shell,run: "always" do |host_shell|
+    host_shell.inline = pipeworkCommand
   end
   config.vm.provision :ansible do |ansible|
     ansible.playbook = machine_config["playbook"]

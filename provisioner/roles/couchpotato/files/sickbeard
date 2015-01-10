@@ -1,0 +1,4 @@
+CP_USER=couchpotato
+CP_HOME=/opt/couchpotato/
+CP_DATA=/usr/local/share/couchpotato/
+CP_OPTS=--config=/usr/local/share/couchpotato/config.ini

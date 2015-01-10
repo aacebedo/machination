@@ -1,0 +1,49 @@
+ 
+  - name: Add multiverse repository
+    apt_repository: repo="{{item}}"
+    register: multiverse_installed
+    with_items:
+     - 'deb http://archive.ubuntu.com/ubuntu {{ansible_distribution_release}} multiverse'
+     - 'deb-src http://archive.ubuntu.com/ubuntu {{ansible_distribution_release}} multiverse'
+     - 'deb http://archive.ubuntu.com/ubuntu {{ansible_distribution_release}}-updates multiverse'
+     - 'deb-src http://archive.ubuntu.com/ubuntu {{ansible_distribution_release}}-updates multiverse'
+
+  - name: Update apt cache
+    apt: update_cache= true
+    when: multiverse_installed | changed
+
+  - name: Install python dependencies
+    apt: name={{ item }} state=present
+    with_items:
+      - git-core
+      - python
+    
+  - name: Install utilities
+    apt: name={{ item }} state=present
+    with_items:
+      - unzip
+      - unrar
+
+  - name: Add seedboxers group
+    group: name=seedboxers state=present gid=10000
+
+  - name: Add couchpotato user
+    user: name=couchpotato group=seedboxers home=/usr/local/share/couchpotato state=present system=yes shell=/sbin/nologin
+
+  - name: Clone couchpotato
+    git: repo=git://github.com/RuudBurger/CouchPotatoServer.git dest=/opt/couchpotato accept_hostkey=true
+ 
+  - name: Change owner of couchpotato folder
+    file: path=/opt/couchpotato recurse=true owner=sickrage group=seedboxers
+
+  - name: Copy init script
+    command: cp /opt/couchpotato/init/ubuntu /etc/init.d/couchpotato
+
+  - name: Change owner of init script
+    file: path=/etc/init.d/couchpotato mode="755" owner="root" group="root"
+
+  - name: Add script to startup
+    command: update-rc.d couchpotato defaults
+
+  - name: Add couchpotato config file
+    copy: src=couchpotato dest=/etc/default/couchpotato
