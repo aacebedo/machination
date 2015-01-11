@@ -48,3 +48,6 @@
 
   - name: Add sickrage config file
     copy: src=sickbeard dest=/etc/default/sickbeard
+
+  - name: Start service
+    service: name=sickbeard state=started

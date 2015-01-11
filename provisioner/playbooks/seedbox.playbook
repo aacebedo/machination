@@ -4,3 +4,6 @@
    - base
    - nfsclient
    - sickrage
+   - couchpotato
+   - nzbget
+   - transmission

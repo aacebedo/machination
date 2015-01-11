@@ -34,7 +34,7 @@
     git: repo=git://github.com/RuudBurger/CouchPotatoServer.git dest=/opt/couchpotato accept_hostkey=true
  
   - name: Change owner of couchpotato folder
-    file: path=/opt/couchpotato recurse=true owner=sickrage group=seedboxers
+    file: path=/opt/couchpotato recurse=true owner=couchpotato group=seedboxers
 
   - name: Copy init script
     command: cp /opt/couchpotato/init/ubuntu /etc/init.d/couchpotato
@@ -47,3 +47,6 @@
 
   - name: Add couchpotato config file
     copy: src=couchpotato dest=/etc/default/couchpotato
+
+  - name: Start service
+    service: name=couchpotato state=started
