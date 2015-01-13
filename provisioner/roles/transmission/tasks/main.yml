@@ -22,6 +22,9 @@
     apt: name={{ item }} state=present
     with_items:
       - transmission-daemon
+  
+  - name: Add configuration file
+    copy: src=settings.json dest=/etc/transmission-daemon/settings.json owner=transmission group=seedboxers
 
   - name: Start service
     service: name=transmission-daemon state=started
