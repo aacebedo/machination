@@ -1,0 +1,9 @@
+  - name: Add owncloud repository
+    lineinfile: dest=/etc/apt/sources.list.d/owncloud.list line="^deb http://download.opensuse.org/repositories/isv:/ownCloud:/community/xUbuntu_14.10/ /" state=present 
+
+  - name: Update apt cache
+    apt: update_cache=yes
+ 
+  - name: Install owncloud
+    apt: name=owncloud state=present
+
