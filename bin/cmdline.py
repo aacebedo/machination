@@ -19,63 +19,91 @@ from enums import *
 from registries import *
 from helpers import *
 
+        
+        
+class MachineInstanceAlreadyExistsException:
+    _message = ""
+    def __init__(self, message):
+        self._message = message
+    
+    def __str__(self):
+        return repr(self._message)
+
+class MachineInstanceDoNotExistException:
+    _message = ""
+    def __init__(self, message):
+        self._message = message
+    
+    def __str__(self):
+        return repr(self._message)
+
+    
 def make_action(functionToCall):
     class customAction(argparse.Action):
         def __call__(self, parser, args, values, option_string=None):
             setattr(args, self.dest, values)
             functionToCall(args)
-    
     return customAction
 
 class CmdLine:
     parser = None
     logger = None
-    instanceReg = RegistryManager.loadRegistry()            
+    instanceReg = MachineInstanceRegistry()            
     templateReg = MachineTemplateRegistry()
     
     def __init__(self):
-        self.parser = argparse.ArgumentParser(prog="Machination", description='Machination utility, easily instantiate vagrant based machines.')
-        rootSubparsers = self.parser.add_subparsers(help='List available machines')
+        self.logger = logging.getLogger("commandline")
+        self.parser = argparse.ArgumentParser(prog="Machination", description='Machination utility, all your appliances belong to us.')
+        rootSubparsers = self.parser.add_subparsers(help='Root parser')
         
-        listParser = rootSubparsers.add_parser('list', help='List elements')
-        listSubparsers = listParser.add_subparsers(help='List elements')
+        listParser = rootSubparsers.add_parser('list', help='List templates and instances')
+        listSubparsers = listParser.add_subparsers(help='List templates and instances')
         
-        templateSubparser = listSubparsers.add_parser('templates', help='List templates')
-        templateSubparser.add_argument('provisioner', choices=['ansible','test'], nargs='*', default='ansible', help="List templates of a provider", action=make_action(self.listTemplate))
-        #templateSubparser.set_defaults(func=listTemplates)
-        
+        templateSubparser = listSubparsers.add_parser('templates', help='List machine templates')
+        templateSubparser.add_argument('provisioner', choices=['ansible'], nargs='*', default='ansible', help="List templates")
+        templateSubparser.add_argument('dummy',nargs='?', help=argparse.SUPPRESS, action=make_action(self.listTemplates))
+
         instanceSubparser = listSubparsers.add_parser('instances', help='List instances')
+        instanceSubparser.add_argument('provisioner', choices=['ansible'], nargs='*', default='ansible', help="List instances")
+        instanceSubparser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.listInstances))
+        
         #instanceSubparser.set_defaults(func=listInstances)
         
         createParser = rootSubparsers.add_parser('create', help='Create the given machine in the path')
         createParser.add_argument('template', help='Name of the template to create')
         createParser.add_argument('name', help='Name of the machine to create')
-        createParser.add_argument('path', help='Path where to create the machine')
+        createParser.add_argument('dummy',nargs='?', help=argparse.SUPPRESS,action=make_action(self.createMachine))
+
         # createParser.add_argument('provisioner', choices=['ansible'], nargs='?', default='ansible', help="List templates of a provider")
         #createParser.set_defaults(func=createMachine)
         
         destroyParser = rootSubparsers.add_parser('destroy', help='Destroy the given machine in the path')
         destroyParser.add_argument('name', help='Name of the machine to destroy')
+        destroyParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.destroyMachine))
+
         #destroyParser.set_defaults(func=destroyMachine)
         
         startParser = rootSubparsers.add_parser('start', help='Start the given machine')
         startParser.add_argument('name', help='Name of the machine to start')
+        startParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.startMachine))
+
         #startParser.set_defaults(func=startMachine)
         
         stopParser = rootSubparsers.add_parser('stop', help='Stop the given machine')
         stopParser.add_argument('name', help='Name of the machine to stop')
+        stopParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.stopMachine))
+
         #stopParser.set_defaults(func=stopMachine)
         
-        sshParser = rootSubparsers.add_parser('destroy', help='SSH to the given machine')
+        sshParser = rootSubparsers.add_parser('ssh', help='SSH to the given machine')
         sshParser.add_argument('name', help='Name of the machine to ssh in')
+        sshParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.sshMachine))
+
         #sshParser.set_defaults(func=sshMachine)
         
 
-        
-
-    def listTemplate(self, args):
-        self.logger = logging.getLogger("test")
-        self.logger.debug("toto")
+    def listTemplates(self, args):
+        self.logger.debug("Listing machine templates")
         data = {'name': [], 'version': [], 'path': [], 'provisioner': []}
         templates = self.templateReg.getTemplates();
 
@@ -93,35 +121,36 @@ class CmdLine:
         self.logger.info("Name".ljust(name_col_width) + "Version".ljust(version_col_width) + "Path".ljust(path_col_width) + "Provisioner".ljust(pro_col_width))
        
         for row in range(0, len(data['name'])):
-            print data['name'][row].ljust(name_col_width) + data['version'][row].ljust(version_col_width) + data['path'][row].ljust(path_col_width) + data['provisioner'][row].ljust(pro_col_width)
+            self.logger.info(data['name'][row].ljust(name_col_width) + data['version'][row].ljust(version_col_width) + data['path'][row].ljust(path_col_width) + data['provisioner'][row].ljust(pro_col_width))
              
-    def listInstances(self,args):        
-        print os.getenv("SUDO_USER")
+    def listInstances(self,args):                
+        self.logger.debug("Listing machine instances")
+        data = {'name': []}
+        instances = self.instanceReg.getInstances()
         
-        logger.debug("List instances")
-        data = {'name': [], 'path': []}
-              
-        for i in registry.getInstanceReferences():
-            iDetail = registry.loadInstanceDetail(i)
-            data['name'].append(iDetail.getName())
-            data['path'].append(iDetail.getPath())
+        for i in instances.values():
+            data['name'].append(i.getName())
             
         name_col_width = max(len(word) for word in data['name']) + len("Name") + 2 
-        path_col_width = max(len(word) for word in data['path']) + len("Path") + 2
-          
-        logger.info("Name".ljust(name_col_width) + "Path".ljust(path_col_width))
+        
+        self.logger.info("Name".ljust(name_col_width))
         for row in range(0, len(data['name'])):
-            print data['name'][row].ljust(name_col_width) + data['path'][row].ljust(path_col_width)
+            print data['name'][row].ljust(name_col_width)
         
         
     def createMachine(self,args):
-        logger.debug("Create machine " + args.name + " from template " + args.template + " in " + args.path)
-        availableMachines = registry.getTemplates()
-        instance = None
-            
-        if args.name in availableMachines.keys():
-            template = availableMachines[args.name]
-            logger.debug("Creating ")
+        self.logger.debug("Creating a new machine instance named " + args.name + " using template " + args.template)
+        print os.getenv("SUDO_USER")
+        
+        availableMachines = self.templateReg.getTemplates()
+        instances = self.instanceReg.getInstances()
+        
+        if args.name in instances.keys():
+            raise MachineInstanceAlreadyExistsException("Machine named " + args.name + " already exists. Change the name of your new machine or delete the existing instance.")
+        
+        instance = None  
+        if args.template in availableMachines.keys():
+            template = availableMachines[args.template]
                
             hostInterface = template.getHostInterface()
             guestInterfaces = copy.deepcopy(template.getGuestInterfaces())
@@ -138,16 +167,16 @@ class CmdLine:
                 
             i = 0
             for f in template.getGuestInterfaces():
-                v = raw_input("Please enter ipaddress for the interface ["+f.getIPAddr()+"]: ")
+                v = raw_input("Please enter an IP address for the interface ["+f.getIPAddr()+"]: ")
                 if not v == "":
                     guestInterfaces[i].setIPAddr(v)
                         
-                v = raw_input("Please enter macadress for the interface: ["+f.getMACAddr()+"]" )  
+                v = raw_input("Please enter a MAC address for the interface: ["+f.getMACAddr()+"]" )  
                 if not v == "":
                     guestInterfaces[i].setMACAddr(v)
                     
                 if f.getHostname() != None:
-                    v = raw_input("Please enter hostname for the interface: ["+f.getHostname()+"]" )  
+                    v = raw_input("Please enter a hostname for the interface: ["+f.getHostname()+"]" )  
                     if not v == "":
                         guestInterfaces[i].setHostname(v)            
                 i+=1
@@ -177,41 +206,58 @@ class CmdLine:
                     provider = Provider[v]
                 else:
                     raise InvalidMachineTemplateError("invalid provisioner")
-    
-            logger.info("This machine will use the architecture " + str(arch))                                    
-            logger.info("This machine will use the provisioner " + str(provisioner))
-            logger.info("This machine will use the provider " + str(provider))
-            logger.info("This machine use the host interface " + hostinterface)
+                
+            self.logger.info("The machine named " + args.name + " will: ")                                    
+            self.logger.info("  Use the architecture " + str(arch))                                    
+            self.logger.info("  Use the provisioner " + str(provisioner))
+            self.logger.info("  Use the provider " + str(provider))
+            self.logger.info("  Use the host interface " + hostinterface)
             i = 0
-            logger.info("This machine will have the following network interfaces :")
+            self.logger.info("  Have the following network interfaces :")
             for intf in guestInterfaces:            
-                logger.info("\tName: eth" + str(i))            
-                logger.info("\tIPAddress: " + intf.getIPAddr())
-                logger.info("\tMACAddress: " + intf.getMACAddr())
+                self.logger.info("    Name: eth" + str(i))            
+                self.logger.info("    IPAddress: " + intf.getIPAddr())
+                self.logger.info("    MACAddress: " + intf.getMACAddr())
                 if intf.getHostname() != None:
-                    logger.info("\tHostname: " + intf.getHostname())
-                logger.info("")
+                    self.logger.info("    Hostname: " + intf.getHostname())
+                self.logger.info("")
                 i+=1
-            
-            absPath = os.path.abspath(args.path)
-            instance = MachineInstance(args.name,absPath, template, arch, provider, provisioner, hostInterface, guestInterfaces)        
-            registry.addInstanceReference(instance.getPath())
+      
+            instance = MachineInstance(args.name,template, arch, provider, provisioner, hostInterface, guestInterfaces)        
             instance.instantiate()
-            RegistryManager.saveRegistry(registry)
         else:
-            raise InvalidMachineTemplateError(args.name)
+            self.logger.error("Unable to instantiate the machine because template named "+ args.template + " cannot be found. Check your template directory.")
+            sys.exit(1)
           
     def destroyMachine(self,args):
-        logger.debug("Destroy machine " + args.name) 
+        self.logger.debug("Destroy machine " + args.name) 
         
     def startMachine(self,args):
-        logger.debug("Start machine " + args.name) 
+        self.logger.debug("Start machine " + args.name) 
+        instances = self.instanceReg.getInstances()
         
+        if args.name in instances.keys():
+            instances[args.name].start()
+        else:
+            raise MachineInstanceDoNotExistException("Machine named " + args.name + " does not exist.")
+
     def stopMachine(self,args):
-        logger.debug("Stop machine " + args.name) 
+        self.logger.debug("Stop machine " + args.name) 
+        instances = self.instanceReg.getInstances()
+        
+        if args.name in instances.keys():
+            instances[args.name].stop()
+        else:
+            raise MachineInstanceDoNotExistException("Machine named " + args.name + " does not exist.")
         
     def sshMachine(self,args):
-        logger.debug("SSH to machine " + args.name)
+        self.logger.debug("SSH to machine " + args.name)
+        instances = self.instanceReg.getInstances()
+        
+        if args.name in instances.keys():
+            instances[args.name].ssh()
+        else:
+            raise MachineInstanceDoNotExistException("Machine named " + args.name + " does not exist.")
         
     def parseArgs(self,args):
         self.parser.parse_args()

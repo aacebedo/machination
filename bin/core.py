@@ -1,13 +1,16 @@
 import os
 from enums import *
 import yaml
+from constants import *
+import subprocess
+import sys 
 
 class NetworkInterface(yaml.YAMLObject):
     yaml_tag = "!NetworkInterface"
     _ipAddr = None
     _macAddr = None
     _hostname = None
-        
+
     def __init__(self,ipAddr, macAddr,hostname=None):
         self._ipAddr = ipAddr
         self._macAddr = macAddr
@@ -30,7 +33,7 @@ class NetworkInterface(yaml.YAMLObject):
     
     def setHostname(self,val):
         self._hostname = val
-            
+
     def __str__(self):
         res = ""
         if self._hostname != None :
@@ -145,23 +148,26 @@ class MachineTemplate:
 class MachineInstance(yaml.YAMLObject):
     yaml_tag = '!MachineInstance'
     name = None
-    path = None
     template = None
     provisioner = None  # Provisioner.Ansible
     provider = None  # Provider.Ansible    
     host_interface = None
     guest_interfaces  = None
     arch = None
+    _sharedFolders = None
     
-    def __init__(self, name, path, template, arch, provider, provisioner, host_interface, guest_interfaces):
+    def __init__(self, name, template, arch, provider, provisioner, host_interface, guest_interfaces):
         self.name = name
-        self.path = path
         self.template = template
         self.arch = arch
         self.provider = provider
         self.provisioner = provisioner
         self.guest_interfaces = guest_interfaces
-        self.host_interface = host_interface        
+        self.host_interface = host_interface   
+        _sharedFolders = []
+        
+    def getPath(self):
+        return os.path.join(MACHINATION_WORKDIR,"instances",self.getName())
     
     def instantiate(self):
         if not os.path.exists(self.getPath()):
@@ -176,25 +182,49 @@ class MachineInstance(yaml.YAMLObject):
         file = open(os.path.join(self.getPath(),"config.yml"),"w+")
         file.write(configFile)
         file.close()
-        
-    def getPath(self):
-        return self.path
-            
+                    
     def getName(self):
-        return self.name     
+        return self.name
+            
+    def getSharedFolders(self):
+        return self._sharedFolders
     
+    def setSharedFolders(self,val):
+        self._sharedFolders = val
+        
+    def start(self):
+        os.environ["MACHINATION_INSTALLDIR"] = MACHINATION_INSTALLDIR
+        instanceEnv = os.environ.copy()
+        subprocess.Popen("vagrant up", shell=True, stdout=subprocess.PIPE, env=instanceEnv,cwd=self.getPath()).stdout.read()              
+
+    def stop(self):
+        os.environ["MACHINATION_INSTALLDIR"] = MACHINATION_INSTALLDIR
+        instanceEnv = os.environ.copy()
+        subprocess.Popen("vagrant halt", shell=True, stdout=subprocess.PIPE, env=instanceEnv,cwd=self.getPath()).stdout.read()              
+
+    def ssh(self):
+        os.environ["MACHINATION_INSTALLDIR"] = MACHINATION_INSTALLDIR
+        instanceEnv = os.environ.copy()
+        val = subprocess.Popen("vagrant ssh", shell=True, env=instanceEnv, stderr=subprocess.PIPE, cwd=self.getPath())
+        while True:
+            out = val.stderr.read(1)
+            if out == '' and val.poll() != None:
+                break
+            if out != '':
+                sys.stdout.write(out)
+                sys.stdout.flush()
+                
     @classmethod
     def to_yaml(cls, dumper, data):           
         representation = {
                                "name" : data.name,
-                               "path" : data.path,
                                "template" : data.template.getName(),
                                "arch" : str(data.arch),
                                "provider" : str(data.provider),
                                "provisioner" : str(data.provisioner),
                                "host_interface" : data.host_interface,
                                "guest_interfaces" : data.guest_interfaces,
-                               "volumes" : []                     
+                               "shared_folders" : []
                                }
         node = dumper.represent_mapping(data.yaml_tag,representation)    
         return node
@@ -203,7 +233,6 @@ class MachineInstance(yaml.YAMLObject):
     def from_yaml(cls, loader, node):
         representation = loader.construct_mapping(node)        
         return MachineInstance(representation['name'], 
-                               representation['path'], 
                                representation["template"],
                                representation["arch"], 
                                representation["provider"],

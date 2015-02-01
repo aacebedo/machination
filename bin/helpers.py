@@ -1,5 +1,6 @@
 import random
 import os
+import errno
 
 def listPath(d):
     return [os.path.join(d, f) for f in os.listdir(d)]
@@ -23,3 +24,11 @@ def all_interfaces():
         ))[0]
         namestr = names.tostring()
         return [namestr[i:i+32].split('\0', 1)[0] for i in range(0, outbytes, 32)]
+    
+def mkdir_p(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc: # Python >2.5
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else: raise

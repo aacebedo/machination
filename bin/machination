@@ -21,27 +21,34 @@ from core import *
 from enums import *
 from registries import *
 from cmdline import *
+from constants import *
 
-
-MACHINATION_INSTALLDIR = os.path.join(os.path.dirname(os.path.realpath(__file__)),"..")
-MACHINATION_WORKDIR = os.path.join(os.path.expanduser("~"),".machination")
-
+mkdir_p(MACHINATION_INSTANCESDIR)
 
 formatter = logging.Formatter('%(message)s')
 strHandler = StreamHandler()
 strHandler.setLevel(logging.DEBUG)
 strHandler.setFormatter(formatter)
 
-#self.logger = logging.getLogger()
-#self.logger.setLevel(logging.DEBUG)
-#self.logger.addHandler(strHandler)
+logger = logging.getLogger("test")
+logger.setLevel(logging.DEBUG)
+logger.addHandler(strHandler)
+
+logger = logging.getLogger("commandline")
+logger.setLevel(logging.DEBUG)
+logger.addHandler(strHandler)
         
 #registry = MachineInstanceRegistry()
 
 cmd = CmdLine()
-cmd.parseArgs(sys.argv)
-
-#args = parser.parse_args()
+try:
+    cmd.parseArgs(sys.argv)
+except MachineInstanceAlreadyExistsException as e:    
+    sys.exit(e)
+except MachineInstanceDoNotExistException as e:    
+    sys.exit(e)
+except:
+    raise#args = parser.parse_args()
 #args.func(args)
 
 

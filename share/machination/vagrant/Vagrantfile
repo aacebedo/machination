@@ -16,12 +16,16 @@
 # License along with this library.
 ##########################################################################
 require 'yaml'
-cwd 		 = File.dirname(File.expand_path(__FILE__))
-installPath = "/home/aacebedo/Private/workspace/machination"
+
+if not ENV.has_key?('MACHINATION_INSTALLDIR')
+	abort("Environment variable MACHINATION_INSTALLDIR not set. Check your installation")
+end 
+
+print(ENV['MACHINATION_INSTALLDIR'])
+cwd = File.dirname(File.expand_path(__FILE__))
 machine_config    = YAML.load_file("#{cwd}/config.yml")
 
 ENV['VAGRANT_DEFAULT_PROVIDER'] = "docker"
-
 
 Vagrant.configure("2") do |config|
   config.ssh.forward_agent = true
@@ -36,7 +40,6 @@ Vagrant.configure("2") do |config|
       d.remains_running = true
       d.create_args = ["-t","-i"]
       d.privileged = true
-      d.volumes = machine_config["volumes"]
       d.cmd = ["/sbin/init"]
       d.has_ssh = true 
    end
@@ -57,8 +60,8 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.provision :ansible do |ansible|
-  	ENV['ANSIBLE_CONFIG'] = File.join(installPath,"share","machination","provisioner","ansible","ansible.cfg")
-    ansible.playbook = File.join(installPath,"share","machination","provisioner","ansible","playbooks",machine_config["template"]+".playbook")
+  	ENV['ANSIBLE_CONFIG'] = File.join(ENV['MACHINATION_INSTALLDIR'],"share","machination","provisioner","ansible","ansible.cfg")
+    ansible.playbook = File.join(ENV['MACHINATION_INSTALLDIR'],"share","machination","provisioner","ansible","playbooks",machine_config["template"]+".playbook")
     ansible.sudo = true
   end
 end 
