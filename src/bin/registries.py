@@ -85,10 +85,16 @@ class MachineInstanceRegistry():
 class MachineTemplateRegistry():
     logger = None
     def getTemplates(self):
-        path = listPath(os.path.join(MACHINATION_INSTALLDIR,'share','machination', 'templates'))
+        systemPath = listPath(os.path.join(MACHINATION_INSTALLDIR,'share','machination', 'templates'))
+        userPath = listPath(os.path.join(MACHINATION_WORKDIR, 'templates'))
         machineTemplates = {}
-        for f in path:
+        for f in systemPath:
             if os.path.isfile(f) and  os.path.splitext(os.path.basename(f))[1] == ".yml":
                 machine = MachineTemplate(f)
                 machineTemplates[machine.getName()] = machine
+        for f in userPath:
+            if os.path.isfile(f) and  os.path.splitext(os.path.basename(f))[1] == ".yml":
+                machine = MachineTemplate(f)
+                if not machine.getName() in machineTemplates:
+                    machineTemplates[machine.getName()] = machine
         return machineTemplates

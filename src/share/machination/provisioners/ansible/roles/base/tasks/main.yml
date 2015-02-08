@@ -36,4 +36,4 @@
     shell: sed -i "s/ZSH_THEME=.*/ZSH_THEME=\"gianu\"/g" /home/{{ user }}/.zshrc
 
   - name: Change user shell
-    user: name=vagrant shell=/bin/zsh
+    user: name={{ user }} shell=/bin/zsh

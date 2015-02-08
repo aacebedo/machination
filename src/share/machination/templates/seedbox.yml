@@ -20,10 +20,8 @@ archs: ["x64","x86"]
 provisioners: ["Ansible"]
 providers: ["Docker"]
 volumes: [] 
-host_interface: null
+host_interface: eth0
 guest_interfaces : 
-- ipaddr: "dhcp"
-  macaddr: "c4:85:08:5b:37:10"
 - hostname: "toto"
   ipaddr: "dhcp"
   macaddr: "c4:85:08:5b:37:11"

@@ -4,6 +4,11 @@ import yaml
 from constants import *
 import subprocess
 import sys 
+from helpers import *
+import pwd
+import shutil
+
+
 
 class NetworkInterface(yaml.YAMLObject):
     yaml_tag = "!NetworkInterface"
@@ -70,7 +75,7 @@ class MachineTemplate:
     _archs = []
     _guestInterfaces = []
     _hostInterface = None
-      
+    
     def __init__(self, templateFile):                                              
         self.path = os.path.abspath(templateFile)
         stream = open(self.path)
@@ -109,18 +114,15 @@ class MachineTemplate:
 
         if "guest_interfaces" in self.desc.keys() and isinstance(self.desc["guest_interfaces"], list):
             for p in self.desc["guest_interfaces"]:
-               
                 if p.has_key("ipaddr") and p.has_key("macaddr"):
                     if p.has_key("hostname"):
                         self._guestInterfaces.append(NetworkInterface(p["ipaddr"],p["macaddr"],p["hostname"]))
                     else:
                         self._guestInterfaces.append(NetworkInterface(p["ipaddr"],p["macaddr"]))
-                        
                 else:
                     raise InvalidMachineTemplateError("size")
         else:
             raise InvalidMachineTemplateError("guest_interfaces")
-        
         
     def getName(self):
         fileName = os.path.basename(self.path)
@@ -143,7 +145,6 @@ class MachineTemplate:
     
     def getGuestInterfaces(self):
         return self._guestInterfaces
-    
 
 class MachineInstance(yaml.YAMLObject):
     yaml_tag = '!MachineInstance'
@@ -154,9 +155,9 @@ class MachineInstance(yaml.YAMLObject):
     host_interface = None
     guest_interfaces  = None
     arch = None
-    _sharedFolders = None
+    _shared_folders = None
     
-    def __init__(self, name, template, arch, provider, provisioner, host_interface, guest_interfaces):
+    def __init__(self, name, template, arch, provider, provisioner, host_interface, guest_interfaces,shared_folders):
         self.name = name
         self.template = template
         self.arch = arch
@@ -164,7 +165,7 @@ class MachineInstance(yaml.YAMLObject):
         self.provisioner = provisioner
         self.guest_interfaces = guest_interfaces
         self.host_interface = host_interface   
-        _sharedFolders = []
+        self.shared_folders = shared_folders
         
     def getPath(self):
         return os.path.join(MACHINATION_WORKDIR,"instances",self.getName())
@@ -172,31 +173,49 @@ class MachineInstance(yaml.YAMLObject):
     def instantiate(self):
         if not os.path.exists(self.getPath()):
             os.makedirs(self.getPath())
-  
         if not os.path.islink(os.path.join(self.getPath(),"Vagrantfile")):
             os.symlink(os.path.join(MACHINATION_INSTALLDIR,"share","machination","vagrant","Vagrantfile"),os.path.join(self.getPath(),"Vagrantfile"))
         else:
             v = raw_input("Vagrant file already exists in the indicate folder do you want to overwrite it ? [Y/n]: ")
-            
         configFile = yaml.dump(self)
         file = open(os.path.join(self.getPath(),"config.yml"),"w+")
         file.write(configFile)
         file.close()
+        pw_record = pwd.getpwnam(os.getenv("SUDO_USER"))
+        os.chown(self.getPath(), pw_record.pw_uid, pw_record.pw_gid)
+        for root, dirs, files in os.walk(self.getPath()):  
+            for d in dirs:  
+                os.lchown(os.path.join(root, d), pw_record.pw_uid, pw_record.pw_gid)
+            for f in files:
+                os.lchown(os.path.join(root, f), pw_record.pw_uid, pw_record.pw_gid)
                     
     def getName(self):
         return self.name
             
     def getSharedFolders(self):
-        return self._sharedFolders
+        return self.shared_folders
     
     def setSharedFolders(self,val):
-        self._sharedFolders = val
-        
+        self.shared_folders = val
+ 
     def start(self):
-        os.environ["MACHINATION_INSTALLDIR"] = MACHINATION_INSTALLDIR
+        pw_record = pwd.getpwnam(os.getenv("SUDO_USER"))
+        os.environ["MACHINATION_INSTALLDIR"] = MACHINATION_INSTALLDIR        
         instanceEnv = os.environ.copy()
-        subprocess.Popen("vagrant up", shell=True, stdout=subprocess.PIPE, env=instanceEnv,cwd=self.getPath()).stdout.read()              
-
+        #subprocess.Popen("vagrant up", shell=True, preexec_fn=demote(pw_record.pw_uid, pw_record.pw_gid), stdout=subprocess.PIPE, env=instanceEnv,cwd=self.getPath()).stdout.read()              
+        subprocess.Popen("vagrant up", shell=True, stdout=subprocess.PIPE,env=instanceEnv,cwd=self.getPath()).stdout.read()
+        os.chown(self.getPath(), pw_record.pw_uid, pw_record.pw_gid)        
+        for root, dirs, files in os.walk(self.getPath()):  
+            for d in dirs:  
+                os.lchown(os.path.join(root, d), pw_record.pw_uid, pw_record.pw_gid)
+            for f in files:
+                os.lchown(os.path.join(root, f), pw_record.pw_uid, pw_record.pw_gid)
+  
+    def destroy(self):
+        os.environ["MACHINATION_INSTALLDIR"] = MACHINATION_INSTALLDIR        
+        subprocess.Popen("vagrant destroy -f", shell=True, stdout=subprocess.PIPE,cwd=self.getPath()).stdout.read()
+        shutil.rmtree(self.getPath())
+              
     def stop(self):
         os.environ["MACHINATION_INSTALLDIR"] = MACHINATION_INSTALLDIR
         instanceEnv = os.environ.copy()
@@ -238,4 +257,5 @@ class MachineInstance(yaml.YAMLObject):
                                representation["provider"],
                                representation["provisioner"], 
                                representation["host_interface"], 
-                               representation["guest_interfaces"])
+                               representation["guest_interfaces"],
+                               representation["shared_folders"])

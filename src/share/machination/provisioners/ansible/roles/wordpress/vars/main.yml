@@ -1,0 +1,3 @@
+jenkins-user: jenkins
+wordpress-pkg-url: http://wordpress.org/latest.tar.gz
+sqlite-integration-pkg-url: http://downloads.wordpress.org/plugin/sqlite-integration.1.7.zip

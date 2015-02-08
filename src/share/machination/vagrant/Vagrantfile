@@ -16,16 +16,21 @@
 # License along with this library.
 ##########################################################################
 require 'yaml'
+ENV['VAGRANT_DEFAULT_PROVIDER'] = "docker"
 
 if not ENV.has_key?('MACHINATION_INSTALLDIR')
-	abort("Environment variable MACHINATION_INSTALLDIR not set. Check your installation")
+	abort("Environment variable MACHINATION_INSTALLDIR not set. Check your installation.")
 end 
 
-print(ENV['MACHINATION_INSTALLDIR'])
 cwd = File.dirname(File.expand_path(__FILE__))
 machine_config    = YAML.load_file("#{cwd}/config.yml")
+if not machine_config["name"]
+	abort("Name is missing from the configuration file. Check the config.yml file.")
+end
 
-ENV['VAGRANT_DEFAULT_PROVIDER'] = "docker"
+if not machine_config["arch"]
+	abort("Architecture is missing from the configuration file. Check the config.yml file.")
+end
 
 Vagrant.configure("2") do |config|
   config.ssh.forward_agent = true
@@ -41,7 +46,7 @@ Vagrant.configure("2") do |config|
       d.create_args = ["-t","-i"]
       d.privileged = true
       d.cmd = ["/sbin/init"]
-      d.has_ssh = true 
+      d.has_ssh = true
    end
   end
 
@@ -50,18 +55,30 @@ Vagrant.configure("2") do |config|
     counter=0
     for i in machine_config["guest_interfaces"]
   		counter+=1
-  		if i["hostname"]
-  			command += "unshare -u -- sh -c 'sysctl kernel.hostname=" + i["hostname"] + "; pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + machine_config["name"] + " " + i["ipaddr"] + " " + i["macaddr"] + "';"
+  		if machine_config["host_interface"] and i["ipaddr"] and i["macaddr"]
+	  		if i["hostname"]
+	  			command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + machine_config["name"] + " " + i["hostname"] + " " + i["ipaddr"] + " " + i["macaddr"] + ";"
+			else
+				command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + machine_config["name"] + " " + machine_config["name"] + " " + i["ipaddr"] + " " + i["macaddr"] + ";"
+			end
 		else
-			command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + machine_config["name"] + " " + i["ipaddr"] + " " + i["macaddr"] + ";"	
+			puts("An interface description is malformed. Check the config.yml file.")
 		end
 	end
     host_shell.inline = command
   end
 
   config.vm.provision :ansible do |ansible|
+	if not machine_config["template"]
+		abort("Ansible template is missing from the configuration file. Check the config.yml file.")
+	end
+  	if not File.exist?(File.join(ENV['MACHINATION_INSTALLDIR'],"share","machination","provisioner","ansible","playbooks",machine_config["template"]+".playbook"))
+  		abort("Ansible template file is missing ("+File.join(ENV['MACHINATION_INSTALLDIR'],"share","machination","provisioner","ansible","playbooks",machine_config["template"]+".playbook")+"). Check your installation.")
+  	end
+  	
   	ENV['ANSIBLE_CONFIG'] = File.join(ENV['MACHINATION_INSTALLDIR'],"share","machination","provisioner","ansible","ansible.cfg")
-    ansible.playbook = File.join(ENV['MACHINATION_INSTALLDIR'],"share","machination","provisioner","ansible","playbooks",machine_config["template"]+".playbook")
+    
+  	ansible.playbook = File.join(ENV['MACHINATION_INSTALLDIR'],"share","machination","provisioner","ansible","playbooks",machine_config["template"]+".playbook")
     ansible.sudo = true
   end
 end 
