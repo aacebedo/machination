@@ -46,11 +46,15 @@ def make_action(functionToCall):
 class CmdLine:
     parser = None
     logger = None
-    instanceReg = MachineInstanceRegistry()            
-    templateReg = MachineTemplateRegistry()
+    instanceReg = None
+    templateReg = None
     
     def __init__(self):
         self.logger = logging.getLogger("commandline")
+        
+        self.instanceReg = MachineInstanceRegistry(os.path.join(MACHINATION_USERDIR,'instances'))
+        self.templateReg = MachineTemplateRegistry([os.path.join(MACHINATION_INSTALLDIR,'share','machination', 'templates'),os.path.join(MACHINATION_USERDIR, 'templates') ])       
+       
         self.parser = argparse.ArgumentParser(prog="Machination", description='Machination utility, all your appliances belong to us.')
         rootSubparsers = self.parser.add_subparsers(help='Root parser')
         
@@ -96,17 +100,28 @@ class CmdLine:
             data['version'].append('1.0')
             data['path'].append(os.path.abspath(f.getPath()))
             data['provisioner'].append("ansible")
+        
+        name_col_width=0
+        version_col_width=0
+        path_col_width=0
+        pro_col_width=0
+        
+        if len(data['name']) != 0:
+            name_col_width = max(len(word) for word in data['name']) + len("Name") + 2 
+        if len(data['version']) != 0:        
+            version_col_width = max(len(word) for word in data['version']) + len("Version") + 2
+        if len(data['path']) != 0:
+            path_col_width = max(len(word) for word in data['path']) + len("Path") + 2
+        if len(data['provisioner']) != 0:
+            pro_col_width = max(len(word) for word in data['provisioner']) + len("Provisioner") + 2
+       
+        if len(data['name'])!=0:
+            self.logger.info("Name".ljust(name_col_width) + "Version".ljust(version_col_width) + "Path".ljust(path_col_width) + "Provisioner".ljust(pro_col_width))
+            for row in range(0, len(data['name'])):
+                self.logger.info(data['name'][row].ljust(name_col_width) + data['version'][row].ljust(version_col_width) + data['path'][row].ljust(path_col_width) + data['provisioner'][row].ljust(pro_col_width))
+        else:
+            self.logger.info("No templates available")
             
-        name_col_width = max(len(word) for word in data['name']) + len("Name") + 2 
-        version_col_width = max(len(word) for word in data['version']) + len("Version") + 2
-        path_col_width = max(len(word) for word in data['path']) + len("Path") + 2
-        pro_col_width = max(len(word) for word in data['provisioner']) + len("Provisioner") + 2
-       
-        self.logger.info("Name".ljust(name_col_width) + "Version".ljust(version_col_width) + "Path".ljust(path_col_width) + "Provisioner".ljust(pro_col_width))
-       
-        for row in range(0, len(data['name'])):
-            self.logger.info(data['name'][row].ljust(name_col_width) + data['version'][row].ljust(version_col_width) + data['path'][row].ljust(path_col_width) + data['provisioner'][row].ljust(pro_col_width))
-             
     def listInstances(self,args):                
         self.logger.debug("Listing machine instances")
         data = {'name': []}
@@ -114,13 +129,16 @@ class CmdLine:
         
         for i in instances.values():
             data['name'].append(i.getName())
+
+        if len(data['name']) != 0:
+            name_col_width = max(len(word) for word in data['name']) + len("Name") + 2 
+            self.logger.info("Name".ljust(name_col_width))
+            for row in range(0, len(data['name'])):
+                print data['name'][row].ljust(name_col_width)
+        else:
+            self.logger.info("No instances available")
+        
             
-        name_col_width = max(len(word) for word in data['name']) + len("Name") + 2 
-        
-        self.logger.info("Name".ljust(name_col_width))
-        for row in range(0, len(data['name'])):
-            print data['name'][row].ljust(name_col_width)
-        
         
     def createMachine(self,args):
         self.logger.debug("Creating a new machine instance named " + args.name + " using template " + args.template)
@@ -135,59 +153,55 @@ class CmdLine:
         if args.template in availableMachines.keys():
             template = availableMachines[args.template]
                
-            hostInterface = template.getHostInterface()
+            hostInterface = ""
             guestInterfaces = copy.deepcopy(template.getGuestInterfaces())
             arch = template.getArchs()[0]
             provider = template.getProviders()[0]   
             provisioner = template.getProvisioners()[0]
+            syncedFolders = []
+           
             
-            if template.getHostInterface() == None:
-                v = raw_input("Please enter the host interface [eth0]: ")
-                if not v == "":
-                    hostInterface = v
-                
-            i = 0
-            for f in template.getGuestInterfaces():
-                v = raw_input("Please enter an IP address for the interface ["+f.getIPAddr()+"]: ")
-                if not v == "":
-                    guestInterfaces[i].setIPAddr(v)
-                        
-                v = raw_input("Please enter a MAC address for the interface: ["+f.getMACAddr()+"]" )  
-                if not v == "":
-                    guestInterfaces[i].setMACAddr(v)
-                    
-                if f.getHostname() != None:
-                    v = raw_input("Please enter a hostname for the interface: ["+f.getHostname()+"]" )  
-                    if not v == "":
-                        guestInterfaces[i].setHostname(v)            
-                i+=1
-                                         
+            hostInterface = RegexedQuestion("Enter the host interface","[a-z]*[0-9]*","eth0").ask()
+            
             if len(template.getArchs()) > 1 :
-                archs = ""
-                for a in template.getArchs():
-                    archs += str(a)+", "
-               
-                v = raw_input("Select an architecture {" + ",".join(map(str,template.getArchs())) + "} [" + arch.name + "]: ")         
-                if not v == "":
-                    if v in Architecture.__members__.keys():
-                        arch = Architecture[v]
-                    else:
-                        raise InvalidMachineTemplateError("invalid arch")
-                     
+                arch = RegexedQuestion("Select an architecture {"+ ",".join(map(str,template.getArchs())) +"}","[" + ",".join(map(str,template.getArchs())) + "]",arch.name).ask()            
+                print(template.getArchs())
+                if arch in Architecture.__members__.keys():
+                    arch = Architecture[arch]
+                else:
+                    raise InvalidMachineTemplateError("invalid arch")
+            os.exit(0)
             if len(template.getProvisioners()) > 1 :
-                v = raw_input("Select a provisioner {" + ','.join(map(str,template.getProvisioners())) + "} [" + provisioner + "]: ")
+                v = RegexedQuestion("Select an provisioner {"+ ",".join(map(str,template.getProvisioners())) +"}","[" + ",".join(map(str,template.getProvisioners())) + "]",provisioner.name).ask()            
                 if v in Provisioner.__members__.keys():
                     provisioner = Provisioner[v]
                 else:
                     raise InvalidMachineTemplateError("invalid provisioner")
-                    
+                        
             if len(template.getProviders()) > 1 :
-                v = raw_input("Select a provider  {" + ','.join(map(str,template.getProviders())) + "} [" + provider + "]: ")            
+                v = RegexedQuestion("Select an provider {"+ ",".join(map(str,template.getProviders())) +"}","[" + ",".join(map(str,template.getProviders())) + "]",provider.name).ask()            
+                
                 if v in Provider.__members__.keys():
                     provider = Provider[v]
                 else:
                     raise InvalidMachineTemplateError("invalid provisioner")
+                        
+            for f in template.getGuestInterfaces():
+                i=0
+                v = RegexedQuestion("Enter an IP address for the interface","[a-z]*[0-9]*",f.getIPAddr()).ask()
+                guestInterfaces[i].setIPAddr(v)
+                v = RegexedQuestion("Enter a MAC address for the interface","[0-9]{2}:[0-9]{2}:[0-9]{2}:[0-9]{2}",f.getMACAddr()).ask()
+                guestInterfaces[i].setMACAddr(v)
+                       
+                if f.getHostname() != None:
+                    guestInterfaces[i].setHostname(f.getHostname())        
+                i += 1
                 
+            while BinaryQuestion("Do you want to add a synced folder ?").ask():
+                hostPathQues = PathQuestion("Enter the path of the host directory to add: ",".*","",True)
+                guestPathQues = PathQuestion("Enter the path of the guest directory: ","^/.*","",False)
+                syncedFolders.append(SyncedFolder(hostPathQues,guestPathQues))
+                    
             self.logger.info("The machine named " + args.name + " will: ")                                    
             self.logger.info("  Use the architecture " + str(arch))                                    
             self.logger.info("  Use the provisioner " + str(provisioner))
@@ -203,7 +217,7 @@ class CmdLine:
                     self.logger.info("    Hostname: " + intf.getHostname())
                 self.logger.info("")
                 i+=1
-            instance = MachineInstance(args.name,template, arch, provider, provisioner, hostInterface, guestInterfaces,[])        
+            instance = MachineInstance(args.name,template, arch, provider, provisioner, hostInterface, guestInterfaces,syncedFolders)        
             instance.instantiate()
         else:
             self.logger.error("Unable to instantiate the machine because template named "+ args.template + " cannot be found. Check your template directory.")

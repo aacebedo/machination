@@ -1,10 +1,7 @@
 #!/usr/bin/env python
-import argparse
 import os
+import argparse
 import yaml
-
-
-
 import socket
 import fcntl
 import struct
@@ -17,53 +14,38 @@ from logging import StreamHandler
 from platform import architecture
 from ipaddr import IPAddress, _IPAddrBase
 
+
+sys.path.append(os.path.abspath(os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)),'..','share','machination','python'))))
 from core import *
 from enums import *
 from registries import *
 from cmdline import *
 from constants import *
+from helpers import *
 
-mkdir_p(MACHINATION_INSTANCESDIR)
-
-formatter = logging.Formatter('%(message)s')
-strHandler = StreamHandler()
-strHandler.setLevel(logging.DEBUG)
-strHandler.setFormatter(formatter)
-
-logger = logging.getLogger("test")
-logger.setLevel(logging.DEBUG)
-logger.addHandler(strHandler)
-
-logger = logging.getLogger("commandline")
-logger.setLevel(logging.DEBUG)
-logger.addHandler(strHandler)
-        
-#registry = MachineInstanceRegistry()
-
-cmd = CmdLine()
-try:
-    cmd.parseArgs(sys.argv)
-except MachineInstanceAlreadyExistsException as e:    
-    sys.exit(e)
-except MachineInstanceDoNotExistException as e:    
-    sys.exit(e)
-except:
-    raise#args = parser.parse_args()
-#args.func(args)
-
-
-# v = yaml.load("""
-# !MachineInstanceRegistry2
-# instances: 
-# - toto
-# """)
-# 
-# print v
-# test2 = MachineInstanceRegistry2()
-# test2.addInstance(MachineInstance("/test","/test", None, None, None, None, None, None))
-# print yaml.dump(test2, default_flow_style=False)
-
-
-
-# print args
-# print args.acculate(args.integers)
+def __main__():
+    mkdir_p(MACHINATION_INSTANCESDIR)
+    
+    formatter = logging.Formatter('%(message)s')
+    strHandler = StreamHandler()
+    strHandler.setLevel(logging.DEBUG)
+    strHandler.setFormatter(formatter)
+    
+    logger = logging.getLogger("test")
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(strHandler)
+    
+    logger = logging.getLogger("commandline")
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(strHandler)
+            
+    cmd = CmdLine()
+    try:
+        cmd.parseArgs(sys.argv)
+    except MachineInstanceAlreadyExistsException as e:    
+        sys.exit(e)
+    except MachineInstanceDoNotExistException as e:    
+        sys.exit(e)
+    except:
+        raise#args = parser.parse_args()
+    #args.func(args)

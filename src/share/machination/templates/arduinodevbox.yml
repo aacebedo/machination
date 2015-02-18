@@ -17,12 +17,10 @@
 ##########################################################################
 ---
 !MachineTemplate
-archs: ["x64","x86"] 
+archs: ["x64"] 
 os_versions: ["trusty"]
 provisioners: ["Ansible"]
 providers: ["Docker"]
-guest_interfaces : 
-- hostname: "toto"
+guest_interfaces :
+- hostname: "arduinodevbox" 
   ipaddr: "dhcp"
-  macaddr: "c4:85:08:5b:37:11"
-
