@@ -1,5 +1,5 @@
 ##########################################################################
-# Vagrantfile
+# Machination
 # Copyright (c) 2014, Alexandre ACEBEDO, All rights reserved.
 #
 # This library is free software; you can redistribute it and/or
@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.
 ##########################################################################
+
 require 'yaml'
 ENV['VAGRANT_DEFAULT_PROVIDER'] = "docker"
 

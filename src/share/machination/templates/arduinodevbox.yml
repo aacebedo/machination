@@ -23,4 +23,4 @@ provisioners: ["Ansible"]
 providers: ["Docker"]
 guest_interfaces :
 - hostname: "arduinodevbox" 
-  ipaddr: "dhcp"
+  ip_addr: "dhcp"

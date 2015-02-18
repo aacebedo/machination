@@ -1,5 +1,5 @@
-########################################################################
-# ubuntu-trusty-x64-vagrant.dockerfile
+##########################################################################
+# Machination
 # Copyright (c) 2014, Alexandre ACEBEDO, All rights reserved.
 #
 # This library is free software; you can redistribute it and/or

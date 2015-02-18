@@ -1,3 +1,21 @@
+##########################################################################
+# Machination
+# Copyright (c) 2014, Alexandre ACEBEDO, All rights reserved.
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 3.0 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.
+##########################################################################
+
 import argparse
 import logging
 import os
@@ -92,19 +110,23 @@ class CmdLine:
         
     def listTemplates(self, args):
         self.logger.debug("Listing machine templates")
-        data = {'name': [], 'version': [], 'path': [], 'provisioner': []}
+        data = {'name': [], 'version': [], 'path': [], 'provisioners': [], 'providers': [], 'archs': []}
         templates = self.templateReg.getTemplates();
 
         for f in templates.values():    
             data['name'].append(f.getName())
             data['version'].append('1.0')
             data['path'].append(os.path.abspath(f.getPath()))
-            data['provisioner'].append("ansible")
+            data['provisioners'].append(",".join(map(str,f.getProvisioners())))
+            data['providers'].append(",".join(map(str,f.getProviders())))
+            data['archs'].append(",".join(map(str,f.getArchs())))
         
         name_col_width=0
         version_col_width=0
         path_col_width=0
-        pro_col_width=0
+        provisioner_col_width=0
+        providers_col_width=0
+        archs_col_width=0
         
         if len(data['name']) != 0:
             name_col_width = max(len(word) for word in data['name']) + len("Name") + 2 
@@ -112,32 +134,38 @@ class CmdLine:
             version_col_width = max(len(word) for word in data['version']) + len("Version") + 2
         if len(data['path']) != 0:
             path_col_width = max(len(word) for word in data['path']) + len("Path") + 2
-        if len(data['provisioner']) != 0:
-            pro_col_width = max(len(word) for word in data['provisioner']) + len("Provisioner") + 2
+        if len(data['provisioners']) != 0:
+            provisioner_col_width = max(len(word) for word in data['provisioners']) + len("Provisioners") + 2
+        if len(data['providers']) != 0:
+            providers_col_width = max(len(word) for word in data['providers']) + len("Providers") + 2
+        if len(data['archs']) != 0:
+            pro_col_width = max(len(word) for word in data['archs']) + len("Architectures") + 2
        
         if len(data['name'])!=0:
-            self.logger.info("Name".ljust(name_col_width) + "Version".ljust(version_col_width) + "Path".ljust(path_col_width) + "Provisioner".ljust(pro_col_width))
+            self.logger.info("Name".ljust(name_col_width) + "Version".ljust(version_col_width) + "Path".ljust(path_col_width) + "Provisioners".ljust(pro_col_width)  + "Providers".ljust(pro_col_width)  + "Architectures".ljust(pro_col_width))
             for row in range(0, len(data['name'])):
-                self.logger.info(data['name'][row].ljust(name_col_width) + data['version'][row].ljust(version_col_width) + data['path'][row].ljust(path_col_width) + data['provisioner'][row].ljust(pro_col_width))
+                self.logger.info(data['name'][row].ljust(name_col_width) + data['version'][row].ljust(version_col_width) + data['path'][row].ljust(path_col_width) + data['provisioners'][row].ljust(pro_col_width)  + data['providers'][row].ljust(pro_col_width)  + data['archs'][row].ljust(pro_col_width))
         else:
             self.logger.info("No templates available")
             
     def listInstances(self,args):                
         self.logger.debug("Listing machine instances")
-        data = {'name': []}
+        data = {'name': [],'path': []}
         instances = self.instanceReg.getInstances()
         
         for i in instances.values():
             data['name'].append(i.getName())
+            data['path'].append(i.getPath())
 
         if len(data['name']) != 0:
             name_col_width = max(len(word) for word in data['name']) + len("Name") + 2 
-            self.logger.info("Name".ljust(name_col_width))
+            path_col_width = max(len(word) for word in data['path']) + len("Path") + 2 
+            
+            self.logger.info("Name".ljust(name_col_width)+"Path".ljust(path_col_width))
             for row in range(0, len(data['name'])):
-                print data['name'][row].ljust(name_col_width)
+                self.logger.info(data['name'][row].ljust(name_col_width) + data['path'][row].ljust(name_col_width))
         else:
             self.logger.info("No instances available")
-        
             
         
     def createMachine(self,args):
@@ -158,19 +186,21 @@ class CmdLine:
             arch = template.getArchs()[0]
             provider = template.getProviders()[0]   
             provisioner = template.getProvisioners()[0]
+            osVersion = template.getOsVersions()[0]
             syncedFolders = []
-           
             
-            hostInterface = RegexedQuestion("Enter the host interface","[a-z]*[0-9]*","eth0").ask()
+            hostInterface = RegexedQuestion("Enter the host interface","[a-z]+[0-9]+","eth0").ask()
             
             if len(template.getArchs()) > 1 :
                 arch = RegexedQuestion("Select an architecture {"+ ",".join(map(str,template.getArchs())) +"}","[" + ",".join(map(str,template.getArchs())) + "]",arch.name).ask()            
-                print(template.getArchs())
                 if arch in Architecture.__members__.keys():
                     arch = Architecture[arch]
                 else:
                     raise InvalidMachineTemplateError("invalid arch")
-            os.exit(0)
+            
+            if len(template.getOsVersions()) > 1 :
+                osVersion = RegexedQuestion("Select an os version {"+ ",".join(map(str,template.getOsVersions())) +"}","[" + ",".join(map(str,template.getOsVersions())) + "]",osVersion).ask()                         
+            
             if len(template.getProvisioners()) > 1 :
                 v = RegexedQuestion("Select an provisioner {"+ ",".join(map(str,template.getProvisioners())) +"}","[" + ",".join(map(str,template.getProvisioners())) + "]",provisioner.name).ask()            
                 if v in Provisioner.__members__.keys():
@@ -188,18 +218,18 @@ class CmdLine:
                         
             for f in template.getGuestInterfaces():
                 i=0
-                v = RegexedQuestion("Enter an IP address for the interface","[a-z]*[0-9]*",f.getIPAddr()).ask()
+                v = RegexedQuestion("Enter an IP address for the interface","^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|dhcp$",f.getIPAddr()).ask()
                 guestInterfaces[i].setIPAddr(v)
-                v = RegexedQuestion("Enter a MAC address for the interface","[0-9]{2}:[0-9]{2}:[0-9]{2}:[0-9]{2}",f.getMACAddr()).ask()
+                v = RegexedQuestion("Enter a MAC address for the interface","^([a-fA-F0-9]{2}:){5}([a-fA-F0-9]{2})$",f.getMACAddr()).ask()
                 guestInterfaces[i].setMACAddr(v)
                        
                 if f.getHostname() != None:
                     guestInterfaces[i].setHostname(f.getHostname())        
                 i += 1
                 
-            while BinaryQuestion("Do you want to add a synced folder ?").ask():
-                hostPathQues = PathQuestion("Enter the path of the host directory to add: ",".*","",True)
-                guestPathQues = PathQuestion("Enter the path of the guest directory: ","^/.*","",False)
+            while BinaryQuestion("Do you want to add a synced folder ?","N").ask():
+                hostPathQues = PathQuestion("Enter a path to an existing folder on the host",".+",None,True).ask()
+                guestPathQues = PathQuestion("Enter the mount path on the guest directory: ","^/.+",None,False).ask()
                 syncedFolders.append(SyncedFolder(hostPathQues,guestPathQues))
                     
             self.logger.info("The machine named " + args.name + " will: ")                                    
@@ -217,8 +247,8 @@ class CmdLine:
                     self.logger.info("    Hostname: " + intf.getHostname())
                 self.logger.info("")
                 i+=1
-            instance = MachineInstance(args.name,template, arch, provider, provisioner, hostInterface, guestInterfaces,syncedFolders)        
-            instance.instantiate()
+            instance = MachineInstance(args.name,template.getName(), arch, osVersion, provider, provisioner, hostInterface, guestInterfaces,syncedFolders)        
+            instance.generateFiles()
         else:
             self.logger.error("Unable to instantiate the machine because template named "+ args.template + " cannot be found. Check your template directory.")
             sys.exit(1)
