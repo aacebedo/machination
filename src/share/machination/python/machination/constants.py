@@ -18,6 +18,10 @@
 
 import os
 
+# Path of the program files
 MACHINATION_INSTALLDIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)),"..",'..','..','..'))
+
+# User dir to store instances and templates
 MACHINATION_USERDIR = os.path.abspath(os.path.join(os.path.expanduser("~"),".machination"))
-MACHINATION_INSTANCESDIR = os.path.join(MACHINATION_USERDIR,"instances")
+MACHINATION_USERINSTANCESDIR = os.path.join(MACHINATION_USERDIR,"instances")
+MACHINATION_USERTEMPLATEDIR = os.path.join(MACHINATION_USERDIR,"template")

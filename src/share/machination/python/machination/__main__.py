@@ -22,10 +22,10 @@ import sys
 sys.path.append(os.path.abspath(os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)),'..','share','machination','python'))))
 from machination.cmdline import CmdLine
 from machination.helpers import mkdir_p
-from machination.constants import MACHINATION_INSTANCESDIR
+from machination.constants import MACHINATION_USERINSTANCESDIR
 
 def __main__():
-    mkdir_p(MACHINATION_INSTANCESDIR)
+    mkdir_p(MACHINATION_USERINSTANCESDIR)
     cmd = CmdLine()
     cmd.parseArgs(sys.argv)
 

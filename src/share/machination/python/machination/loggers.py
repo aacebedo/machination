@@ -10,10 +10,6 @@ COMMANDLINELOGGER = logging.getLogger("CommandLine")
 COMMANDLINELOGGER.setLevel(logging.DEBUG)
 COMMANDLINELOGGER.addHandler(strHandler)
 
-MACHINEINSTANCEREGISTRYLOGGER = logging.getLogger("MachineInstanceRegistry")
-MACHINEINSTANCEREGISTRYLOGGER.setLevel(logging.DEBUG)
-MACHINEINSTANCEREGISTRYLOGGER.addHandler(strHandler)
-            
-MACHINETEMPLATEREGISTRYLOGGER = logging.getLogger("MachineTemplateRegistry")
-MACHINETEMPLATEREGISTRYLOGGER.setLevel(logging.DEBUG)
-MACHINETEMPLATEREGISTRYLOGGER.addHandler(strHandler)
+REGISTRYLOGGER = logging.getLogger("Registries")
+REGISTRYLOGGER.setLevel(logging.DEBUG)
+REGISTRYLOGGER.addHandler(strHandler)

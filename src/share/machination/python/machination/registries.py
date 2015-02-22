@@ -20,27 +20,52 @@ import yaml
 import os
 
 from machination.helpers import listPath
-
+from machination.helpers import accepts
+from machination.loggers import REGISTRYLOGGER
+###
+# Class representing the set of instances available
+###
 class MachineInstanceRegistry():
-    instanceDir = None
+    instanceDirs = None
     
-    def __init__(self,instanceDir):
-        self.instanceDir = instanceDir
-        
+    ###
+    # Constructor
+    ###
+    @accepts(None,list)
+    def __init__(self,instanceDirs):
+        self.instanceDirs = instanceDirs
+    
+    ###
+    # Function to retrieve the available instances
+    ###
     def getInstances(self):
-        path = listPath(self.instanceDir)
+        
         instances = {}
-        for d in path:            
-            if os.path.isdir(d) and os.path.exists(os.path.join(d,"Vagrantfile")) and os.path.exists(os.path.join(d,"config.yml")) :                
-                openedFile = open(os.path.join(d,"config.yml"),"r")
-                instance = yaml.load(openedFile)             
-                if instance != None:
-                    instances[instance.getName()] = instance
+        for d in self.instanceDirs:
+            path = listPath(d)
+            # For each path to scan
+            for d in path:
+                # Check if the file exists and if there is a VagrantFile and a config file in it
+                if os.path.isdir(d) and os.path.exists(os.path.join(d,"Vagrantfile")) and os.path.exists(os.path.join(d,"config.yml")):
+                    try:
+                        openedFile = open(os.path.join(d,"config.yml"),"r")
+                        instance = yaml.load(openedFile)
+                        if instance != None:
+                            instances[instance.getName()] = instance
+                    except:
+                        REGISTRYLOGGER.error("Unable to load instance from {0}".format(d)) 
         return instances
 
+###
+# Class to retrieve the available templates
+###
 class MachineTemplateRegistry():
     templateDirs = None
     
+    ###
+    # Constructor
+    ###
+    @accepts(None,list)
     def __init__(self,templateDirs):
         self.templateDirs = templateDirs
         

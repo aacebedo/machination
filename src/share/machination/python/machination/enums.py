@@ -37,7 +37,7 @@ class Provider(StringifiedEnum):
         if val in vals:
             return vals[val]
         else:
-            raise InvalidArgumentValue("provider")
+            raise InvalidArgumentValue("Unknown provider")
         
         
 class Provisioner(StringifiedEnum):
@@ -51,7 +51,7 @@ class Provisioner(StringifiedEnum):
         if pro in ctrs:
             return ctrs[pro]()
         else:
-            raise InvalidArgumentValue("provisioner","Unknown provisioner")
+            raise InvalidArgumentValue("Unknown provisioner")
     
     @staticmethod
     @accepts(str)
@@ -62,7 +62,7 @@ class Provisioner(StringifiedEnum):
         if val in vals:
             return vals[val]
         else:
-            raise InvalidArgumentValue("provisioner")
+            raise InvalidArgumentValue("Unknown provisioner")
 
 
 class Architecture(StringifiedEnum):
@@ -79,4 +79,4 @@ class Architecture(StringifiedEnum):
         if val in vals:
             return vals[val]
         else:
-            raise InvalidArgumentValue("architecture")
+            raise InvalidArgumentValue("Unknown architecture")
