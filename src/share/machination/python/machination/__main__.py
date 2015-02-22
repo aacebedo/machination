@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 ##########################################################################
 # Machination
 # Copyright (c) 2014, Alexandre ACEBEDO, All rights reserved.
@@ -15,19 +17,17 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.
 ##########################################################################
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)),'..','share','machination','python'))))
+from machination.cmdline import CmdLine
+from machination.helpers import mkdir_p
+from machination.constants import MACHINATION_INSTANCESDIR
 
-from enum import Enum
+def __main__():
+    mkdir_p(MACHINATION_INSTANCESDIR)
+    cmd = CmdLine()
+    cmd.parseArgs(sys.argv)
 
-class StringifiedEnum(Enum):  
-    def __str__(self):
-        return str(self.value)
-
-class Provider(StringifiedEnum):
-    Docker = "Docker"
-     
-class Provisioner(StringifiedEnum):
-    Ansible = "Ansible"
-    
-class Architecture(StringifiedEnum):
-    x86 = "i386"
-    x64 = "x64"
+if __name__ == "__main__":
+    __main__()

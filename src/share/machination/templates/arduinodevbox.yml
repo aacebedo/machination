@@ -22,5 +22,7 @@ os_versions: ["trusty"]
 provisioners: ["Ansible"]
 providers: ["Docker"]
 guest_interfaces :
-- hostname: "arduinodevbox" 
+- !NetworkInterface
+  hostname: "arduinodevbox" 
   ip_addr: "dhcp"
+  mac_addr: "c4:85:08:5b:37:11"

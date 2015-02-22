@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 ##########################################################################
 # Machination
 # Copyright (c) 2014, Alexandre ACEBEDO, All rights reserved.
@@ -15,53 +17,17 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.
 ##########################################################################
-
-#!/usr/bin/env python
 import os
-import argparse
-import yaml
-import socket
-import fcntl
-import struct
-import array
 import sys
-import copy
-import getpass
-
-from logging import StreamHandler
-from platform import architecture
-from ipaddr import IPAddress, _IPAddrBase
-
-
 sys.path.append(os.path.abspath(os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)),'..','share','machination','python'))))
-from core import *
-from enums import *
-from registries import *
-from cmdline import *
-from constants import *
-from helpers import *
+from machination.cmdline import CmdLine
+from machination.helpers import mkdir_p
+from machination.constants import MACHINATION_INSTANCESDIR
 
 def __main__():
     mkdir_p(MACHINATION_INSTANCESDIR)
-    
-    formatter = logging.Formatter('%(message)s')
-    strHandler = StreamHandler()
-    strHandler.setLevel(logging.DEBUG)
-    strHandler.setFormatter(formatter)
-    
-    logger = logging.getLogger("commandline")
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(strHandler)
-            
     cmd = CmdLine()
-    try:
-        cmd.parseArgs(sys.argv)
-    except MachineInstanceAlreadyExistsException as e:    
-        sys.exit(e)
-    except MachineInstanceDoNotExistException as e:    
-        sys.exit(e)
-    except:
-        raise
+    cmd.parseArgs(sys.argv)
 
 if __name__ == "__main__":
     __main__()

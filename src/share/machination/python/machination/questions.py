@@ -1,46 +1,5 @@
-##########################################################################
-# Machination
-# Copyright (c) 2014, Alexandre ACEBEDO, All rights reserved.
-#
-# This library is free software; you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation; either
-# version 3.0 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.
-##########################################################################
-
-import random
-import os
-import errno
 import re
-
-def listPath(d):
-    if(os.path.exists(d)):
-        return [os.path.join(d, f) for f in os.listdir(d)]
-    else:
-        return []
-    
-def randomMAC():
-    mac = [ 0x00, 0x16, 0x3e,
-        random.randint(0x00, 0x7f),
-        random.randint(0x00, 0xff),
-        random.randint(0x00, 0xff) ]
-    return ':'.join(map(lambda x: "%02x" % x, mac))
-    
-def mkdir_p(path):
-    try:
-        os.makedirs(path)
-    except OSError as exc:
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else: raise
+import os
 
 class RegexedQuestion:
     _question = ""
@@ -107,10 +66,3 @@ class PathQuestion(RegexedQuestion):
             return v
         else:
             return self.ask() 
-    
-    
-def demote(user_uid, user_gid):
-    def result():
-        os.setgid(user_gid)
-        os.setuid(user_uid)
-    return result

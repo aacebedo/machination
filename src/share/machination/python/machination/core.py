@@ -16,17 +16,26 @@
 # License along with this library.
 ##########################################################################
 
+import re
 import os
-from enums import *
 import yaml
-from constants import *
 import subprocess
 import sys 
-from helpers import *
 import pwd
 import shutil
-import inspect        
-from platform import architecture
+     
+
+from machination.constants import MACHINATION_INSTALLDIR 
+from machination.constants import MACHINATION_USERDIR
+
+from machination.enums import Provider
+from machination.enums import Provisioner
+from machination.enums import Architecture
+
+from machination.exceptions import PathNotExistError
+from machination.exceptions import InvalidArgumentValue
+
+from machination.helpers import accepts
 
 class NetworkInterface(yaml.YAMLObject):
     yaml_tag = "!NetworkInterface"
@@ -34,7 +43,17 @@ class NetworkInterface(yaml.YAMLObject):
     _macAddr = None
     _hostname = None
 
-    def __init__(self,ipAddr, macAddr,hostname=None):
+    @accepts(None,str,str,str)
+    def __init__(self,ipAddr, macAddr,hostname=""):
+        if re.match("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|dhcp$",ipAddr):
+            self._ipAddr = ipAddr
+        else:
+            raise InvalidArgumentValue("ipAddr")
+        if re.match("^([0-9a-fA-F]{2}[\.:-]){5}([0-9a-fA-F]{2})$",macAddr):
+            self._macAddr = macAddr
+        else:
+            raise InvalidArgumentValue("macAddr")
+        
         self._ipAddr = ipAddr
         self._macAddr = macAddr
         self._hostname = hostname
@@ -42,20 +61,29 @@ class NetworkInterface(yaml.YAMLObject):
     def getIPAddr(self):
         return self._ipAddr
     
-    def setIPAddr(self,val):
-        self._ipAddr = val
+#     @accepts(None,str)
+#     def setIPAddr(self,val):
+#         if re.match(val,"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|dhcp$"):
+#             self._ipAddr = val
+#         else:
+#             raise ArgumentValueError("ipAddr","Invalid IPAddress")
         
     def getMACAddr(self):
         return self._macAddr
     
-    def setMACAddr(self,val):
-        self._macAddr = val
-    
+#     @accepts(None,str)
+#     def setMACAddr(self,val):
+#         if re.match(val,"^([a-fA-F0-9]{2}:){5}([a-fA-F0-9]{2})$"):
+#             self._macAddr = val
+#         else:
+#             raise ArgumentValueError("ipAddr","Invalid IPAddress")
+        
     def getHostname(self):
         return self._hostname
     
-    def setHostname(self,val):
-        self._hostname = val
+#     @accepts(None,str)
+#     def setHostname(self,val):
+#         self._hostname = val
 
     def __str__(self):
         res = ""
@@ -76,10 +104,10 @@ class NetworkInterface(yaml.YAMLObject):
     @classmethod
     def from_yaml(cls, loader, node):
         representation = loader.construct_mapping(node,deep=True)
-        if not "ip_addr" in representation.keys() or not re.match("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|dhcp$",representation["ip_addr"]) :
-            raise InvalidMachineTemplateError("Invalid Ip address")
+        if not "ip_addr" in representation.keys():
+            raise InvalidMachineTemplateError("Invalid IP address")
         
-        if not "mac_addr" in representation.keys() or not re.match("^([a-fA-F0-9]{2}:){5}([a-fA-F0-9]{2})$",representation["mac_addr"]) :
+        if not "mac_addr" in representation.keys():
             raise InvalidMachineTemplateError("Invalid MAC address")
     
         hostname = None
@@ -93,24 +121,24 @@ class SyncedFolder(yaml.YAMLObject):
     _hostDir = None
     _guestDir = None
 
+    @accepts(None,str,str)
     def __init__(self,host_dir,guest_dir):
+        if not os.path.exists(host_dir):
+            raise PathNotExistError(host_dir)
+        
         self._hostDir = host_dir
         self._guestDir = guest_dir
 
     def getHostDir(self):
         return self._hostDir
-    
-    def setHostDir(self,val):
-        self._hostDir = val
         
     def getGuestDir(self):
         return self._guestDir
     
-    def setGuestDir(self,val):
-        self._guestDir = val
+#     def setGuestDir(self,val):
+#         self._guestDir = val
 
     def __str__(self):
-        res = ""            
         return self._hostDir + " => " + self._guestDir
     
     @classmethod
@@ -125,10 +153,10 @@ class SyncedFolder(yaml.YAMLObject):
     def from_yaml(cls, loader, node):
         representation = loader.construct_mapping(node,deep=True)
         
-        if not "host_dir" in representation.keys() or not type(representation["host_dir"]) is str or not os.path.exists(representation["host_dir"]):
+        if not "host_dir" in representation.keys():
             raise InvalidMachineTemplateError("Invalid host directory")
         
-        if not "guest_dir" in representation.keys() or not type(representation["guest_dir"]) is str or not re.match("^/.+$",representation["guest_dir"]):
+        if not "guest_dir" in representation.keys():
             raise InvalidMachineTemplateError("Invalid guest directory")              
         
         return SyncedFolder(representation["host_dir"],
@@ -152,24 +180,38 @@ class MachineTemplate(yaml.YAMLObject):
     archs = []
     guest_interfaces = []
     
+    @accepts(None,str,list,list,list,list)
     def __init__(self, path, archs, os_versions ,providers, provisioners, guest_interfaces):
         if not os.path.exists(path):
             raise InvalidMachineTemplateError("Invalid path")
         
-        if not type(archs) is list or len(archs) == 0:
+        if len(archs) == 0:
             raise InvalidMachineTemplateError("Invalid number of architecture")
-        
-        if not type(providers) is list or len(providers) == 0:
+        else:
+            for arch in archs:
+                if type(arch) is not Architecture:
+                    raise InvalidMachineTemplateError("invalid architecture")
+            
+        if len(providers) == 0:
             raise InvalidMachineTemplateError("Invalid number of providers")
+        else:
+            for p in providers:
+                if type( p) is not Provider:
+                    raise InvalidMachineTemplateError("invalid provider")
 
-        if not type(provisioners) is list or len(provisioners) == 0:
+        if len(provisioners) == 0:
             raise InvalidMachineTemplateError("Invalid number of provisioners")
-        
-        if not type(os_versions) is list or len(os_versions) == 0:
+        else:
+            for p in provisioners:
+                if type(p) is not Provisioner:
+                    raise InvalidMachineTemplateError("invalid provisioner")
+
+        if len(os_versions) == 0:
             raise InvalidMachineTemplateError("Invalid number of os versions")
         
-        if not type(guest_interfaces) is list or len(os_versions) == 0:
-            raise InvalidMachineTemplateError("Invalid number of guest interfaces")
+        for i in guest_interfaces:
+            if type(i) is not NetworkInterface:
+                raise InvalidMachineTemplateError("Invalid guest interface")
         
         self.path = path
         self.archs = archs
@@ -219,19 +261,19 @@ class MachineTemplate(yaml.YAMLObject):
         archs = []
         if "archs" in representation.keys() and type(representation["archs"]) is list:
             for p in representation["archs"]:
-                if p in Architecture.__members__.keys():                
+                if p in (Architecture.__members__).keys():                
                     archs.append(Architecture[p])
                    
         providers = []
         if "providers" in representation.keys() and type(representation["providers"]) is list:
             for p in representation["providers"]:
-                if p in Provider.__members__.keys():
+                if p in (Provider.__members__).keys():
                     providers.append(Provider[p])
                 
         provisioners = []
         if "provisioners" in representation.keys() and type(representation["provisioners"]) is list:
             for p in representation["provisioners"]:
-                if p in Provisioner.__members__.keys():
+                if p in (Provisioner.__members__).keys():
                     provisioners.append(Provisioner[p])
         
         os_versions = None
@@ -241,7 +283,6 @@ class MachineTemplate(yaml.YAMLObject):
         guest_interfaces = None
         if "guest_interfaces" in representation.keys() and type(representation["guest_interfaces"]) is list:
             guest_interfaces = representation["guest_interfaces"]
-        
         return MachineTemplate(loader.stream.name,                
                                archs, 
                                os_versions,                                
@@ -261,41 +302,27 @@ class MachineInstance(yaml.YAMLObject):
     arch = None
     synced_folders = None
     
-    def __init__(self, name, template, arch,os_version,provider, provisioner, host_interface, guest_interfaces,synced_folders):        
-        if not type(template) is str or len(template) == 0:
-            raise InvalidMachineTemplateError("Invalid template")
+    @accepts(None,str,str,Architecture,str,Provider,Provisioner,str,list,list)
+    def __init__(self, name, template, arch,os_version,provider, provisioner, host_interface, guest_interfaces,synced_folders):                
+        if len(template) == 0:
+            raise InvalidArgumentValue("template")
         
-        if not type(arch) is Architecture:
-            raise InvalidMachineTemplateError("Invalid architecture")
-        
-        if not type(provider) is Provider:
-            raise InvalidMachineTemplateError("Invalid provider")
-
-        if not type(provisioner) is Provisioner:
-            raise InvalidMachineTemplateError("Invalid provisioner")
-        
-        if not type(os_version) is str or len(os_version) == 0:
-            raise InvalidMachineTemplateError("Invalid OS version")
+        if len(os_version) == 0:
+            raise InvalidArgumentValue("osVersion")
     
-        if not type(name) is str or len(name) == 0:
-            raise InvalidMachineTemplateError("Invalid Name")
+        if len(name) == 0:
+            raise InvalidArgumentValue("name")
        
-        if not type(host_interface) is str or not re.match("[a-z]+[0-9]+", host_interface):
-            raise InvalidMachineTemplateError("Invalid host interface")
+        if not re.match("[a-z]+[0-9]+", host_interface):
+            raise InvalidArgumentValue("host_interface")
         
-        if type(guest_interfaces) is list:
-            for i in guest_interfaces:
-                if not type(i) is NetworkInterface:
-                    raise InvalidMachineTemplateError("Invalid network interface")
-        else:
-            raise InvalidMachineTemplateError("Invalid network interfaces")
+        for i in guest_interfaces:
+            if not type(i) is NetworkInterface:
+                raise InvalidArgumentValue("network_interface")
         
-        if type(synced_folders) is list:     
-            for f in synced_folders:
-                if not type(f) is SyncedFolder:
-                    raise InvalidMachineTemplateError("Invalid sync folder")
-        else:
-            raise InvalidMachineTemplateError("Invalid network interfaces")
+        for f in synced_folders:
+            if not type(f) is SyncedFolder:
+                raise InvalidArgumentValue("synced_folder")
             
         self.name = name
         self.template = template
@@ -314,33 +341,45 @@ class MachineInstance(yaml.YAMLObject):
     def generateFiles(self):
         if not os.path.exists(self.getPath()):
             os.makedirs(self.getPath())
-        if not os.path.islink(os.path.join(self.getPath(),"Vagrantfile")):
-            os.symlink(os.path.join(MACHINATION_INSTALLDIR,"share","machination","vagrant","Vagrantfile"),os.path.join(self.getPath(),"Vagrantfile"))
+            shutil.copy(os.path.join(MACHINATION_INSTALLDIR,"share","machination","vagrant","Vagrantfile"),os.path.join(self.getPath(),"Vagrantfile"))
         else:            
-            if BinaryQuestion("This machine already exists. Do you want to overwrite it").ask():
-                return
-            
+            raise RuntimeError("Machine {0} already exists".format(self.getPath()))
+
+        if self.getProvisioner() == Provisioner.Ansible:
+            generator = Provisioner.getFileGenerator(self.getProvisioner())
+            generator.generateFiles(self.getTemplate(),self.getPath())
+        else:
+            raise RuntimeError("Unsupported provisioner {0}",self(self.getProvisioner()))
+                        
         configFile = yaml.dump(self)
-        file = open(os.path.join(self.getPath(),"config.yml"),"w+")
-        file.write(configFile)
-        file.close()
-        pw_record = pwd.getpwnam(os.getenv("SUDO_USER"))
-        os.chown(self.getPath(), pw_record.pw_uid, pw_record.pw_gid)
-        for root, dirs, files in os.walk(self.getPath()):  
-            for d in dirs:  
-                os.lchown(os.path.join(root, d), pw_record.pw_uid, pw_record.pw_gid)
-            for f in files:
-                os.lchown(os.path.join(root, f), pw_record.pw_uid, pw_record.pw_gid)
-                    
+        openedFile = open(os.path.join(self.getPath(),"config.yml"),"w+")
+        openedFile.write(configFile)
+        openedFile.close()
+        
+#         pw_record = pwd.getpwnam(os.getenv("SUDO_USER"))
+#         os.chown(self.getPath(), pw_record.pw_uid, pw_record.pw_gid)
+#         for root, dirs, files in os.walk(self.getPath()):  
+#             for d in dirs:  
+#                 os.lchown(os.path.join(root, d), pw_record.pw_uid, pw_record.pw_gid)
+#             for f in files:
+#                 os.lchown(os.path.join(root, f), pw_record.pw_uid, pw_record.pw_gid)
+#                     
     def getName(self):
         return self.name
             
+            
+    def getProvisioner(self):
+        return self.provisioner
+    
     def getSharedFolders(self):
         return self.shared_folders
     
-    def setSharedFolders(self,val):
-        self.shared_folders = val
- 
+    def getTemplate(self):
+        return self.template
+    
+#     def setSharedFolders(self,val):
+#         self.shared_folders = val
+#  
     def start(self):
         pw_record = pwd.getpwnam(os.getenv("SUDO_USER"))
         os.environ["MACHINATION_INSTALLDIR"] = MACHINATION_INSTALLDIR        
@@ -395,17 +434,16 @@ class MachineInstance(yaml.YAMLObject):
     @classmethod
     def from_yaml(cls, loader, node):
         representation = loader.construct_mapping(node,deep=True)   
-        
         arch = None
-        if "arch" in representation.keys() or representation["arch"] in Architecture.__members__.keys():                
+        if "arch" in representation.keys() or representation["arch"] in (Architecture.__members__).keys():                
             arch = Architecture[representation["arch"]]
-      
+        
         provider = None
-        if "provider" in representation.keys() or representation["provider"] in Provider.__members__.keys():                
+        if "provider" in representation.keys() or representation["provider"] in (Provider.__members__).keys():                
             provider = Provider[representation["provider"]]
         
         provisioner = None
-        if "provisioner" in representation.keys() or representation["provisioner"] in Provisioner.__members__.keys():                
+        if "provisioner" in representation.keys() or representation["provisioner"] in (Provisioner.__members__).keys():                
             provisioner = Provisioner[representation["provisioner"]]
             
         name = os.path.basename(os.path.dirname(loader.stream.name))
@@ -422,20 +460,20 @@ class MachineInstance(yaml.YAMLObject):
             host_interface = representation["host_interface"]
             
         guest_interfaces = []
-        if "guest_interfaces" in representation.keys():
+        if "guest_interfaces" in representation.keys():            
             guest_interfaces = representation["guest_interfaces"]
-                    
+
         synced_folders = []
         if "sync_folders" in representation.keys():
             synced_folders = representation["sync_folders"]
-    
+
         
         return MachineInstance(name, 
-                               template,
-                               arch, 
-                               os_version,                                
-                               provider,
-                               provisioner, 
-                               host_interface, 
-                               guest_interfaces,
-                               synced_folders)
+                                   template,
+                                   arch, 
+                                   os_version,                                
+                                   provider,
+                                   provisioner, 
+                                   host_interface, 
+                                   guest_interfaces,
+                                   synced_folders)
