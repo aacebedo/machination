@@ -24,13 +24,37 @@ if not ENV.has_key?('MACHINATION_INSTALLDIR')
 end 
 
 cwd = File.dirname(File.expand_path(__FILE__))
-machine_config    = YAML.load_file("#{cwd}/config.yml")
+machine_config = YAML.load_file("#{cwd}/config.yml")
+supportedProvisioners = ["Ansible"]
+supportedProviders = ["Docker"]
+supportedArchs = ["x86","x64"]
+
 if not machine_config["name"]
 	abort("Name is missing from the configuration file. Check the config.yml file.")
 end
 
 if not machine_config["arch"]
 	abort("Architecture is missing from the configuration file. Check the config.yml file.")
+end
+
+if not machine_config["provider"]
+	abort("Provider is missing from the configuration file. Check the config.yml file.")
+end
+
+if not machine_config["provisioner"]
+	abort("Provisioner is missing from the configuration file. Check the config.yml file.")
+end
+
+if not machine_config["template"]
+  abort("Template is missing from the configuration file. Check the config.yml file.")
+end
+  
+if not supportedProviders.include?(machine_config["provider"])
+	abort("Given provider "+machine_config["provider"]+" is not supported. Supported providers are "+supportedProviders+". Check the config.yml file.")	
+end
+
+if not supportedProvisioners.include?(machine_config["provisioner"])
+	abort("Given provisioner "+machine_config["provisioner"]+" is not supported. Supported provisioners are "+supportedProvisioners+". Check the config.yml file.")	
 end
 
 Vagrant.configure("2") do |config|
@@ -46,48 +70,44 @@ Vagrant.configure("2") do |config|
 		end 
 	  end
   end
- 
-  config.vm.define machine_config["name"] do |a|
-   a.vm.provider "docker" do |d|
-	  d.image = "aacebedo/ubuntu-"+machine_config["os_version"]+"-vagrant-"+machine_config["arch"]
-      d.name = machine_config["name"]
-      d.remains_running = true
-      d.create_args = ["-t","-i"]
-      d.privileged = true
-      d.cmd = ["/sbin/init"]
-      d.has_ssh = true
-	end
-   end
-
-#  config.vm.provision :host_shell,run: "always" do |host_shell|
+  if machine_config["provider"] == "Docker"
+    config.vm.define machine_config["name"] do |a|
+     a.vm.provider "docker" do |d|
+  	  d.image = "aacebedo/ubuntu-"+machine_config["os_version"]+"-vagrant-"+machine_config["arch"]
+        d.name = machine_config["name"]
+        d.remains_running = true
+        d.create_args = ["-t","-i"]
+        d.privileged = true
+        d.cmd = ["/sbin/init"]
+        d.has_ssh = true
+  	end
+#  	config.vm.provision :host_shell,run: "always" do |host_shell|
 #    command = ""
 #    counter=0
 #    for i in machine_config["guest_interfaces"]
-#  		counter+=1
-#  		if machine_config["host_interface"] and i["ipaddr"] and i["macaddr"]
-#	  		if i["hostname"]
-#	  			command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + machine_config["name"] + " " + i["hostname"] + " " + i["ipaddr"] + " " + i["macaddr"] + ";"
-#			else
-#				command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + machine_config["name"] + " " + machine_config["name"] + " " + i["ipaddr"] + " " + i["macaddr"] + ";"
-#			end
-#		else
-#			puts("An interface description is malformed. Check the config.yml file.")
-#		end
-#	end
+#     counter+=1
+#     if machine_config["host_interface"] and i["ipaddr"] and i["macaddr"]
+#       if i["hostname"]
+#         command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + machine_config["name"] + " " + i["hostname"] + " " + i["ipaddr"] + " " + i["macaddr"] + ";"
+#       else
+#        command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + machine_config["name"] + " " + machine_config["name"] + " " + i["ipaddr"] + " " + i["macaddr"] + ";"
+#       end
+#   else
+#     puts("An interface description is malformed. Check the config.yml file.")
+#   end
+# end
 #    host_shell.inline = command
 #  end
-#
-#  config.vm.provision :ansible do |ansible|
-#	if not machine_config["template"]
-#		abort("Ansible template is missing from the configuration file. Check the config.yml file.")
-#	end
-# 	if not File.exist?(File.join(ENV['MACHINATION_INSTALLDIR'],"share","machination","provisioner","ansible","playbooks",machine_config["template"]+".playbook"))
-#  		abort("Ansible template file is missing ("+File.join(ENV['MACHINATION_INSTALLDIR'],"share","machination","provisioner","ansible","playbooks",machine_config["template"]+".playbook")+"). Check your installation.")
-#  	end
-#  	
-#  	ENV['ANSIBLE_CONFIG'] = File.join(ENV['MACHINATION_INSTALLDIR'],"share","machination","provisioner","ansible","ansible.cfg")
-#    
-#  	ansible.playbook = File.join(ENV['MACHINATION_INSTALLDIR'],"share","machination","provisioner","ansible","playbooks",machine_config["template"]+".playbook")
-#    ansible.sudo = true
-#  end
+   end
+   end
+
+  config.vm.provision :ansible do |ansible|
+    if not File.exist?(File.join("playbooks",machine_config["template"]+".playbook"))
+      abort("Ansible playbook file is missing ("+File.join("playbooks",machine_config["template"]+".playbook")+"). Check your instance.")
+    end
+    ENV['ANSIBLE_CONFIG'] = File.join(".","ansible.cfg")
+    ansible.playbook = File.join("playbooks",machine_config["template"]+".playbook")
+    ansible.sudo = true
+    ansible.verbose = "vv"
+  end
 end 

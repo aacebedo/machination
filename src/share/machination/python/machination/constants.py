@@ -28,4 +28,4 @@ MACHINATION_USERDIR = os.path.abspath(os.path.join(os.path.expanduser("~"),".mac
 MACHINATION_USERINSTANCESDIR = os.path.join(MACHINATION_USERDIR,"instances")
 MACHINATION_USERTEMPLATEDIR = os.path.join(MACHINATION_USERDIR,"templates")
 
-MACHINATION_USERPROVISIONERS = os.path.join(MACHINATION_USERDIR,"provisioners")
+MACHINATION_USERPROVISIONERSDIR = os.path.join(MACHINATION_USERDIR,"provisioners")

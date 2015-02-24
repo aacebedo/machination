@@ -39,6 +39,8 @@ from machination.exceptions import InvalidMachineTemplateException
 from machination.registries import MachineTemplateRegistry
 from machination.helpers import accepts
 
+import machination.helpers
+
 ##
 # Class representing a network interface
 #
@@ -118,14 +120,17 @@ class NetworkInterface(yaml.YAMLObject):
         if not "ip_addr" in representation.keys():
             raise InvalidYAMLException("Invalid Network Interface: Missing IP address")
 
+        macAddr = None
         if not "mac_addr" in representation.keys():
-            raise InvalidYAMLException("Invalid Network Interface: Missing MAC address")
-
+            macAddr = machination.helpers.randomMAC()
+        else:
+            macAddr = representation["mac_addr"]
+            
         hostname = None
         if "hostname" in representation.keys():
             hostname=representation["hostname"]
 
-        return NetworkInterface(representation["ip_addr"],representation["mac_addr"],hostname)
+        return NetworkInterface(representation["ip_addr"],macAddr,hostname)
 
 ###
 # Class representing a sync folder between host and guest

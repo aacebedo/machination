@@ -74,7 +74,6 @@ class MachineTemplateRegistry():
     def getTemplates(self):
         machineTemplates = {}
         for d in self.templateDirs:
-            print(d)
             files = listPath(d)
             for f in files:
                 if os.path.isfile(f) and  os.path.splitext(os.path.basename(f))[1] == ".template":

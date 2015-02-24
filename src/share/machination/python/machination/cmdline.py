@@ -20,6 +20,8 @@ import argparse
 import os
 import errno
 import traceback
+
+import machination.helpers
 from machination.core import MachineInstance, NetworkInterface
 from machination.core import SyncedFolder
 
@@ -195,10 +197,17 @@ class CmdLine:
                         provider = Architecture.fromString(RegexedQuestion("Select an templateProvider {0}".format(",".join(map(str,template.getProviders()))),"[" + ",".join(map(str,template.getProviders())) + "]",provider.name).ask())
 
                     # Ask for configuration of network interface of the template
-                    for f in template.getGuestInterfaces():
-                        ipAddr = RegexedQuestion("Enter an IP address for the interface","^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|dhcp$",f.getIPAddr()).ask()
-                        macAddr = RegexedQuestion("Enter a MAC address for the interface","^([a-fA-F0-9]{2}:){5}([a-fA-F0-9]{2})$",f.getMACAddr()).ask()
-                        guestInterfaces.append(NetworkInterface(ipAddr,macAddr,f.getHostname()))
+                    for i in template.getGuestInterfaces():
+                        ipAddr = RegexedQuestion("Enter an IP address for the interface","^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|dhcp$",i.getIPAddr()).ask()
+                        macAddr = RegexedQuestion("Enter a MAC address for the interface","^([a-fA-F0-9]{2}:){5}([a-fA-F0-9]{2})$",i.getMACAddr()).ask()
+                        guestInterfaces.append(NetworkInterface(ipAddr,macAddr,i.getHostname()))
+
+                    # Ask for additional network interfaces 
+                    while BinaryQuestion("Do you want to add an additional network interface?","N").ask():
+                        hostname = RegexedQuestion("Enter an Hostname for the interface","^([a-zA-Z0-9]{1,50})$","").ask()
+                        ipAddr = RegexedQuestion("Enter an IP address for the interface","^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|dhcp$","").ask()
+                        macAddr = RegexedQuestion("Enter a MAC address for the interface","^([a-fA-F0-9]{2}:){5}([a-fA-F0-9]{2})$",machination.helpers.randomMAC()).ask()
+                        guestInterfaces.append(NetworkInterface(ipAddr,macAddr,hostname))
 
                     # Ask for adding a new synced folder
                     while BinaryQuestion("Do you want to add a synced folder ?","N").ask():
