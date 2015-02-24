@@ -24,4 +24,4 @@ MACHINATION_INSTALLDIR = os.path.abspath(os.path.join(os.path.dirname(os.path.re
 # User dir to store instances and templates
 MACHINATION_USERDIR = os.path.abspath(os.path.join(os.path.expanduser("~"),".machination"))
 MACHINATION_USERINSTANCESDIR = os.path.join(MACHINATION_USERDIR,"instances")
-MACHINATION_USERTEMPLATEDIR = os.path.join(MACHINATION_USERDIR,"template")
+MACHINATION_USERTEMPLATEDIR = os.path.join(MACHINATION_USERDIR,"templates")

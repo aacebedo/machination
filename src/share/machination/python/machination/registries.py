@@ -22,6 +22,8 @@ import os
 from machination.helpers import listPath
 from machination.helpers import accepts
 from machination.loggers import REGISTRYLOGGER
+#from machination.core import MachineTemplate
+class core.MachineTemplate: pass
 ###
 # Class representing the set of instances available
 ###
@@ -72,11 +74,15 @@ class MachineTemplateRegistry():
     def getTemplates(self):
         machineTemplates = {}        
         for d in self.templateDirs:
+            print(d)
             files = listPath(d)
             for f in files:                
-                if os.path.isfile(f) and  os.path.splitext(os.path.basename(f))[1] == ".yml":
+                if os.path.isfile(f) and  os.path.splitext(os.path.basename(f))[1] == ".template":
                     openedFile = open(os.path.join(f),"r")
-                    machine = yaml.load(openedFile)
-                    if machine != None:
-                        machineTemplates[machine.getName()] = machine
+                    template = yaml.load(openedFile)
+                    print(type(template))
+                    if template != None and type(template) is core.MachineTemplate:
+                        machineTemplates[template.getName()] = template
+                    else:
+                        REGISTRYLOGGER.warning("Skipped invalid template: {0}".format(f))
         return machineTemplates

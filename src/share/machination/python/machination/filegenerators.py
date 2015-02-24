@@ -4,7 +4,7 @@ import shutil
 from abc import abstractmethod
 
 from machination.exceptions import PathNotExistError
-from machination.constants import MACHINATION_INSTALLDIR
+from machination.constants import MACHINATION_INSTALLDIR, MACHINATION_USERDIR
 
 
 class ProvisionerFileGenerator:
@@ -14,12 +14,11 @@ class ProvisionerFileGenerator:
         pass
     
 class AnsibleProvisionerFileGenerator(ProvisionerFileGenerator):    
-    def generateFiles(self,playbook,dest):
+    def generateFiles(self,playbookPath,dest):
         
         if not os.path.exists(dest):
             raise PathNotExistError(dest)       
         
-        playbookPath = os.path.join(MACHINATION_INSTALLDIR,"share","machination","provisioners","ansible","playbooks",playbook+".playbook")
         if not os.path.exists(playbookPath):
             raise PathNotExistError(playbookPath)
         else:
@@ -27,9 +26,11 @@ class AnsibleProvisionerFileGenerator(ProvisionerFileGenerator):
             playbook = yaml.load(openedFile)
             dstDir = os.path.join(dest,"roles")
             for r in playbook[0]["roles"]:
-                roleDir = os.path.join(MACHINATION_INSTALLDIR,"share","machination","provisioners","ansible","roles",r)
-                if os.path.exists(roleDir):
-                    shutil.copytree(roleDir, os.path.join(dstDir,r), True)
-                else:
-                    raise PathNotExistError(roleDir)
+                roleDirs = [os.path.join(MACHINATION_INSTALLDIR,"share","machination","provisioners","ansible","roles",r),os.path.join(MACHINATION_USERDIR,"provisioners","ansible","roles",r)]
+                for roleDir in roleDirs:
+                    if os.path.exists(roleDir):
+                        shutil.copytree(roleDir, os.path.join(dstDir,r), True)
+                        break
+                    else:
+                        raise PathNotExistError(roleDir)
         

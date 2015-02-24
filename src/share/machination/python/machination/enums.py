@@ -29,7 +29,7 @@ class Provider(StringifiedEnum):
     Docker = "Docker"
     
     @staticmethod
-    @accepts(StringifiedEnum)
+    @accepts(str)
     def fromString(val):
         vals = {
                 "Docker" : Provider.Docker,

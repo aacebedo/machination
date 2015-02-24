@@ -25,7 +25,7 @@ from machination.core import SyncedFolder
 
 from machination.loggers import COMMANDLINELOGGER
 from machination.constants import MACHINATION_INSTALLDIR
-from machination.constants import MACHINATION_USERDIR
+from machination.constants import MACHINATION_USERTEMPLATEDIR
 from machination.constants import MACHINATION_USERINSTANCESDIR
 
 from machination.registries import MachineTemplateRegistry
@@ -59,7 +59,7 @@ class CmdLine:
     def listTemplates(self, args):
         res = 0
         # Create the template registry that will list all available template on the machine
-        templateReg = MachineTemplateRegistry([os.path.join(MACHINATION_INSTALLDIR,'share','machination', 'templates'),os.path.join(MACHINATION_USERDIR, 'templates') ])
+        templateReg = MachineTemplateRegistry([os.path.join(MACHINATION_INSTALLDIR,'share','machination', 'templates'),os.path.join(MACHINATION_USERTEMPLATEDIR) ])
         COMMANDLINELOGGER.debug("Listing machine templates")
         
         try:
@@ -151,8 +151,8 @@ class CmdLine:
         res = 0
         COMMANDLINELOGGER.info("Creating a new machine instance named {0} using template {1}".format(args.name,args.template))
         # Creating the template and instances registries       
-        templateReg = MachineTemplateRegistry([os.path.join(MACHINATION_INSTALLDIR,'share','machination', 'templates'),os.path.join(MACHINATION_USERDIR, 'templates')])
-        instanceReg = MachineInstanceRegistry(os.path.join(MACHINATION_USERDIR,'instances'))
+        templateReg = MachineTemplateRegistry([os.path.join(MACHINATION_INSTALLDIR,'share','machination', 'templates'),os.path.join(MACHINATION_USERTEMPLATEDIR)])
+        instanceReg = MachineInstanceRegistry(os.path.join(MACHINATION_USERINSTANCESDIR))
         
         templates = []
         instances = []
@@ -249,7 +249,7 @@ class CmdLine:
         # Getting instances 
         instances = []
         try:
-            instanceReg = MachineInstanceRegistry(os.path.join(MACHINATION_USERDIR,'instances'))
+            instanceReg = MachineInstanceRegistry(os.path.join(MACHINATION_USERINSTANCESDIR))
             instances = instanceReg.getInstances()        
             # Check if there is actually an instance named after the request of the user
             if args.name in instances.keys():
@@ -276,7 +276,7 @@ class CmdLine:
         COMMANDLINELOGGER.info("Starting machine {0}".format(args.name))
         try:
             # Getting the available instances
-            instanceReg = MachineInstanceRegistry(os.path.join(MACHINATION_USERDIR,'instances'))
+            instanceReg = MachineInstanceRegistry(os.path.join(MACHINATION_USERINSTANCESDIR))
             instances = instanceReg.getInstances()
             # Check if the requested instance exists
             if args.name in instances.keys():
@@ -297,7 +297,7 @@ class CmdLine:
         res = 0
         COMMANDLINELOGGER.logger.info("Stopping machine {0}".format(args.name))
         try:
-            instanceReg = MachineInstanceRegistry(os.path.join(MACHINATION_USERDIR,'instances'))
+            instanceReg = MachineInstanceRegistry(os.path.join(MACHINATION_USERINSTANCESDIR))
             instances = instanceReg.getInstances()
             ## Search for the requested instnce
             if args.name in instances.keys():
@@ -318,7 +318,7 @@ class CmdLine:
         COMMANDLINELOGGER.info("SSH into machine {0}".format(args.name))
         try:
             ## Search for the requested instance in the registry
-            instanceReg = MachineInstanceRegistry(os.path.join(MACHINATION_USERDIR,'instances'))
+            instanceReg = MachineInstanceRegistry(os.path.join(MACHINATION_USERINSTANCESDIR))
             instances = instanceReg.getInstances()
             if args.name in instances.keys():
                 instances[args.name].ssh()
