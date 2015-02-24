@@ -22,26 +22,26 @@ import os
 from machination.helpers import listPath
 from machination.helpers import accepts
 from machination.loggers import REGISTRYLOGGER
-#from machination.core import MachineTemplate
-class core.MachineTemplate: pass
+import machination.core
+
 ###
 # Class representing the set of instances available
 ###
 class MachineInstanceRegistry():
     instanceDirs = None
-    
+
     ###
     # Constructor
     ###
     @accepts(None,list)
     def __init__(self,instanceDirs):
         self.instanceDirs = instanceDirs
-    
+
     ###
     # Function to retrieve the available instances
     ###
     def getInstances(self):
-        
+
         instances = {}
         for d in self.instanceDirs:
             path = listPath(d)
@@ -55,7 +55,7 @@ class MachineInstanceRegistry():
                         if instance != None:
                             instances[instance.getName()] = instance
                     except:
-                        REGISTRYLOGGER.error("Unable to load instance from {0}".format(d)) 
+                        REGISTRYLOGGER.error("Unable to load instance from {0}".format(d))
         return instances
 
 ###
@@ -63,25 +63,24 @@ class MachineInstanceRegistry():
 ###
 class MachineTemplateRegistry():
     templateDirs = None
-    
+
     ###
     # Constructor
     ###
     @accepts(None,list)
     def __init__(self,templateDirs):
         self.templateDirs = templateDirs
-        
+
     def getTemplates(self):
-        machineTemplates = {}        
+        machineTemplates = {}
         for d in self.templateDirs:
             print(d)
             files = listPath(d)
-            for f in files:                
+            for f in files:
                 if os.path.isfile(f) and  os.path.splitext(os.path.basename(f))[1] == ".template":
                     openedFile = open(os.path.join(f),"r")
                     template = yaml.load(openedFile)
-                    print(type(template))
-                    if template != None and type(template) is core.MachineTemplate:
+                    if template != None and type(template) is machination.core.MachineTemplate:
                         machineTemplates[template.getName()] = template
                     else:
                         REGISTRYLOGGER.warning("Skipped invalid template: {0}".format(f))

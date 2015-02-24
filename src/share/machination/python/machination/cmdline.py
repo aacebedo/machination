@@ -40,7 +40,7 @@ from machination.enums import Architecture
 
 ###
 # Function called by the argument parsing objects
-###   
+###
 def make_action(functionToCall):
     class customAction(argparse.Action):
         def __call__(self, parser, args, values, option_string=None):
@@ -61,20 +61,20 @@ class CmdLine:
         # Create the template registry that will list all available template on the machine
         templateReg = MachineTemplateRegistry([os.path.join(MACHINATION_INSTALLDIR,'share','machination', 'templates'),os.path.join(MACHINATION_USERTEMPLATEDIR) ])
         COMMANDLINELOGGER.debug("Listing machine templates")
-        
+
         try:
             templates = templateReg.getTemplates();
-            # Create an array containing a set of informations about the template. 
+            # Create an array containing a set of informations about the template.
             # This array will be used to display the information to the user
             data = {'name': [], 'version': [], 'path': [], 'provisioners': [], 'providers': [], 'archs': []}
-            for f in templates.values():    
+            for f in templates.values():
                 data['name'].append(f.getName())
                 data['version'].append('1.0')
                 data['path'].append(os.path.abspath(f.getPath()))
                 data['provisioners'].append(",".join(map(str,f.getProvisioners())))
                 data['providers'].append(",".join(map(str,f.getProviders())))
                 data['archs'].append(",".join(map(str,f.getArchs())))
-                
+
             # Each column width will be computed as the max length of its items
             name_col_width=0
             version_col_width=0
@@ -82,11 +82,11 @@ class CmdLine:
             provisioner_col_width=0
             providers_col_width=0
             archs_col_width=0
-            
+
             # Getting the max for each column
             if len(data['name']) != 0:
-                name_col_width = max(len(word) for word in data['name']) + len("Name") + 2 
-            if len(data['version']) != 0:        
+                name_col_width = max(len(word) for word in data['name']) + len("Name") + 2
+            if len(data['version']) != 0:
                 version_col_width = max(len(word) for word in data['version']) + len("Version") + 2
             if len(data['path']) != 0:
                 path_col_width = max(len(word) for word in data['path']) + len("Path") + 2
@@ -120,19 +120,19 @@ class CmdLine:
         # Populating the registry of instances
         instanceReg = MachineInstanceRegistry([os.path.join(MACHINATION_USERINSTANCESDIR,'instances')])
         try:
-            instances = instanceReg.getInstances()     
+            instances = instanceReg.getInstances()
             # Create an array to display the available templates
             data = {'name': [],'path': []}
             for i in instances.values():
                 data['name'].append(i.getName())
                 data['path'].append(i.getPath())
-                
+
             # Display the array of templates
             # Check if there is an item in the resulting array using the length of the column name
             if len(data['name']) != 0:
-                name_col_width = max(len(word) for word in data['name']) + len("Name") + 2 
-                path_col_width = max(len(word) for word in data['path']) + len("Path") + 2 
-                
+                name_col_width = max(len(word) for word in data['name']) + len("Name") + 2
+                path_col_width = max(len(word) for word in data['path']) + len("Path") + 2
+
                 COMMANDLINELOGGER.info("Name".ljust(name_col_width)+"Path".ljust(path_col_width))
                 for row in range(0, len(data['name'])):
                     COMMANDLINELOGGER.info(data['name'][row].ljust(name_col_width) + data['path'][row].ljust(name_col_width))
@@ -143,23 +143,23 @@ class CmdLine:
             COMMANDLINELOGGER.error("Unable to list instances: {0}".format(str(e)))
             res = errno.EINVAL
         return res
-            
+
     ###
     # Function to create a new machine
     ###
     def createMachine(self,args):
         res = 0
         COMMANDLINELOGGER.info("Creating a new machine instance named {0} using template {1}".format(args.name,args.template))
-        # Creating the template and instances registries       
+        # Creating the template and instances registries
         templateReg = MachineTemplateRegistry([os.path.join(MACHINATION_INSTALLDIR,'share','machination', 'templates'),os.path.join(MACHINATION_USERTEMPLATEDIR)])
-        instanceReg = MachineInstanceRegistry(os.path.join(MACHINATION_USERINSTANCESDIR))
-        
+        instanceReg = MachineInstanceRegistry([os.path.join(MACHINATION_USERINSTANCESDIR)])
+
         templates = []
         instances = []
         try:
             # Get templates
             templates = templateReg.getTemplates()
-            # Get instances 
+            # Get instances
             instances = instanceReg.getInstances()
             # Check if the instance is already in the registry
             if args.name not in instances.keys():
@@ -172,40 +172,40 @@ class CmdLine:
                     provisioner = template.getProvisioners()[0]
                     osVersion = template.getOsVersions()[0]
                     syncedFolders = []
-                    
+
                     # Ask for the host interface to use
                     hostInterface = RegexedQuestion("Enter the host interface","[a-z]+[0-9]+","eth0").ask()
-                    
+
                     # If there is more than one architecture available for the template
                     # Ask the user to choose
                     if len(template.getArchs()) > 1 :
                         arch = Architecture.fromString(RegexedQuestion("Select an architecture {"+ ",".join(map(str,template.getArchs())) +"}","[" + ",".join(map(str,template.getArchs())) + "]",arch.name).ask())
-                        
+
                     # If there is more than one OS version available for the template
                     # Ask the user to choose
                     if len(template.getOsVersions()) > 1 :
                         osVersion = RegexedQuestion("Select an OS version {"+ ",".join(map(str,template.getOsVersions())) +"}","[" + ",".join(map(str,template.getOsVersions())) + "]",osVersion).ask()
-                        
+
                     # If there is more than one provisioner available for the template
                     if len(template.getProvisioners()) > 1 :
                         provisioner = Architecture.fromString(RegexedQuestion("Select an Provisioner {"+ ",".join(map(str,template.getProvisioners())) +"}","[" + ",".join(map(str,template.getProvisioners())) + "]",provisioner.name).ask())
-                        
+
                     # If there is more than one provider available for the template
                     if len(template.getProviders()) > 1 :
                         provider = Architecture.fromString(RegexedQuestion("Select an templateProvider {0}".format(",".join(map(str,template.getProviders()))),"[" + ",".join(map(str,template.getProviders())) + "]",provider.name).ask())
-                        
+
                     # Ask for configuration of network interface of the template
                     for f in template.getGuestInterfaces():
                         ipAddr = RegexedQuestion("Enter an IP address for the interface","^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|dhcp$",f.getIPAddr()).ask()
                         macAddr = RegexedQuestion("Enter a MAC address for the interface","^([a-fA-F0-9]{2}:){5}([a-fA-F0-9]{2})$",f.getMACAddr()).ask()
                         guestInterfaces.append(NetworkInterface(ipAddr,macAddr,f.getHostname()))
-                    
+
                     # Ask for adding a new synced folder
                     while BinaryQuestion("Do you want to add a synced folder ?","N").ask():
                         hostPathQues = PathQuestion("Enter a path to an existing folder on the host",".+",None,True).ask()
                         guestPathQues = PathQuestion("Enter the mount path on the guest directory: ","^/.+",None,False).ask()
                         syncedFolders.append(SyncedFolder(hostPathQues,guestPathQues))
-                            
+
                     COMMANDLINELOGGER.info("The machine named {0} will: ".format(args.name))
                     COMMANDLINELOGGER.info("  Use the architecture {0}".format((arch)))
                     COMMANDLINELOGGER.info("  Use the provisioner {0}".format(str(provisioner)))
@@ -223,7 +223,7 @@ class CmdLine:
                         i+=1
                     try:
                         # Try to create the new machine
-                        instance = MachineInstance(args.name,template.getName(), arch, osVersion, provider, provisioner, hostInterface, guestInterfaces,syncedFolders)
+                        instance = MachineInstance(args.name,template, arch, osVersion, provider, provisioner, hostInterface, guestInterfaces,syncedFolders)
                         instance.generateFiles()
                     except Exception as e:
                         COMMANDLINELOGGER.error("Unable to create machine: {0}".format(e))
@@ -238,7 +238,7 @@ class CmdLine:
             COMMANDLINELOGGER.error("Unable to create machine: {0}.".format(str(e)))
             return errno.EINVAL
         return res
-    
+
     ###
     # Function to destroy a machine
     # Files related to the machine are deleted
@@ -246,11 +246,11 @@ class CmdLine:
     def destroyMachine(self,args):
         res = 0
         COMMANDLINELOGGER.info("Destroying machine {0}".format(args.name))
-        # Getting instances 
+        # Getting instances
         instances = []
         try:
             instanceReg = MachineInstanceRegistry(os.path.join(MACHINATION_USERINSTANCESDIR))
-            instances = instanceReg.getInstances()        
+            instances = instanceReg.getInstances()
             # Check if there is actually an instance named after the request of the user
             if args.name in instances.keys():
                 # Ask the user if it's ok to delete the machine
@@ -266,7 +266,7 @@ class CmdLine:
             COMMANDLINELOGGER.error("Unable to destroy machine: {0}".format(str(e)))
             res = errno.EINVAL
         return res
-    
+
     ###
     # Function to start a machine
     # The user must be root to call this function as some stuff related to networking needs to be executed as root
@@ -288,7 +288,7 @@ class CmdLine:
             COMMANDLINELOGGER.error("Unable to start machine {0}: ".format(str(e)))
             res = errno.EINVAL
         return res
-    
+
     ###
     # Function to stop a machine
     # User must be root to call this function juste to be symetric with the start operation
@@ -308,8 +308,8 @@ class CmdLine:
         except Exception as e:
             COMMANDLINELOGGER.error("Unable to stop machine {0}: ".format(str(e)))
             res = errno.EINVAL
-        return res 
-    
+        return res
+
     ###
     # Function to connect to the machine in SSH
     ###
@@ -327,20 +327,20 @@ class CmdLine:
         except Exception as e:
             COMMANDLINELOGGER.error("Unable to SSH into machine {0}: ".format(str(e)))
             res = errno.EINVAL
-        return res 
-    
+        return res
+
     ###
     # Function to parse the command line arguments
-    ### 
+    ###
     def parseArgs(self,args):
-        # Create main parser 
+        # Create main parser
         parser = argparse.ArgumentParser(prog="Machination", description='Machination utility, all your appliances belong to us.')
         rootSubparsers = parser.add_subparsers(help='Root parser')
-        
+
         # Parser for list command
         listParser = rootSubparsers.add_parser('list', help='List templates and instances')
         listSubparsers = listParser.add_subparsers(help='List templates and instances')
-        
+
         templateSubparser = listSubparsers.add_parser('templates', help='List machine templates')
         templateSubparser.add_argument('provisioner', choices=['ansible'], nargs='*', default='ansible', help="List templates")
         templateSubparser.add_argument('dummy',nargs='?', help=argparse.SUPPRESS, action=make_action(self.listTemplates))
@@ -348,33 +348,32 @@ class CmdLine:
         instanceSubparser = listSubparsers.add_parser('instances', help='List instances')
         instanceSubparser.add_argument('provisioner', choices=['ansible'], nargs='*', default='ansible', help="List instances")
         instanceSubparser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.listInstances))
-        
-        # Parser for create command    
+
+        # Parser for create command
         createParser = rootSubparsers.add_parser('create', help='Create the given machine in the path')
         createParser.add_argument('template', help='Name of the template to create')
         createParser.add_argument('name', help='Name of the machine to create')
         createParser.add_argument('dummy',nargs='?', help=argparse.SUPPRESS,action=make_action(self.createMachine))
-        
+
         # Parser for destroy command
         destroyParser = rootSubparsers.add_parser('destroy', help='Destroy the given machine in the path')
         destroyParser.add_argument('name', help='Name of the machine to destroy')
         destroyParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.destroyMachine))
-        
+
         # Parser for start command
         startParser = rootSubparsers.add_parser('start', help='Start the given machine')
         startParser.add_argument('name', help='Name of the machine to start')
         startParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.startMachine))
-        
+
         # Parser for stop command
         stopParser = rootSubparsers.add_parser('stop', help='Stop the given machine')
         stopParser.add_argument('name', help='Name of the machine to stop')
         stopParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.stopMachine))
-        
+
         # Parser for ssh command
         sshParser = rootSubparsers.add_parser('ssh', help='SSH to the given machine')
         sshParser.add_argument('name', help='Name of the machine to ssh in')
         sshParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.sshMachine))
-        
+
         # Parse the command
         parser.parse_args()
-        
