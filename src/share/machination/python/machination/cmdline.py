@@ -27,7 +27,7 @@ from machination.core import SyncedFolder
 
 from machination.loggers import COMMANDLINELOGGER
 from machination.constants import MACHINATION_INSTALLDIR
-from machination.constants import MACHINATION_USERTEMPLATEDIR
+from machination.constants import MACHINATION_USERTEMPLATESDIR
 from machination.constants import MACHINATION_USERINSTANCESDIR
 
 from machination.registries import MachineTemplateRegistry
@@ -61,7 +61,7 @@ class CmdLine:
     def listTemplates(self, args):
         res = 0
         # Create the template registry that will list all available template on the machine
-        templateReg = MachineTemplateRegistry([os.path.join(MACHINATION_INSTALLDIR,'share','machination', 'templates'),os.path.join(MACHINATION_USERTEMPLATEDIR) ])
+        templateReg = MachineTemplateRegistry([os.path.join(MACHINATION_INSTALLDIR,'share','machination', 'templates'),os.path.join(MACHINATION_USERTEMPLATESDIR) ])
         COMMANDLINELOGGER.debug("Listing machine templates")
 
         try:
@@ -153,7 +153,7 @@ class CmdLine:
         res = 0
         COMMANDLINELOGGER.info("Creating a new machine instance named {0} using template {1}".format(args.name,args.template))
         # Creating the template and instances registries
-        templateReg = MachineTemplateRegistry([os.path.join(MACHINATION_INSTALLDIR,'share','machination', 'templates'),os.path.join(MACHINATION_USERTEMPLATEDIR)])
+        templateReg = MachineTemplateRegistry([os.path.join(MACHINATION_INSTALLDIR,'share','machination', 'templates'),os.path.join(MACHINATION_USERTEMPLATESDIR)])
         instanceReg = MachineInstanceRegistry([os.path.join(MACHINATION_USERINSTANCESDIR)])
 
         templates = []
@@ -202,7 +202,7 @@ class CmdLine:
                         macAddr = RegexedQuestion("Enter a MAC address for the interface","^([a-fA-F0-9]{2}:){5}([a-fA-F0-9]{2})$",i.getMACAddr()).ask()
                         guestInterfaces.append(NetworkInterface(ipAddr,macAddr,i.getHostname()))
 
-                    # Ask for additional network interfaces 
+                    # Ask for additional network interfaces
                     while BinaryQuestion("Do you want to add an additional network interface?","N").ask():
                         hostname = RegexedQuestion("Enter an Hostname for the interface","^([a-zA-Z0-9]{1,50})$","").ask()
                         ipAddr = RegexedQuestion("Enter an IP address for the interface","^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|dhcp$","").ask()

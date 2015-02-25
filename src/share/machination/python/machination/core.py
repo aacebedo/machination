@@ -24,6 +24,8 @@ import sys
 import pwd
 import shutil
 
+from machination.loggers import CORELOGGER
+
 from machination.constants import MACHINATION_INSTALLDIR
 from machination.constants import MACHINATION_USERDIR
 
@@ -53,7 +55,7 @@ class NetworkInterface(yaml.YAMLObject):
     ###
     # Constructor
     ###
-    @accepts(None,str,str,str)
+    @accepts(None,str,str,None)
     def __init__(self,ipAddr, macAddr,hostname=None):
         # Check each given argument
         # IP Address can be also dhcp
@@ -125,7 +127,7 @@ class NetworkInterface(yaml.YAMLObject):
             macAddr = machination.helpers.randomMAC()
         else:
             macAddr = representation["mac_addr"]
-            
+
         hostname = None
         if "hostname" in representation.keys():
             hostname=representation["hostname"]
@@ -396,14 +398,18 @@ class MachineInstance(yaml.YAMLObject):
             os.makedirs(self.getPath())
             shutil.copy(os.path.join(MACHINATION_INSTALLDIR,"share","machination","vagrant","Vagrantfile"),os.path.join(self.getPath(),"Vagrantfile"))
 
-            # Generate the file related to the provisioner
-            generator = Provisioner.getFileGenerator(self.getProvisioner())
-            generator.generateFiles(self.getTemplate(),self.getPath())
-            # Create the machine config file
-            configFile = yaml.dump(self)
-            openedFile = open(os.path.join(self.getPath(),"config.yml"),"w+")
-            openedFile.write(configFile)
-            openedFile.close()
+            try:
+              # Generate the file related to the provisioner
+              generator = Provisioner.getFileGenerator(self.getProvisioner())
+              generator.generateFiles(self.getTemplate(),self.getPath())
+              # Create the machine config file
+              configFile = yaml.dump(self)
+              openedFile = open(os.path.join(self.getPath(),"config.yml"),"w+")
+              openedFile.write(configFile)
+              openedFile.close()
+            except InvalidMachineTemplateException as e:
+              CORELOGGER.error("Unable to instantiate the machine: Invalid template ({0})".format(str(e)))
+              #shutil.rmtree(self.getPath())
         else:
             # Raise an error about the fact the machine already exists
             raise RuntimeError("Machine {0} already exists".format(self.getPath()))

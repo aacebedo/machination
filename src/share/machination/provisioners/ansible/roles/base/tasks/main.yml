@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.
 ##########################################################################
+  - name: Add python apt
+    shell: apt-get update && apt-get install python-apt python-pycurl -y
 
   - name: Add multiverse repository
     apt_repository: repo="{{item}}"
@@ -28,7 +30,7 @@
   - name: Update apt cache
     apt: update_cache=yes
     when: multiverse_installed | changed
-  
+
   - name: Install base software
     apt: name={{ item }} state=present
     with_items:
@@ -38,7 +40,7 @@
     - git
     - vim-athena
     - locate
-  
+
   - name: Clone oh-my-zsh repo
     git: repo=https://github.com/robbyrussell/oh-my-zsh.git dest=/home/{{ user }}/.oh-my-zsh
   - name: Copy zshrc

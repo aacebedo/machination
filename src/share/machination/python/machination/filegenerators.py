@@ -7,7 +7,8 @@ from machination.exceptions import InvalidMachineTemplateException
 from machination.exceptions import PathNotExistError,InvalidArgumentValue
 from machination.constants import MACHINATION_INSTALLDIR, MACHINATION_USERDIR
 from machination.constants import MACHINATION_BASEPROVISIONERSDIR, MACHINATION_USERPROVISIONERSDIR
-import machination.core 
+from machination.loggers import FILEGENERATORLOGGER
+import machination.core
 
 
 class ProvisionerFileGenerator:
@@ -18,36 +19,56 @@ class ProvisionerFileGenerator:
 
 class AnsibleProvisionerFileGenerator(ProvisionerFileGenerator):
     @staticmethod
+    def copyRole(dest,role):
+      roleDir = None
+      roleDirs = [os.path.join(MACHINATION_INSTALLDIR,"share","machination","provisioners","ansible","roles",role),os.path.join(MACHINATION_USERDIR,"provisioners","ansible","roles",role)]
 
+      for tmpRoleDir in roleDirs:
+        if os.path.exists(tmpRoleDir):
+          roleDir = tmpRoleDir
+          break
+        else:
+          roleDir = None
+
+      if roleDir != None and os.path.exists(roleDir):
+        shutil.copytree(roleDir, os.path.join(dest,"roles",role), True)
+        metaPath = os.path.join(roleDir,"meta","main.yml")
+        if os.path.exists(metaPath):
+          openedFile = open(metaPath)
+          metas = yaml.load(openedFile)
+          if "dependencies" in metas.keys():
+            for r in metas["dependencies"]:
+              if "role" in r.keys() and not os.path.exists(os.path.join(dest,"roles",r["role"])):
+                AnsibleProvisionerFileGenerator.copyRole(dest,r["role"])
+      else:
+        raise InvalidMachineTemplateException("Unable to find ansible role {0}".format(role))
+
+    @staticmethod
     def generateFiles(template,dest):
         if type(template) is not  machination.core.MachineTemplate:
             raise InvalidArgumentValue("template")
-        
         if not os.path.exists(dest):
             raise PathNotExistError(dest)
+        ansibleFilesDest = os.path.join(dest,"provisioners","ansible")
         playbookPath = None
         for d in [os.path.join(MACHINATION_BASEPROVISIONERSDIR,"ansible","playbooks"),os.path.join(MACHINATION_USERPROVISIONERSDIR,"ansible","playbooks")] :
             playbookPath = os.path.join(d,"{0}.playbook".format(template.getName()))
+            FILEGENERATORLOGGER.debug("Searching template in {0}".format(playbookPath))
             if not os.path.exists(playbookPath):
                 playbookPath = None
             else:
                 break
-                
         if playbookPath == None:
-            raise InvalidMachineTemplateException(template.getName())
+            raise InvalidMachineTemplateException("Template {0} was not found".format(playbookPath))
         else:
             openedFile = open(playbookPath)
             playbook = yaml.load(openedFile)
             for r in playbook[0]["roles"]:
-                roleDirs = [os.path.join(MACHINATION_INSTALLDIR,"share","machination","provisioners","ansible","roles",r),os.path.join(MACHINATION_USERDIR,"provisioners","ansible","roles",r)]
-                for roleDir in roleDirs:
-                    if os.path.exists(roleDir):
-                        shutil.copytree(roleDir, os.path.join(dest,"roles",r), True)
-                        machination.helpers.mkdir_p(os.path.join(dest,"playbooks"))
-                        shutil.copy(playbookPath, os.path.join(dest,"playbooks","{0}.playbook".format(template.getName())))
-                        break
-                    else:
-                        raise PathNotExistError(roleDir)
+                AnsibleProvisionerFileGenerator.copyRole(ansibleFilesDest,r)
+            machination.helpers.mkdir_p(os.path.join(ansibleFilesDest,"playbooks"))
+            shutil.copy(playbookPath, os.path.join(ansibleFilesDest,"playbooks","{0}.playbook".format(template.getName())))
             ansibleConfig=open(os.path.join(dest,"ansible.cfg"), "w+")
             ansibleConfig.write("[defaults]\r\n")
-            ansibleConfig.write("roles_path = ./roles")
+            ansibleConfig.write("roles_path = {0}".format(os.path.join("provisioners","ansible","roles")))
+
+

@@ -23,9 +23,18 @@ sys.path.append(os.path.abspath(os.path.abspath(os.path.join(os.path.dirname(os.
 from machination.cmdline import CmdLine
 from machination.helpers import mkdir_p
 from machination.constants import MACHINATION_USERINSTANCESDIR
+from machination.constants import MACHINATION_USERTEMPLATESDIR
+from machination.constants import MACHINATION_USERPROVISIONERSDIR
+from machination.constants import MACHINATION_USERANSIBLEPLAYBOOKSDIR
+from machination.constants import MACHINATION_USERANSIBLEROLESDIR
 
 def __main__():
     mkdir_p(MACHINATION_USERINSTANCESDIR)
+    mkdir_p(MACHINATION_USERPROVISIONERSDIR)
+    mkdir_p(MACHINATION_USERANSIBLEPLAYBOOKSDIR)
+    mkdir_p(MACHINATION_USERANSIBLEROLESDIR)
+    mkdir_p(MACHINATION_USERTEMPLATESDIR)
+
     cmd = CmdLine()
     cmd.parseArgs(sys.argv)
 

@@ -26,6 +26,8 @@ MACHINATION_BASEPROVIDERSDIR = os.path.abspath(os.path.join(MACHINATION_INSTALLD
 # User dir to store instances and templates
 MACHINATION_USERDIR = os.path.abspath(os.path.join(os.path.expanduser("~"),".machination"))
 MACHINATION_USERINSTANCESDIR = os.path.join(MACHINATION_USERDIR,"instances")
-MACHINATION_USERTEMPLATEDIR = os.path.join(MACHINATION_USERDIR,"templates")
-
+MACHINATION_USERTEMPLATESDIR = os.path.join(MACHINATION_USERDIR,"templates")
 MACHINATION_USERPROVISIONERSDIR = os.path.join(MACHINATION_USERDIR,"provisioners")
+
+MACHINATION_USERANSIBLEPLAYBOOKSDIR = os.path.join(MACHINATION_USERDIR,"provisioners","ansible","playbooks")
+MACHINATION_USERANSIBLEROLESDIR = os.path.join(MACHINATION_USERDIR,"provisioners","ansible","roles")
