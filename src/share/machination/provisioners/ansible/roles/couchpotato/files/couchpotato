@@ -1,4 +1,4 @@
-CP_USER=couchpotato
-CP_HOME=/opt/couchpotato/
-CP_DATA=/usr/local/share/couchpotato/
-CP_OPTS=--config=/usr/local/share/couchpotato/config.ini
+CP_USER={{ user }}
+CP_HOME={{ install_dir }}
+CP_DATA={{ datas_dir }}
+CP_OPTS=--config={{ datas_dir }}/config.ini

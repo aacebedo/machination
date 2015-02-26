@@ -19,9 +19,8 @@
 ---
 - hosts: all
   roles:
-   - base
-   - nfsclient
-   - sickrage
+   #- nfsclient
+   #- sickrage
    - couchpotato
-   - nzbget
-   - transmission
+   #- nzbget
+   #- transmission

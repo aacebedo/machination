@@ -1,6 +1,6 @@
 ##########################################################################
 # Machination
-# Copyright (c) 2014, Alexandre ACEBEDO, All rights reserved.
+# Copyright (c) 2015, Alexandre ACEBEDO, All rights reserved.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -15,8 +15,22 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.
 ##########################################################################
+  - name: Add jenkins repository
+   	register: jenkins_ppa
+    apt_repository: repo='deb http://pkg.jenkins-ci.org/debian binary/' state=present
 
----
-- hosts: all
-  roles:
-   - wordpress
+  - name: Update apt cache
+    apt: update_cache=yes
+    when: jenkins_ppa | change
+    
+  - name: Install jenkins
+    apt: name=jenkins state=present force=yes
+    
+  - name: Start Jenkins service
+    service: name=jenkins state=started enabled=yes
+
+  - name: Wait for Jenkins
+    wait_for:
+      host: localhost
+      port: 8080
+      timeout: 300

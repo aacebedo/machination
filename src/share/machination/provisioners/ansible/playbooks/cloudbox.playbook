@@ -19,5 +19,4 @@
 ---
 - hosts: all
   roles:
-   - base
    - owncloud

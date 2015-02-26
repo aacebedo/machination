@@ -37,29 +37,21 @@
     
   - name: Add oracle java PPA
     apt_repository: repo='ppa:webupd8team/java' state=present update_cache=yes
+    register: oracle_java_ppa
       
   - name: Force java licence validation
     shell: echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections
-
+    when: oracle_java_ppa | change
+    
   - name: Install Java
     apt: name={{ item }} state=present
     with_items:
         - oracle-java{{ javaversion }}-installer
         - oracle-java{{ javaversion }}-set-default
+    when: oracle_java_ppa | change
      
   - name: Add google tools
     apt: name={{ item }} state=present
     with_items:
       - libgtest-dev
       - google-mock
-      
-  - name: Add jenkins repository
-   	register: jenkins_installed
-    apt_repository: repo='deb http://pkg.jenkins-ci.org/debian binary/' state=present
-
-  - name: Update apt cache
-    apt: update_cache=yes
-    when: jenkins_installed | change
-    
-  - name: Install jenkins
-    apt: name=jenkins state=present force=yes

@@ -50,7 +50,6 @@ It features different commands:
   This command stops an instances. As the start command, it must be ran as root.
   
 - ssh <instance name>
-  This command open an ssh connection to an instance
 
 
 When creating a machine, files are stored in the folder ~/.machination. Those files contains the description of the instance. Machine filesystem can also be

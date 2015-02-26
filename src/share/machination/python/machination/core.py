@@ -399,17 +399,17 @@ class MachineInstance(yaml.YAMLObject):
             shutil.copy(os.path.join(MACHINATION_INSTALLDIR,"share","machination","vagrant","Vagrantfile"),os.path.join(self.getPath(),"Vagrantfile"))
 
             try:
-              # Generate the file related to the provisioner
-              generator = Provisioner.getFileGenerator(self.getProvisioner())
-              generator.generateFiles(self.getTemplate(),self.getPath())
-              # Create the machine config file
-              configFile = yaml.dump(self)
-              openedFile = open(os.path.join(self.getPath(),"config.yml"),"w+")
-              openedFile.write(configFile)
-              openedFile.close()
+                # Generate the file related to the provisioner
+                generator = Provisioner.getFileGenerator(self.getProvisioner())
+                generator.generateFiles(self.getTemplate(),self.getPath())
+                # Create the machine config file
+                configFile = yaml.dump(self)
+                openedFile = open(os.path.join(self.getPath(),"config.yml"),"w+")
+                openedFile.write(configFile)
+                openedFile.close()
             except InvalidMachineTemplateException as e:
-              CORELOGGER.error("Unable to instantiate the machine: Invalid template ({0})".format(str(e)))
-              #shutil.rmtree(self.getPath())
+                CORELOGGER.error("Unable to instantiate the machine: Invalid template ({0})".format(str(e)))
+                #shutil.rmtree(self.getPath())
         else:
             # Raise an error about the fact the machine already exists
             raise RuntimeError("Machine {0} already exists".format(self.getPath()))
@@ -434,47 +434,64 @@ class MachineInstance(yaml.YAMLObject):
     # This function must be ran as root as some action in the the provisioner or the provider may require a root access
     ###
     def start(self):
-        # Get the real user behind the sudo
-        pw_record = pwd.getpwnam(os.getenv("SUDO_USER"))
-        # Set the install dir of machination as an environment variable (this will be used by vagrant
-        os.environ["MACHINATION_INSTALLDIR"] = MACHINATION_INSTALLDIR
-        instanceEnv = os.environ.copy()
-        # Fire up the vagrant machine
-        subprocess.Popen("vagrant up", shell=True, stdout=subprocess.PIPE,env=instanceEnv,cwd=self.getPath()).stdout.read()
-        # change the owner of the created files
-        os.chown(self.getPath(), pw_record.pw_uid, pw_record.pw_gid)
-        for root, dirs, files in os.walk(self.getPath()):
-            for d in dirs:
-                os.lchown(os.path.join(root, d), pw_record.pw_uid, pw_record.pw_gid)
-            for f in files:
-                os.lchown(os.path.join(root, f), pw_record.pw_uid, pw_record.pw_gid)
-
+        if os.geteuid() == 0:
+            # Get the real user behind the sudo
+            pw_record = pwd.getpwnam(os.getenv("SUDO_USER"))
+            # Fire up the vagrant machine
+            p = subprocess.Popen("vagrant up", shell=True, stderr=subprocess.PIPE,cwd=self.getPath())
+            while True:
+                out = p.stderr.read(1)
+                if out == '' and p.poll() != None:
+                    break
+                if out != '':
+                    sys.stdout.write(out)
+                    sys.stdout.flush()
+            # change the owner of the created files
+            os.chown(self.getPath(), pw_record.pw_uid, pw_record.pw_gid)
+            for root, dirs, files in os.walk(self.getPath()):
+                for d in dirs:
+                    os.lchown(os.path.join(root, d), pw_record.pw_uid, pw_record.pw_gid)
+                for f in files:
+                    os.lchown(os.path.join(root, f), pw_record.pw_uid, pw_record.pw_gid)
+            if p.returncode != 0:
+                raise RuntimeError("Error while firing up the machine");
+        else:
+            raise RuntimeError("Only root can start a machine");
+        
     ###
     # Function to destroy an instance
     ###
     def destroy(self):
-        os.environ["MACHINATION_INSTALLDIR"] = MACHINATION_INSTALLDIR
         # Destroy the vagrant machine
-        instanceEnv = os.environ.copy()
-        subprocess.Popen("vagrant destroy -f", shell=True, stdout=subprocess.PIPE, env=instanceEnv, cwd=self.getPath()).stdout.read()
+        p = subprocess.Popen("vagrant destroy -f", shell=True, stdout=subprocess.PIPE,cwd=self.getPath())
+        if p.returncode != 0:
+            raise RuntimeError("Error while destroying the machine");
         shutil.rmtree(self.getPath())
 
     ###
     # Function to stop an instance
     ###
     def stop(self):
-        os.environ["MACHINATION_INSTALLDIR"] = MACHINATION_INSTALLDIR
-        instanceEnv = os.environ.copy()
-        subprocess.Popen("vagrant halt", shell=True, stdout=subprocess.PIPE, env=instanceEnv,cwd=self.getPath()).stdout.read()
-
+        if os.geteuid() == 0:
+            p = subprocess.Popen("vagrant halt", shell=True, stderr=subprocess.PIPE,cwd=self.getPath())
+            while True:
+                out = p.stderr.read(1)
+                if out == '' and p.poll() != None:
+                    break
+                if out != '':
+                    sys.stdout.write(out)
+                    sys.stdout.flush()
+            if p.returncode != 0:
+                raise RuntimeError("Error while firing up the machine");
+        else:
+            raise RuntimeError("Only root can stop a machine")
+        
     ###
     # Function to ssh to an instance
     ###
     def ssh(self):
-        os.environ["MACHINATION_INSTALLDIR"] = MACHINATION_INSTALLDIR
         # Start vagrant ssh to ssh into the instance
-        instanceEnv = os.environ.copy()
-        val = subprocess.Popen("vagrant ssh", shell=True, env=instanceEnv, stderr=subprocess.PIPE, cwd=self.getPath())
+        val = subprocess.Popen("vagrant ssh", shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
         # get the output of the machine
         while True:
             out = val.stderr.read(1)

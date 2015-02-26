@@ -46,16 +46,16 @@ class MachineInstanceRegistry():
         for d in self.instanceDirs:
             path = listPath(d)
             # For each path to scan
-            for d in path:
+            for iDir in path:
                 # Check if the file exists and if there is a VagrantFile and a config file in it
-                if os.path.isdir(d) and os.path.exists(os.path.join(d,"Vagrantfile")) and os.path.exists(os.path.join(d,"config.yml")):
+                if os.path.isdir(iDir) and os.path.exists(os.path.join(iDir,"Vagrantfile")) and os.path.exists(os.path.join(iDir,"config.yml")):
                     try:
-                        openedFile = open(os.path.join(d,"config.yml"),"r")
+                        openedFile = open(os.path.join(iDir,"config.yml"),"r")
                         instance = yaml.load(openedFile)
                         if instance != None:
                             instances[instance.getName()] = instance
                     except:
-                        REGISTRYLOGGER.error("Unable to load instance from {0}".format(d))
+                        REGISTRYLOGGER.error("Unable to load instance from {0}".format(iDir))
         return instances
 
 ###

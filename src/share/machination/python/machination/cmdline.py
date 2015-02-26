@@ -120,7 +120,7 @@ class CmdLine:
         res = 0
         COMMANDLINELOGGER.debug("Listing machine instances")
         # Populating the registry of instances
-        instanceReg = MachineInstanceRegistry([os.path.join(MACHINATION_USERINSTANCESDIR,'instances')])
+        instanceReg = MachineInstanceRegistry([os.path.join(MACHINATION_USERINSTANCESDIR)])
         try:
             instances = instanceReg.getInstances()
             # Create an array to display the available templates
@@ -198,9 +198,10 @@ class CmdLine:
 
                     # Ask for configuration of network interface of the template
                     for i in template.getGuestInterfaces():
+                        hostname = RegexedQuestion("Enter an Hostname for the interface","^([a-zA-Z0-9]{1,50})$",i.getHostname()).ask()
                         ipAddr = RegexedQuestion("Enter an IP address for the interface","^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|dhcp$",i.getIPAddr()).ask()
                         macAddr = RegexedQuestion("Enter a MAC address for the interface","^([a-fA-F0-9]{2}:){5}([a-fA-F0-9]{2})$",i.getMACAddr()).ask()
-                        guestInterfaces.append(NetworkInterface(ipAddr,macAddr,i.getHostname()))
+                        guestInterfaces.append(NetworkInterface(ipAddr,macAddr,hostname))
 
                     # Ask for additional network interfaces
                     while BinaryQuestion("Do you want to add an additional network interface?","N").ask():
@@ -258,12 +259,12 @@ class CmdLine:
         # Getting instances
         instances = []
         try:
-            instanceReg = MachineInstanceRegistry(os.path.join(MACHINATION_USERINSTANCESDIR))
+            instanceReg = MachineInstanceRegistry([os.path.join(MACHINATION_USERINSTANCESDIR)])
             instances = instanceReg.getInstances()
             # Check if there is actually an instance named after the request of the user
             if args.name in instances.keys():
                 # Ask the user if it's ok to delete the machine
-                v = BinaryQuestion("Are you sure you want to destroy the machine named {0}. Directory {1}) will be destroyed".format(instances[args.name].getName(),instances[args.name].getPath()),"Y")
+                v = BinaryQuestion("Are you sure you want to destroy the machine named {0}. Directory {1}) will be destroyed".format(instances[args.name].getName(),instances[args.name].getPath()),"Y").ask()
                 if v == True:
                     instances[args.name].destroy()
                 else:
@@ -285,7 +286,7 @@ class CmdLine:
         COMMANDLINELOGGER.info("Starting machine {0}".format(args.name))
         try:
             # Getting the available instances
-            instanceReg = MachineInstanceRegistry(os.path.join(MACHINATION_USERINSTANCESDIR))
+            instanceReg = MachineInstanceRegistry([os.path.join(MACHINATION_USERINSTANCESDIR)])
             instances = instanceReg.getInstances()
             # Check if the requested instance exists
             if args.name in instances.keys():
@@ -293,8 +294,9 @@ class CmdLine:
             else:
                 COMMANDLINELOGGER.error("Machine {0} does not exist.".format(args.name))
                 res = errno.EINVAL
+            COMMANDLINELOGGER.info("Machine {0} successfully started.".format(args.name))
         except Exception as e:
-            COMMANDLINELOGGER.error("Unable to start machine {0}: ".format(str(e)))
+            COMMANDLINELOGGER.error("Unable to start machine: {0}.".format(str(e)))
             res = errno.EINVAL
         return res
 
@@ -304,9 +306,9 @@ class CmdLine:
     ###
     def stopMachine(self,args):
         res = 0
-        COMMANDLINELOGGER.logger.info("Stopping machine {0}".format(args.name))
+        COMMANDLINELOGGER.info("Stopping machine {0}".format(args.name))
         try:
-            instanceReg = MachineInstanceRegistry(os.path.join(MACHINATION_USERINSTANCESDIR))
+            instanceReg = MachineInstanceRegistry([os.path.join(MACHINATION_USERINSTANCESDIR)])
             instances = instanceReg.getInstances()
             ## Search for the requested instnce
             if args.name in instances.keys():
@@ -314,10 +316,19 @@ class CmdLine:
             else:
                 COMMANDLINELOGGER.error("Machine {0} does not exist.".format(args.name))
                 res = errno.EINVAL
+            COMMANDLINELOGGER.info("Machine {0} successfully stopped.".format(args.name))
         except Exception as e:
-            COMMANDLINELOGGER.error("Unable to stop machine {0}: ".format(str(e)))
+            COMMANDLINELOGGER.error("Unable to stop machine: {0}.".format(str(e)))
             res = errno.EINVAL
         return res
+
+    ###
+    # Function to restart a machine
+    # User must be root to call this function juste to be symetric with the start and stop operations
+    ###
+    def restartMachine(self,args):
+        self.stop(args)
+        return self.start(args)
 
     ###
     # Function to connect to the machine in SSH
@@ -327,7 +338,7 @@ class CmdLine:
         COMMANDLINELOGGER.info("SSH into machine {0}".format(args.name))
         try:
             ## Search for the requested instance in the registry
-            instanceReg = MachineInstanceRegistry(os.path.join(MACHINATION_USERINSTANCESDIR))
+            instanceReg = MachineInstanceRegistry([os.path.join(MACHINATION_USERINSTANCESDIR)])
             instances = instanceReg.getInstances()
             if args.name in instances.keys():
                 instances[args.name].ssh()
@@ -378,6 +389,11 @@ class CmdLine:
         stopParser = rootSubparsers.add_parser('stop', help='Stop the given machine')
         stopParser.add_argument('name', help='Name of the machine to stop')
         stopParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.stopMachine))
+        
+        # Parser for restart command
+        restartParser = rootSubparsers.add_parser('restart', help='Restart the given machine')
+        restartParser.add_argument('name', help='Name of the machine to restart')
+        restartParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.restartMachine))
 
         # Parser for ssh command
         sshParser = rootSubparsers.add_parser('ssh', help='SSH to the given machine')

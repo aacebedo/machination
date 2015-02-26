@@ -41,19 +41,25 @@
     - vim-athena
     - locate
 
+  - name: Add default user group
+    group: name={{ base_user }} state=present
+
+  - name: Add default user
+    user: name={{ base_user }} group={{ base_user }} state=present shell=/sbin/zsh
+
   - name: Clone oh-my-zsh repo
-    git: repo=https://github.com/robbyrussell/oh-my-zsh.git dest=/home/{{ user }}/.oh-my-zsh
+    git: repo=https://github.com/robbyrussell/oh-my-zsh.git dest=/home/{{ base_user }}/.oh-my-zsh
   - name: Copy zshrc
-    shell: cp /home/{{ user }}/.oh-my-zsh/templates/zshrc.zsh-template /home/{{ user }}/.zshrc
+    shell: cp /home/{{ base_user }}/.oh-my-zsh/templates/zshrc.zsh-template /home/{{ base_user }}/.zshrc
 
   - name: Change ownership of oh-my-zsh
-    file: path=/home/{{ user }}/.oh-my-zsh owner={{ user }} group={{ user }} mode="0700" recurse=true
+    file: path=/home/{{ base_user }}/.oh-my-zsh owner={{ base_user }} group={{ base_user }} mode="0700" recurse=true
 
   - name: Change ownership of zshrc
-    file: path=/home/{{ user }}/.zshrc owner={{ user }} group={{ user }} mode="0600"
+    file: path=/home/{{ base_user }}/.zshrc owner={{ base_user }} group={{ base_user }} mode="0600"
 
   - name: Replace zsh theme
-    shell: sed -i "s/ZSH_THEME=.*/ZSH_THEME=\"gianu\"/g" /home/{{ user }}/.zshrc
+    shell: sed -i "s/ZSH_THEME=.*/ZSH_THEME=\"gianu\"/g" /home/{{ base_user }}/.zshrc
 
-  - name: Change user shell
-    user: name={{ user }} shell=/bin/zsh
+  - name: Change base_user shell
+    user: name={{ base_user }} shell=/bin/zsh
