@@ -17,6 +17,7 @@
 ##########################################################################
 ---
 !MachineTemplate
+name: "arduinovdevbox"
 archs: ["x64"] 
 os_versions: ["trusty"]
 provisioners: ["Ansible"]

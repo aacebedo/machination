@@ -17,6 +17,7 @@
 ##########################################################################
 ---
 !MachineTemplate
+name: "seedbox"
 archs: ["x64","x86"] 
 os_versions: ["trusty"]
 provisioners: ["Ansible"]

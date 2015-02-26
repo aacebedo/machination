@@ -37,12 +37,19 @@ class InvalidReturnType(ValueError):
         return self.error
 
 class InvalidArgumentValue(ValueError):
-    def __init__(self, argName):
-        self.error = 'Invalid value for argument {0}'.format(argName)
+    def __init__(self, argName,argValue):
+        self.error = 'Invalid value for argument {0}: {1}'.format(argName,argValue)
             
     def __str__(self):
         return self.error
 
+class InvalidCmdLineArgument(ValueError):
+    def __init__(self, argName,argValue):
+        self.error = 'Invalid argument {0}: {1}'.format(argName,argValue)
+            
+    def __str__(self):
+        return self.error
+    
 class PathNotExistError(ValueError):
     def __init__(self, argName):
         self.error = 'Path {0} does not exists'.format(argName)
