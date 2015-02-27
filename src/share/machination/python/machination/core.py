@@ -474,6 +474,7 @@ class MachineInstance(yaml.YAMLObject):
                 if out != '':
                     sys.stdout.write(out)
                     sys.stdout.flush()
+            p.wait()
             # change the owner of the created files
             os.chown(self.getPath(), pw_record.pw_uid, pw_record.pw_gid)
             for root, dirs, files in os.walk(self.getPath()):
@@ -492,6 +493,7 @@ class MachineInstance(yaml.YAMLObject):
     def destroy(self):
         # Destroy the vagrant machine
         p = subprocess.Popen("vagrant destroy -f", shell=True, stdout=subprocess.PIPE, cwd=self.getPath())
+        p.wait()
         if p.returncode != 0:
             raise RuntimeError("Error while destroying the machine");
         shutil.rmtree(self.getPath())
@@ -509,6 +511,7 @@ class MachineInstance(yaml.YAMLObject):
                 if out != '':
                     sys.stdout.write(out)
                     sys.stdout.flush()
+            p.wait()
             if p.returncode != 0:
                 raise RuntimeError("Error while firing up the machine");
         else:

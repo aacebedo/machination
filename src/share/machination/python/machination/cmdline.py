@@ -330,7 +330,6 @@ class CmdLine:
     # ##
     def destroyMachine(self, args):
         res = 0
-        COMMANDLINELOGGER.info("Destroying machine {0}".format(args.name))
         # Getting instances
         instances = []
         try:
@@ -341,13 +340,16 @@ class CmdLine:
                 # Ask the user if it's ok to delete the machine
                 v = BinaryQuestion("Are you sure you want to destroy the machine named {0}. Directory {1}) will be destroyed".format(instances[args.name].getName(), instances[args.name].getPath()), "Y").ask()
                 if v == True:
+                    COMMANDLINELOGGER.info("Destroying machine {0}...".format(args.name))
                     instances[args.name].destroy()
+                    COMMANDLINELOGGER.info("Machine successfully destroyed")
                 else:
                     COMMANDLINELOGGER.info("Machine not destroyed")
             else:
                 COMMANDLINELOGGER.error("Machine {0} does not exist.".format(args.name))
                 res = errno.EINVAL
         except Exception as e:
+            raise
             COMMANDLINELOGGER.error("Unable to destroy machine: {0}".format(str(e)))
             res = errno.EINVAL
         return res

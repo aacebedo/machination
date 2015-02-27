@@ -23,7 +23,7 @@ cwd = File.dirname(File.expand_path(__FILE__))
 machine_config = YAML.load_file("#{cwd}/config.yml")
 supportedProvisioners = ["Ansible"]
 supportedProviders = ["Docker"]
-supportedArchs = ["x86","x64"]
+supportedArchs = ["i386","x64"]
 
 if not machine_config["name"]
 	abort("Name is missing from the configuration file. Check the config.yml file.")
@@ -84,9 +84,9 @@ Vagrant.configure("2") do |config|
 #     counter+=1
 #     if machine_config["host_interface"] and i["ipaddr"] and i["macaddr"]
 #       if i["hostname"]
-#         command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + machine_config["name"] + " " + i["hostname"] + " " + i["ipaddr"] + " " + i["macaddr"] + ";"
+#         command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + machine_config["name"] + " " + i["hostname"] + " " + i["ip_addr"] + " " + i["mac_addr"] + ";"
 #       else
-#        command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + machine_config["name"] + " " + machine_config["name"] + " " + i["ipaddr"] + " " + i["macaddr"] + ";"
+#        command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + machine_config["name"] + " " + machine_config["name"] + " " + i["ip_addr"] + " " + i["mac_addr"] + ";"
 #       end
 #   else
 #     puts("An interface description is malformed. Check the config.yml file.")

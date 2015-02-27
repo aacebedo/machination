@@ -66,14 +66,14 @@ class Provisioner(StringifiedEnum):
 
 
 class Architecture(StringifiedEnum):
-    x86 = "x86"
+    i386 = "i386"
     x64 = "x64"
     
     @staticmethod
     @accepts(str)
     def fromString(val):
         vals = {
-                "x86" : Architecture.x86,
+                "i386" : Architecture.i386,
                 "x64" : Architecture.x64
                 }
         if val in vals:

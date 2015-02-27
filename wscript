@@ -4,6 +4,7 @@ from waflib.Task import Task
 from waflib import Logs
 import subprocess
 from distutils.version import LooseVersion, StrictVersion
+import imp
 
 top = "."
 out = "build"
@@ -11,6 +12,15 @@ src = "src"
      
 def options(ctx):
 	ctx.add_option('--prefix', action='store', default="/usr/local", help='install prefix')
+
+def checkPythonModule(moduleName):
+  res = False
+  try:
+      imp.find_module('eggs')
+      res = True
+  except ImportError:
+      res = False
+  return res
 
 def checkBinary(cmd):
     p = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE,stdout=subprocess.PIPE)
@@ -60,6 +70,18 @@ def checkAnsible(requiredVersion):
       Logs.pprint('GREEN',res["out"])
       res = True
     return res
+  
+def checkEnumPython():
+    res = False
+    Logs.pprint('WHITE','{0: <40}'.format('Checking enum extension for Python'),sep=': ')
+    res =  checkPython("enum")
+    if not res:
+       Logs.pprint('RED','Enum python extension is not available. Cannot continue')
+    else :
+      Logs.pprint('GREEN',res["out"])
+      res = True
+    return res
+           
            
 def configure(ctx):
     ctx.env.PREFIX = ctx.options.prefix

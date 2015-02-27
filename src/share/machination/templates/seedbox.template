@@ -18,13 +18,12 @@
 ---
 !MachineTemplate
 name: "seedbox"
-archs: ["x64","x86"] 
+archs: ["x64","i386"] 
 os_versions: ["trusty"]
 provisioners: ["Ansible"]
 providers: ["Docker"]
 guest_interfaces : 
 - !NetworkInterface
-  hostname: "toto"
+  hostname: "seedbox"
   ip_addr: "dhcp"
-  mac_addr: "c4:85:08:5b:37:11"
 
