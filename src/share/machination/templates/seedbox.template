@@ -17,12 +17,11 @@
 ##########################################################################
 ---
 !MachineTemplate
-name: "seedbox"
-archs: ["x64","i386"] 
+archs: ["x64","i386"]
 os_versions: ["trusty"]
 provisioners: ["Ansible"]
 providers: ["Docker"]
-guest_interfaces : 
+guest_interfaces :
 - !NetworkInterface
   hostname: "seedbox"
   ip_addr: "dhcp"

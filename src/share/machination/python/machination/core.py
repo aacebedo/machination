@@ -155,7 +155,7 @@ class SyncedFolder(yaml.YAMLObject):
           self._guestDir = guest_dir
         else:
           raise InvalidArgumentValue("guest_dir",guest_dir)
-        
+
     # ##
     # Simple getters
     # ##
@@ -204,7 +204,6 @@ class SyncedFolder(yaml.YAMLObject):
 class MachineTemplate(yaml.YAMLObject):
     yaml_tag = '!MachineTemplate'
     _path = None
-    _name = None
     _provisioners = []
     _providers = []
     _osVersions = []
@@ -214,11 +213,9 @@ class MachineTemplate(yaml.YAMLObject):
     # ##
     # Constructor
     # ##
-    @accepts(None, str, str, list, list, list, list)
-    def __init__(self, name, path, archs, osVersions , providers, provisioners, guestInterfaces):
+    @accepts(None, str, list, list, list, list)
+    def __init__(self, path, archs, osVersions , providers, provisioners, guestInterfaces):
         # Checking the arguments
-        if len(name) == 0:
-            raise InvalidArgumentValue("Template name",name)
 
         if not os.path.exists(path):
             raise InvalidArgumentValue("Template path",path)
@@ -304,12 +301,9 @@ class MachineTemplate(yaml.YAMLObject):
     # ##
     @classmethod
     def from_yaml(cls, loader, node):
+
         representation = loader.construct_mapping(node, deep=True)
-        name = None
-        # Check if architectures are present in the template
-        if "name" in representation.keys():
-          name = representation["name"]
-                
+
         archs = []
         # Check if architectures are present in the template
         if "archs" in representation.keys() and type(representation["archs"]) is list:
@@ -337,8 +331,7 @@ class MachineTemplate(yaml.YAMLObject):
         if "guest_interfaces" in representation.keys() and type(representation["guest_interfaces"]) is list:
             guestInterfaces = representation["guest_interfaces"]
 
-        return MachineTemplate(name,
-                               loader.stream.name,
+        return MachineTemplate(loader.stream.name,
                                archs,
                                osVersions,
                                providers,
@@ -432,13 +425,13 @@ class MachineInstance(yaml.YAMLObject):
     # ##
     def getName(self):
         return self._name
-    
+
     def getArch(self):
         return self._arch
 
     def getProvisioner(self):
         return self._provisioner
-      
+
     def getProvider(self):
         return self._provider
 
@@ -447,13 +440,13 @@ class MachineInstance(yaml.YAMLObject):
 
     def getTemplate(self):
         return self._template
-    
+
     def getHostInterface(self):
         return self._hostInterface
-    
+
     def getGuestInterfaces(self):
         return self._guestInterfaces
-            
+
     def getOsVersion(self):
         return self._osVersion
 
@@ -486,7 +479,7 @@ class MachineInstance(yaml.YAMLObject):
                 raise RuntimeError("Error while firing up the machine");
         else:
             raise RuntimeError("Only root can start a machine");
-        
+
     # ##
     # Function to destroy an instance
     # ##
@@ -516,7 +509,7 @@ class MachineInstance(yaml.YAMLObject):
                 raise RuntimeError("Error while firing up the machine");
         else:
             raise RuntimeError("Only root can stop a machine")
-        
+
     # ##
     # Function to ssh to an instance
     # ##
@@ -538,7 +531,6 @@ class MachineInstance(yaml.YAMLObject):
     @classmethod
     def to_yaml(cls, dumper, data):
         representation = {
-                               "name" : data.getName(),
                                "template" : data.getTemplate().getName(),
                                "arch" : str(data.getArch()),
                                "os_version" : str(data.getOsVersion()),

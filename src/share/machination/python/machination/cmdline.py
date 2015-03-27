@@ -124,7 +124,8 @@ class CmdLine:
         res = 0
         COMMANDLINELOGGER.debug("Listing machine instances")
         # Populating the registry of instances
-        instanceReg = MachineInstanceRegistry([os.path.join(MACHINATION_USERINSTANCESDIR)])
+        instanceReg = MachineInstanceRegistry([MACHINATION_USERINSTANCESDIR])
+
         try:
             instances = instanceReg.getInstances()
             # Create an array to display the available templates
@@ -157,8 +158,9 @@ class CmdLine:
         res = 0
         COMMANDLINELOGGER.info("Creating a new machine instance named {0} using template {1}".format(args.name, args.template))
         # Creating the template and instances registries
-        templateReg = MachineTemplateRegistry([os.path.join(MACHINATION_INSTALLDIR, 'share', 'machination', 'templates'), os.path.join(MACHINATION_USERTEMPLATESDIR)])
-        instanceReg = MachineInstanceRegistry([os.path.join(MACHINATION_USERINSTANCESDIR)])
+        templateReg = MachineTemplateRegistry([os.path.join(MACHINATION_INSTALLDIR,'share','machination', 'templates'),MACHINATION_USERTEMPLATESDIR])
+        instanceReg = MachineInstanceRegistry([MACHINATION_USERINSTANCESDIR])
+
         templates = []
         instances = []
         try:
@@ -178,7 +180,7 @@ class CmdLine:
                     osVersion = template.getOsVersions()[0]
                     syncedFolders = []
                     hostInterface = None
-                    
+
                     # Ask for the host interface to use
                     if args.hostinterface != None:
                       hostInterface = args.hostinterface
@@ -197,7 +199,7 @@ class CmdLine:
                                 raise InvalidCmdLineArgument("architecture",args.arch)
                         else:
                             arch = Architecture.fromString(RegexedQuestion("Select an architecture {" + ",".join(map(str, template.getArchs())) + "}", "[" + ",".join(map(str, template.getArchs())) + "]", arch.name).ask())
-                            
+
                     # If there is more than one OS version available for the template
                     # Ask the user to choose
                     if len(template.getOsVersions()) > 1 :
@@ -231,7 +233,7 @@ class CmdLine:
                             provider = Provider.fromString(RegexedQuestion("Select a Provider {0}".format(",".join(map(str, template.getProviders()))), "[" + ",".join(map(str, template.getProviders())) + "]", provider.name).ask())
 
                     # Ask for configuration of network interface of the template
-                    itfCounter = 0                  
+                    itfCounter = 0
                     if args.guestinterface!= None:
                       if type(args.guestinterface) is list and len(args.guestinterface)>=len(template.getGuestInterfaces()):
                         for i in template.getGuestInterfaces():
@@ -265,25 +267,27 @@ class CmdLine:
                         ipAddr = RegexedQuestion("Enter an IP address for the interface", "^{0}$".format(ipAddrRegex), i.getIPAddr()).ask()
                         macAddr = RegexedQuestion("Enter a MAC address for the interface", "^{0}$".format(macAddrRegex), i.getMACAddr()).ask()
                         guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostname))
-                        
-                      # Ask for additional network interfaces
-                      while BinaryQuestion("Do you want to add an additional network interface?", "N").ask():
-                        hostname = RegexedQuestion("Enter an Hostname for the interface", "^{0}$".format(hostnameRegex), "").ask()
-                        ipAddr = RegexedQuestion("Enter an IP address for the interface", "^{0}$".format(ipAddrRegex), "").ask()
-                        macAddr = RegexedQuestion("Enter a MAC address for the interface", "^{0}$".format(macAddrRegex), machination.helpers.randomMAC()).ask()
-                        guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostname))
 
-                    if args.sharedfolder == None:
+                      # Ask for additional network interfaces
+                      if args.quiet == False:
+                        while BinaryQuestion("Do you want to add an additional network interface?", "N").ask():
+                          hostname = RegexedQuestion("Enter an Hostname for the interface", "^{0}$".format(hostnameRegex), "").ask()
+                          ipAddr = RegexedQuestion("Enter an IP address for the interface", "^{0}$".format(ipAddrRegex), "").ask()
+                          macAddr = RegexedQuestion("Enter a MAC address for the interface", "^{0}$".format(macAddrRegex), machination.helpers.randomMAC()).ask()
+                          guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostname))
+
+                    if args.quiet == False:
                       # Ask for adding a new synced folder
                       while BinaryQuestion("Do you want to add a synced folder ?", "N").ask():
                           hostPathQues = PathQuestion("Enter a path to an existing folder on the host", ".+", None, True).ask()
                           guestPathQues = PathQuestion("Enter the mount path on the guest directory: ", "^/.+", None, False).ask()
                           syncedFolders.append(SyncedFolder(hostPathQues, guestPathQues))
-                    else:
+
+                    if args.sharedfolder != None:
                       for s in args.sharedfolder:
                         regex = "^(.*)\|(.*)$"
                         m = re.search(regex,s)
-                        if m != None:                          
+                        if m != None:
                           syncedFolders.append(SyncedFolder(m.group(1), m.group(2)))
                         else:
                           raise InvalidCmdLineArgument("sharedfolder",s)
@@ -333,7 +337,7 @@ class CmdLine:
         # Getting instances
         instances = []
         try:
-            instanceReg = MachineInstanceRegistry([os.path.join(MACHINATION_USERINSTANCESDIR)])
+            instanceReg = MachineInstanceRegistry([MACHINATION_USERINSTANCESDIR])
             instances = instanceReg.getInstances()
             # Check if there is actually an instance named after the request of the user
             if args.name in instances.keys():
@@ -363,7 +367,7 @@ class CmdLine:
         COMMANDLINELOGGER.info("Starting machine {0}".format(args.name))
         try:
             # Getting the available instances
-            instanceReg = MachineInstanceRegistry([os.path.join(MACHINATION_USERINSTANCESDIR)])
+            instanceReg = MachineInstanceRegistry([MACHINATION_USERINSTANCESDIR])
             instances = instanceReg.getInstances()
             # Check if the requested instance exists
             if args.name in instances.keys():
@@ -457,8 +461,9 @@ class CmdLine:
         createParser.add_argument('--hostinterface', help='Network interface of the host for the new machine',type=str)
         createParser.add_argument('--guestinterface', help='Network interface to add to the new machine <hostname|ip_addr|mac_addr>', action='append', type=str)
         createParser.add_argument('--sharedfolder', help='Shared folder to ad to the new machine <host_folder|guest_folder>', action='append', type=str)
+        createParser.add_argument('--quiet', help='Do not request for interactive configuration of optional elements (interfaces,sharedfolders) of the instance', action='store_true')
         createParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.createMachine))
-  
+
         # Parser for destroy command
         destroyParser = rootSubparsers.add_parser('destroy', help='Destroy the given machine in the path')
         destroyParser.add_argument('name', help='Name of the machine to destroy')
@@ -473,7 +478,7 @@ class CmdLine:
         stopParser = rootSubparsers.add_parser('stop', help='Stop the given machine')
         stopParser.add_argument('name', help='Name of the machine to stop')
         stopParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.stopMachine))
-        
+
         # Parser for restart command
         restartParser = rootSubparsers.add_parser('restart', help='Restart the given machine')
         restartParser.add_argument('name', help='Name of the machine to restart')

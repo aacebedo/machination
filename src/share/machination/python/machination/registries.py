@@ -41,7 +41,6 @@ class MachineInstanceRegistry():
     # Function to retrieve the available instances
     ###
     def getInstances(self):
-
         instances = {}
         for d in self.instanceDirs:
             path = listPath(d)

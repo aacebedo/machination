@@ -17,12 +17,11 @@
 ##########################################################################
 ---
 !MachineTemplate
-name: "arduinovdevbox"
-archs: ["x64"] 
+archs: ["x64"]
 os_versions: ["trusty"]
 provisioners: ["Ansible"]
 providers: ["Docker"]
 guest_interfaces :
 - !NetworkInterface
-  hostname: "arduinodevbox" 
+  hostname: "arduinodevbox"
   ip_addr: "dhcp"
