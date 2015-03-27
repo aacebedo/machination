@@ -156,7 +156,7 @@ class CmdLine:
     # ##
     def createMachine(self, args):
         res = 0
-        COMMANDLINELOGGER.info("Creating a new machine instance named {0} using template {1}".format(args.name, args.template))
+        COMMANDLINELOGGER.info("Creating a new machine instance named '{0}' using template '{1}'".format(args.name, args.template))
         # Creating the template and instances registries
         templateReg = MachineTemplateRegistry([os.path.join(MACHINATION_INSTALLDIR,'share','machination', 'templates'),MACHINATION_USERTEMPLATESDIR])
         instanceReg = MachineInstanceRegistry([MACHINATION_USERINSTANCESDIR])
@@ -291,40 +291,27 @@ class CmdLine:
                           syncedFolders.append(SyncedFolder(m.group(1), m.group(2)))
                         else:
                           raise InvalidCmdLineArgument("sharedfolder",s)
-
-                    COMMANDLINELOGGER.info("The machine named {0} will: ".format(args.name))
-                    COMMANDLINELOGGER.info("  Use the architecture {0}".format((arch)))
-                    COMMANDLINELOGGER.info("  Use the provisioner {0}".format(str(provisioner)))
-                    COMMANDLINELOGGER.info("  Use the provider {0}".format(str(provider)))
-                    COMMANDLINELOGGER.info("  Use the host interface {0}".format(hostInterface))
-                    i = 0
-                    COMMANDLINELOGGER.info("  Have the following network interfaces :")
-                    for intf in guestInterfaces:
-                        COMMANDLINELOGGER.info("    Name: eth{0}".format(str(i)))
-                        COMMANDLINELOGGER.info("    IPAddress: {0}".format(intf.getIPAddr()))
-                        COMMANDLINELOGGER.info("    MACAddress: {0}".format(intf.getMACAddr()))
-                        if intf.getHostname() != None:
-                            COMMANDLINELOGGER.info("    Hostname: {0}".format(intf.getHostname()))
-                        COMMANDLINELOGGER.info("")
-                        i += 1
                     try:
                         # Try to create the new machine
                         pass
                         instance = MachineInstance(args.name, template, arch, osVersion, provider, provisioner, hostInterface, guestInterfaces, syncedFolders)
                         instance.generateFiles()
+                        COMMANDLINELOGGER.info("Summary of the created machine:")
+                        instances = instanceReg.getInstances()
+                        COMMANDLINELOGGER.info(instances[args.name].getInfos())
                     except Exception as e:
                         raise
-                        COMMANDLINELOGGER.error("Unable to create machine: {0}".format(e))
+                        COMMANDLINELOGGER.error("Unable to create machine instance '{0}'".format(e))
                         res = errno.EINVAL
                 else:
                     COMMANDLINELOGGER.error("Unable to create machine: Machine template {0} does not exists".format(args.template))
                     return errno.EINVAL
             else:
-                COMMANDLINELOGGER.error("Unable to create machine: Machine named {0} already exists. Change the name of your new machine or delete the existing instance.".format(args.name))
+                COMMANDLINELOGGER.error("Unable to create machine: Machine instance named '{0}' already exists. Change the name of your new machine instance or delete the existing instance.".format(args.name))
                 return errno.EALREADY
         except Exception as e:
             raise
-            COMMANDLINELOGGER.error("Unable to create machine: {0}.".format(str(e)))
+            COMMANDLINELOGGER.error("Unable to create machine instance '{0}'.".format(str(e)))
             return errno.EINVAL
         return res
 
@@ -344,17 +331,17 @@ class CmdLine:
                 # Ask the user if it's ok to delete the machine
                 v = BinaryQuestion("Are you sure you want to destroy the machine named {0}. Directory {1}) will be destroyed".format(instances[args.name].getName(), instances[args.name].getPath()), "Y").ask()
                 if v == True:
-                    COMMANDLINELOGGER.info("Destroying machine {0}...".format(args.name))
+                    COMMANDLINELOGGER.info("Destroying machine instance '{0}'...".format(args.name))
                     instances[args.name].destroy()
-                    COMMANDLINELOGGER.info("Machine successfully destroyed")
+                    COMMANDLINELOGGER.info("Machine instance successfully destroyed")
                 else:
                     COMMANDLINELOGGER.info("Machine not destroyed")
             else:
-                COMMANDLINELOGGER.error("Machine {0} does not exist.".format(args.name))
+                COMMANDLINELOGGER.error("Machine instance '{0}' does not exist.".format(args.name))
                 res = errno.EINVAL
         except Exception as e:
             raise
-            COMMANDLINELOGGER.error("Unable to destroy machine: {0}".format(str(e)))
+            COMMANDLINELOGGER.error("Unable to destroy machine '{0}'".format(str(e)))
             res = errno.EINVAL
         return res
 
@@ -373,11 +360,11 @@ class CmdLine:
             if args.name in instances.keys():
                 instances[args.name].start()
             else:
-                COMMANDLINELOGGER.error("Machine {0} does not exist.".format(args.name))
+                COMMANDLINELOGGER.error("Machine instance '{0}' does not exist.".format(args.name))
                 res = errno.EINVAL
-            COMMANDLINELOGGER.info("Machine {0} successfully started.".format(args.name))
+            COMMANDLINELOGGER.info("Machine instance '{0}' successfully started.".format(args.name))
         except Exception as e:
-            COMMANDLINELOGGER.error("Unable to start machine: {0}.".format(str(e)))
+            COMMANDLINELOGGER.error("Unable to start machine instance '{0}'.".format(str(e)))
             res = errno.EINVAL
         return res
 
@@ -389,17 +376,17 @@ class CmdLine:
         res = 0
         COMMANDLINELOGGER.info("Stopping machine {0}".format(args.name))
         try:
-            instanceReg = MachineInstanceRegistry([os.path.join(MACHINATION_USERINSTANCESDIR)])
+            instanceReg = MachineInstanceRegistry([MACHINATION_USERINSTANCESDIR])
             instances = instanceReg.getInstances()
             # # Search for the requested instnce
             if args.name in instances.keys():
                 instances[args.name].stop()
             else:
-                COMMANDLINELOGGER.error("Machine {0} does not exist.".format(args.name))
+                COMMANDLINELOGGER.error("Machine instance '{0}' does not exist.".format(args.name))
                 res = errno.EINVAL
-            COMMANDLINELOGGER.info("Machine {0} successfully stopped.".format(args.name))
+            COMMANDLINELOGGER.info("Machine instance '{0}' successfully stopped.".format(args.name))
         except Exception as e:
-            COMMANDLINELOGGER.error("Unable to stop machine: {0}.".format(str(e)))
+            COMMANDLINELOGGER.error("Unable to stop machine instance '{0}'.".format(str(e)))
             res = errno.EINVAL
         return res
 
@@ -410,6 +397,26 @@ class CmdLine:
     def restartMachine(self, args):
         self.stop(args)
         return self.start(args)
+
+    # ##
+    # Function to get infos from a machine instance
+    # ##
+    def getMachineInfos(self, args):
+        res = 0
+        COMMANDLINELOGGER.info("Retrieving information for machine instance {0}".format(args.name))
+        try:
+            instanceReg = MachineInstanceRegistry([MACHINATION_USERINSTANCESDIR])
+            instances = instanceReg.getInstances()
+            # # Search for the requested instnce
+            if args.name in instances.keys():
+                COMMANDLINELOGGER.info(instances[args.name].getInfos())
+            else:
+                COMMANDLINELOGGER.error("Machine instance '{0}' does not exist.".format(args.name))
+                res = errno.EINVAL
+        except Exception as e:
+            COMMANDLINELOGGER.error("Unable to get informations for machine instance '{0}': '{1}'.".format(args.name,str(e)))
+            res = errno.EINVAL
+        return res
 
     # ##
     # Function to connect to the machine in SSH
@@ -424,9 +431,9 @@ class CmdLine:
             if args.name in instances.keys():
                 instances[args.name].ssh()
             else:
-                COMMANDLINELOGGER.error("Machine {0} does not exist.".format(args.name))
+                COMMANDLINELOGGER.error("Machine instance '{0}' does not exist.".format(args.name))
         except Exception as e:
-            COMMANDLINELOGGER.error("Unable to SSH into machine {0}: ".format(str(e)))
+            COMMANDLINELOGGER.error("Unable to SSH into machine instance '{0}': ".format(str(e)))
             res = errno.EINVAL
         return res
 
@@ -470,19 +477,24 @@ class CmdLine:
         destroyParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.destroyMachine))
 
         # Parser for start command
-        startParser = rootSubparsers.add_parser('start', help='Start the given machine')
+        startParser = rootSubparsers.add_parser('start', help='Start the given machine instance')
         startParser.add_argument('name', help='Name of the machine to start')
         startParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.startMachine))
 
         # Parser for stop command
-        stopParser = rootSubparsers.add_parser('stop', help='Stop the given machine')
+        stopParser = rootSubparsers.add_parser('stop', help='Stop the given machine instance')
         stopParser.add_argument('name', help='Name of the machine to stop')
         stopParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.stopMachine))
 
         # Parser for restart command
-        restartParser = rootSubparsers.add_parser('restart', help='Restart the given machine')
+        restartParser = rootSubparsers.add_parser('restart', help='Restart the given machine instance')
         restartParser.add_argument('name', help='Name of the machine to restart')
         restartParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.restartMachine))
+
+        # Parser for infos command
+        infosParser = rootSubparsers.add_parser('infos', help='Get informations about a machine instance')
+        infosParser.add_argument('name', help='Name of the machine instance from which infos shall be retrieved')
+        infosParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.getMachineInfos))
 
         # Parser for ssh command
         sshParser = rootSubparsers.add_parser('ssh', help='SSH to the given machine')

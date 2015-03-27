@@ -23,6 +23,7 @@ import subprocess
 import sys
 import pwd
 import shutil
+import json
 
 from machination.loggers import CORELOGGER
 
@@ -509,6 +510,34 @@ class MachineInstance(yaml.YAMLObject):
                 raise RuntimeError("Error while firing up the machine");
         else:
             raise RuntimeError("Only root can stop a machine")
+
+    # ##
+    # ##
+    def getInfos(self):
+      i = 0
+      str =  "  Name: {0}\n".format(self.getName())
+      str += "  Architecture: {0}\n".format(self.getArch())
+      str += "  Provisioner: {0}\n".format(self.getProvisioner())
+      str += "  Provider: {0}\n".format(self.getProvider())
+      str += "  Host interface: {0}\n".format(self.getHostInterface())
+      if len(self.getGuestInterfaces()) != 0 :
+        str +="  Network interfaces:"
+        for intf in self.getGuestInterfaces():
+          str += "    Name: eth{0}\n".format(str(i))
+          str += "    IPAddress: {0}\n".format(intf.getIPAddr())
+          str += "    MACAddress: {0}\n".format(intf.getMACAddr())
+          if intf.getHostname() != None:
+            str += "    Hostname: {0}\n".format(intf.getHostname())
+          str += "\n"
+          i += 1
+      p = subprocess.Popen("docker inspect {0}".format(self.getName()), shell=True,  stderr=subprocess.PIPE, stdout=subprocess.PIPE, cwd=self.getPath())
+      if p.returncode != 0:
+        doc = json.loads(p.communicate()[0])
+        if len(doc)==1 :
+          str += "  Primary IPAddress of the container: {0}\n".format(doc[0]["NetworkSettings"]["IPAddress"])
+          str += "  Primary Gateway of the container: {0}\n".format(doc[0]["NetworkSettings"]["Gateway"])
+          str += "  Primary MacAddress of the container: {0}\n".format(doc[0]["NetworkSettings"]["MacAddress"])
+      return str
 
     # ##
     # Function to ssh to an instance
