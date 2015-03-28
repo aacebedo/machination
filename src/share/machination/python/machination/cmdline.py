@@ -347,7 +347,7 @@ class CmdLine:
     # Function to start a machine
     # The user must be root to call this function as some stuff related to networking needs to be executed as root
     # ##
-    def startMachine(self, args):
+    def startMachineInstance(self, args):
         res = 0
         COMMANDLINELOGGER.info("Starting machine {0}".format(args.name))
         try:
@@ -370,7 +370,7 @@ class CmdLine:
     # Function to stop a machine
     # User must be root to call this function juste to be symetric with the start operation
     # ##
-    def stopMachine(self, args):
+    def stopMachineInstance(self, args):
         res = 0
         COMMANDLINELOGGER.info("Stopping machine {0}".format(args.name))
         try:
@@ -392,14 +392,14 @@ class CmdLine:
     # Function to restart a machine
     # User must be root to call this function juste to be symetric with the start and stop operations
     # ##
-    def restartMachine(self, args):
-        self.stop(args)
-        return self.start(args)
+    def restartMachineInstance(self, args):
+        self.stopMachineInstance(args)
+        return self.startMachineInstance(args)
 
     # ##
     # Function to get infos from a machine instance
     # ##
-    def getMachineInfos(self, args):
+    def getMachineInstanceInfos(self, args):
         res = 0
         COMMANDLINELOGGER.info("Retrieving information for machine instance {0}".format(args.name))
         try:
@@ -478,22 +478,22 @@ class CmdLine:
         # Parser for start command
         startParser = rootSubparsers.add_parser('start', help='Start the given machine instance')
         startParser.add_argument('name', help='Name of the machine to start')
-        startParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.startMachine))
+        startParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.startMachineInstance))
 
         # Parser for stop command
         stopParser = rootSubparsers.add_parser('stop', help='Stop the given machine instance')
         stopParser.add_argument('name', help='Name of the machine to stop')
-        stopParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.stopMachine))
+        stopParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.stopMachineInstance))
 
         # Parser for restart command
         restartParser = rootSubparsers.add_parser('restart', help='Restart the given machine instance')
         restartParser.add_argument('name', help='Name of the machine to restart')
-        restartParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.restartMachine))
+        restartParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.restartMachineInstance))
 
         # Parser for infos command
         infosParser = rootSubparsers.add_parser('infos', help='Get informations about a machine instance')
         infosParser.add_argument('name', help='Name of the machine instance from which infos shall be retrieved')
-        infosParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.getMachineInfos))
+        infosParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.getMachineInstanceInfos))
 
         # Parser for ssh command
         sshParser = rootSubparsers.add_parser('ssh', help='SSH to the given machine')

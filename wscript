@@ -41,6 +41,26 @@ def checkVersion(name,cmd,regex,requiredVersion):
         Logs.pprint('RED','Unable to get version.')
     return res
 
+def checkBinary(name,cmd):
+    res = False
+    Logs.pprint('WHITE','{0: <40}'.format('Checking {0} version'.format(name)),sep=': ')
+    try:
+        p = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE,stdout=subprocess.PIPE)
+        line=" "
+        p.wait()
+        for line in iter(p.stdout.readline,''):
+           pass
+        for line in iter(p.stderr.readline,''):
+           pass
+        res =  { "returncode": p.returncode, "out":line[0:-1] }
+        if res["returncode"] != 0:
+           Logs.pprint('RED','{0} is not available. Cannot continue'.format(name))
+        else:
+           Logs.pprint('GREEN',"present")
+    except:
+        Logs.pprint('RED','Unable to check binary.')
+    return res
+   
 def checkPythonModule(moduleName):
     res = False
     Logs.pprint('WHITE','{0: <40}'.format('Checking python module {0}'.format(moduleName)),sep=': ')
@@ -65,6 +85,8 @@ def configure(ctx):
     if not checkVersion("Ansible","ansible --version","ansible ([0-9\.]*)","1.7.2"):
       ctx.fatal("Missing requirements. Installation will not continue.")
     if not checkVersion("Docker","docker --version","Docker version ([0-9\.]*)(.*)","1.4.1"):
+      ctx.fatal("Missing requirements. Installation will not continue.")
+    if not checkBinary("Udhcpc","udhcpc --help"):
       ctx.fatal("Missing requirements. Installation will not continue.")
     if not checkPythonModule("enum"):
       ctx.fatal("Missing requirements. Installation will not continue.")
