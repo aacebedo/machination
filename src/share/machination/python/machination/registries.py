@@ -47,9 +47,9 @@ class MachineInstanceRegistry():
             # For each path to scan
             for iDir in path:
                 # Check if the file exists and if there is a VagrantFile and a config file in it
-                if os.path.isdir(iDir) and os.path.exists(os.path.join(iDir,"Vagrantfile")) and os.path.exists(os.path.join(iDir,"config.yml")):
+                if os.path.isdir(iDir) and os.path.exists(os.path.join(iDir,"Vagrantfile")) and os.path.exists(os.path.join(iDir,machination.constants.MACHINATION_CONFIGFILE_NAME)):
                     try:
-                        openedFile = open(os.path.join(iDir,"config.yml"),"r")
+                        openedFile = open(os.path.join(iDir,machination.constants.MACHINATION_CONFIGFILE_NAME),"r")
                         instance = yaml.load(openedFile)
                         if instance != None:
                             instances[instance.getName()] = instance

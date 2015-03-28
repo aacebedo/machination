@@ -31,3 +31,5 @@ MACHINATION_USERPROVISIONERSDIR = os.path.join(MACHINATION_USERDIR,"provisioners
 
 MACHINATION_USERANSIBLEPLAYBOOKSDIR = os.path.join(MACHINATION_USERDIR,"provisioners","ansible","playbooks")
 MACHINATION_USERANSIBLEROLESDIR = os.path.join(MACHINATION_USERDIR,"provisioners","ansible","roles")
+
+MACHINATION_CONFIGFILE_NAME="machine_instance_config.yml"

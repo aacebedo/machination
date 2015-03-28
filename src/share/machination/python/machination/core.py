@@ -406,17 +406,19 @@ class MachineInstance(yaml.YAMLObject):
             shutil.copy(os.path.join(MACHINATION_INSTALLDIR, "share", "machination", "vagrant", "Vagrantfile"), os.path.join(self.getPath(), "Vagrantfile"))
 
             try:
+                # Create the machine config file
+                configFile = yaml.dump(self)
+                openedFile = open(os.path.join(self.getPath(), machination.constants.MACHINATION_CONFIGFILE_NAME), "w+")
+                openedFile.write(configFile)
+                openedFile.close()
                 # Generate the file related to the provisioner
                 generator = Provisioner.getFileGenerator(self.getProvisioner())
                 generator.generateFiles(self.getTemplate(), self.getPath())
-                # Create the machine config file
-                configFile = yaml.dump(self)
-                openedFile = open(os.path.join(self.getPath(), "config.yml"), "w+")
-                openedFile.write(configFile)
-                openedFile.close()
+                
             except InvalidMachineTemplateException as e:
-                CORELOGGER.error("Unable to instantiate the machine: Invalid template ({0})".format(str(e)))
-                # shutil.rmtree(self.getPath())
+                CORELOGGER.error("Unable to instantiate the machine: Invalid template '{0}'".format(str(e)))
+                shutil.rmtree(self.getPath())
+                raise e
         else:
             # Raise an error about the fact the machine already exists
             raise RuntimeError("Machine {0} already exists".format(self.getPath()))
@@ -515,29 +517,29 @@ class MachineInstance(yaml.YAMLObject):
     # ##
     def getInfos(self):
       i = 0
-      str =  "  Name: {0}\n".format(self.getName())
-      str += "  Architecture: {0}\n".format(self.getArch())
-      str += "  Provisioner: {0}\n".format(self.getProvisioner())
-      str += "  Provider: {0}\n".format(self.getProvider())
-      str += "  Host interface: {0}\n".format(self.getHostInterface())
+      output =  "  Name: {0}\n".format(self.getName())
+      output += "  Architecture: {0}\n".format(self.getArch())
+      output += "  Provisioner: {0}\n".format(self.getProvisioner())
+      output += "  Provider: {0}\n".format(self.getProvider())
+      output += "  Host interface: {0}\n".format(self.getHostInterface())
       if len(self.getGuestInterfaces()) != 0 :
-        str +="  Network interfaces:"
+        output +="  Network interfaces:"
         for intf in self.getGuestInterfaces():
-          str += "    Name: eth{0}\n".format(str(i))
-          str += "    IPAddress: {0}\n".format(intf.getIPAddr())
-          str += "    MACAddress: {0}\n".format(intf.getMACAddr())
+          output += "    Name: eth{0}\n".format(i)
+          output += "    IPAddress: {0}\n".format(intf.getIPAddr())
+          output += "    MACAddress: {0}\n".format(intf.getMACAddr())
           if intf.getHostname() != None:
-            str += "    Hostname: {0}\n".format(intf.getHostname())
-          str += "\n"
+            output += "    Hostname: {0}\n".format(intf.getHostname())
+          output += "\n"
           i += 1
       p = subprocess.Popen("docker inspect {0}".format(self.getName()), shell=True,  stderr=subprocess.PIPE, stdout=subprocess.PIPE, cwd=self.getPath())
       if p.returncode != 0:
         doc = json.loads(p.communicate()[0])
         if len(doc)==1 :
-          str += "  Primary IPAddress of the container: {0}\n".format(doc[0]["NetworkSettings"]["IPAddress"])
-          str += "  Primary Gateway of the container: {0}\n".format(doc[0]["NetworkSettings"]["Gateway"])
-          str += "  Primary MacAddress of the container: {0}\n".format(doc[0]["NetworkSettings"]["MacAddress"])
-      return str
+          output += "  Primary IPAddress of the container: {0}\n".format(doc[0]["NetworkSettings"]["IPAddress"])
+          output += "  Primary Gateway of the container: {0}\n".format(doc[0]["NetworkSettings"]["Gateway"])
+          output += "  Primary MacAddress of the container: {0}\n".format(doc[0]["NetworkSettings"]["MacAddress"])
+      return output
 
     # ##
     # Function to ssh to an instance

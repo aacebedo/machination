@@ -329,7 +329,9 @@ class CmdLine:
             # Check if there is actually an instance named after the request of the user
             if args.name in instances.keys():
                 # Ask the user if it's ok to delete the machine
-                v = BinaryQuestion("Are you sure you want to destroy the machine named {0}. Directory {1}) will be destroyed".format(instances[args.name].getName(), instances[args.name].getPath()), "Y").ask()
+                v = args.force
+                if v == False:
+                  v = BinaryQuestion("Are you sure you want to destroy the machine named {0}. Directory {1}) will be destroyed".format(instances[args.name].getName(), instances[args.name].getPath()), "Y").ask()
                 if v == True:
                     COMMANDLINELOGGER.info("Destroying machine instance '{0}'...".format(args.name))
                     instances[args.name].destroy()
@@ -340,7 +342,6 @@ class CmdLine:
                 COMMANDLINELOGGER.error("Machine instance '{0}' does not exist.".format(args.name))
                 res = errno.EINVAL
         except Exception as e:
-            raise
             COMMANDLINELOGGER.error("Unable to destroy machine '{0}'".format(str(e)))
             res = errno.EINVAL
         return res
@@ -474,8 +475,9 @@ class CmdLine:
         # Parser for destroy command
         destroyParser = rootSubparsers.add_parser('destroy', help='Destroy the given machine in the path')
         destroyParser.add_argument('name', help='Name of the machine to destroy')
+        destroyParser.add_argument('--force', help='Do not ask for confirmation', action='store_true')
         destroyParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.destroyMachine))
-
+        
         # Parser for start command
         startParser = rootSubparsers.add_parser('start', help='Start the given machine instance')
         startParser.add_argument('name', help='Name of the machine to start')
