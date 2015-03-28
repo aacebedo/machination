@@ -6,6 +6,7 @@ import subprocess
 from distutils.version import LooseVersion, StrictVersion
 import imp
 import re
+import stat
 top = "."
 out = "build"
 src = "src"
@@ -95,9 +96,8 @@ def build(ctx):
   sharePath = ctx.path.find_dir('src/share/')
   binPath = ctx.path.find_dir('src/bin/')
   binFiles = binPath.ant_glob('**/*')
-  print(binFiles)
   
   ctx.install_files(os.path.join(ctx.env.PREFIX,'share'), sharePath.ant_glob('**/*'), cwd=sharePath, relative_trick=True)
   ctx.install_files(os.path.join(ctx.env.PREFIX,'bin'), binPath.ant_glob('**/*'), cwd=binPath, relative_trick=True)
-  os.chmod(os.path.join(ctx.env.PREFIX,'bin','machination'),0o555);
+  os.chmod(os.path.join(ctx.env.PREFIX,'bin','machination'),stat.S_IRUSR | stat.S_IXUSR | stat.S_IXOTH | stat.S_IROTH | stat.S_IXGRP | stat.S_IRGRP )
 	
