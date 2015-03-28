@@ -477,8 +477,10 @@ class MachineInstance(yaml.YAMLObject):
             os.chown(self.getPath(), pw_record.pw_uid, pw_record.pw_gid)
             for root, dirs, files in os.walk(self.getPath()):
                 for d in dirs:
+                    print(os.path.join(root, d))
                     os.lchown(os.path.join(root, d), pw_record.pw_uid, pw_record.pw_gid)
                 for f in files:
+                    print(os.path.join(root, f))
                     os.lchown(os.path.join(root, f), pw_record.pw_uid, pw_record.pw_gid)
             if p.returncode != 0:
                 raise RuntimeError("Error while firing up the machine");
@@ -525,8 +527,9 @@ class MachineInstance(yaml.YAMLObject):
       output += "  Provider: {0}\n".format(self.getProvider())
       output += "  Host interface: {0}\n".format(self.getHostInterface())
       p = subprocess.Popen("vagrant ssh -c \"ip address show eth0 | grep 'inet ' | sed -e 's/^.*inet //' -e 's/\/.*$//'\"", shell=True,  stderr=subprocess.PIPE, stdout=subprocess.PIPE, cwd=self.getPath())
-      if p.returncode != 0:
-          output += "  Primary IPAddress of the container: {0}".format(p.communicate()[0])
+      out = p.communicate()[0]
+      if p.returncode == 0:
+          output += "  Primary IPAddress of the container: {0}".format(out)
       if len(self.getGuestInterfaces()) != 0 :
         output +="  Network interfaces:\n"
         for intf in self.getGuestInterfaces():
