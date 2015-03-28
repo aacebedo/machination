@@ -18,7 +18,7 @@
 
   - name: Add multiverse repository
     apt_repository: repo="{{item}}"
-    register: multiverse_installed
+    register: multiverse_ppa_added
     with_items:
       - 'deb http://archive.ubuntu.com/ubuntu {{ansible_distribution_release}} multiverse'
       - 'deb-src http://archive.ubuntu.com/ubuntu {{ansible_distribution_release}} multiverse'
@@ -27,29 +27,32 @@
 
   - name: Update apt cache
     apt: update_cache=yes
-    when: multiverse_installed | change
+    when: multiverse_ppa_added | changed
 
   - name: Install base build utilities
     apt: name={{ item }} state=present
     with_items:
-      - build-essential 
+      - build-essential
       - llvm
-    
+
   - name: Add oracle java PPA
-    apt_repository: repo='ppa:webupd8team/java' state=present update_cache=yes
-    register: oracle_java_ppa
-      
+    register: oracle_java_ppa_added
+    apt_repository: repo='ppa:webupd8team/java' state=present
+
+  - name: Update apt cache
+    apt: update_cache=yes
+    when: oracle_java_ppa_added | changed
+
   - name: Force java licence validation
     shell: echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections
-    when: oracle_java_ppa | change
-    
+    when: oracle_java_ppa_added | changed
+
   - name: Install Java
     apt: name={{ item }} state=present
     with_items:
         - oracle-java{{ javaversion }}-installer
         - oracle-java{{ javaversion }}-set-default
-    when: oracle_java_ppa | change
-     
+
   - name: Add google tools
     apt: name={{ item }} state=present
     with_items:

@@ -25,9 +25,7 @@ supportedProvisioners = ["Ansible"]
 supportedProviders = ["Docker"]
 supportedArchs = ["i386","x64"]
 
-if not machine_config["name"]
-	abort("Name is missing from the configuration file. Check the config.yml file.")
-end
+name = cwd.split('/').last
 
 if not machine_config["arch"]
 	abort("Architecture is missing from the configuration file. Check the config.yml file.")
@@ -57,7 +55,7 @@ Vagrant.configure("2") do |config|
   config.ssh.forward_agent = true
   config.vm.network "public_network"
   config.ssh.forward_x11 = true
-  config.vm.hostname = machine_config["name"]
+  config.vm.hostname = name
 
   if machine_config["synced_folders"]
 	  for f in machine_config["synced_folders"]
@@ -67,10 +65,10 @@ Vagrant.configure("2") do |config|
 	  end
   end
   if machine_config["provider"] == "Docker"
-    config.vm.define machine_config["name"] do |a|
+    config.vm.define name do |a|
      a.vm.provider "docker" do |d|
   	  d.image = "aacebedo/ubuntu-"+machine_config["os_version"]+"-vagrant-"+machine_config["arch"]
-        d.name = machine_config["name"]
+        d.name = name
         d.remains_running = true
         d.create_args = ["-t","-i"]
         d.privileged = true
@@ -84,9 +82,9 @@ Vagrant.configure("2") do |config|
 #     counter+=1
 #     if machine_config["host_interface"] and i["ipaddr"] and i["macaddr"]
 #       if i["hostname"]
-#         command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + machine_config["name"] + " " + i["hostname"] + " " + i["ip_addr"] + " " + i["mac_addr"] + ";"
+#         command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + name + " " + i["hostname"] + " " + i["ip_addr"] + " " + i["mac_addr"] + ";"
 #       else
-#        command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + machine_config["name"] + " " + machine_config["name"] + " " + i["ip_addr"] + " " + i["mac_addr"] + ";"
+#        command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + name + " " + name + " " + i["ip_addr"] + " " + i["mac_addr"] + ";"
 #       end
 #   else
 #     puts("An interface description is malformed. Check the config.yml file.")
