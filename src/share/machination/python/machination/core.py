@@ -477,10 +477,8 @@ class MachineInstance(yaml.YAMLObject):
             os.chown(self.getPath(), pw_record.pw_uid, pw_record.pw_gid)
             for root, dirs, files in os.walk(self.getPath()):
                 for d in dirs:
-                    print(os.path.join(root, d))
                     os.lchown(os.path.join(root, d), pw_record.pw_uid, pw_record.pw_gid)
                 for f in files:
-                    print(os.path.join(root, f))
                     os.lchown(os.path.join(root, f), pw_record.pw_uid, pw_record.pw_gid)
             if p.returncode != 0:
                 raise RuntimeError("Error while firing up the machine");
@@ -530,6 +528,9 @@ class MachineInstance(yaml.YAMLObject):
       out = p.communicate()[0]
       if p.returncode == 0:
           output += "  Primary IPAddress of the container: {0}".format(out)
+          output += "  State: Running\n"
+      else:
+          output += "  State: Stopped"
       if len(self.getGuestInterfaces()) != 0 :
         output +="  Network interfaces:\n"
         for intf in self.getGuestInterfaces():
