@@ -78,19 +78,21 @@ Vagrant.configure("2") do |config|
   config.vm.provision :host_shell,run: "always" do |host_shell|
     command = ""
     counter=0
-    for i in machine_config["guest_interfaces"]
-     counter+=1
-     if machine_config["host_interface"] and i["ip_addr"] and i["mac_addr"]
-       if i["hostname"]
-         command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + name + " " + i["ip_addr"] + " " + i["mac_addr"] + ";"
+    if ARGV[0] == "up"
+      for i in machine_config["guest_interfaces"]
+       counter+=1
+       if machine_config["host_interface"] and i["ip_addr"] and i["mac_addr"]
+         if i["hostname"]
+           command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + name + " " + i["ip_addr"] + " " + i["mac_addr"] + ";"
+         else
+          command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + name + " " + i["ip_addr"] + " " + i["mac_addr"] + ";"
+         end
        else
-        command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + name + " " + i["ip_addr"] + " " + i["mac_addr"] + ";"
+         puts("An interface description is malformed. Check the machine_instance_config file.")
        end
-     else
-       puts("An interface description is malformed. Check the machine_instance_config file.")
-     end
+      end
+      host_shell.inline = command
     end
-    host_shell.inline = command
     end
   end
 end

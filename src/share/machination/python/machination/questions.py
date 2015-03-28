@@ -25,10 +25,14 @@ class RegexedQuestion:
     _regex = ""
     _options = []
     _default = None
+    _errorMsg = ""
+    _logger = None
     
-    def __init__(self,question,regex = ".*", default = None):
+    def __init__(self,question,errorMsg,logger,regex = ".*", default = None):
         self._question = question
         self._regex = regex
+        self._errorMsg = errorMsg
+        self._logger = logger
         if type(default) is str:
             self._default = default
         else:
@@ -37,24 +41,25 @@ class RegexedQuestion:
     def ask(self):
         questionTmp = self._question
         if self._default != "":
-            questionTmp += " [" + self._default + "]"
+            questionTmp += " [{0}]".format(self._default)
         v = raw_input(questionTmp+ ": ")
         if v == "":
             v = self._default
         if re.match(self._regex,v) :
             return v
-        else:            
+        else:
+            self._logger.info("{0}.".format(self._errorMsg))
             return RegexedQuestion.ask(self)
         
 class BinaryQuestion(RegexedQuestion):
     _question = ""
     _options = None
     
-    def __init__(self,question,default = None):
+    def __init__(self,question,errorMsg,logger,default = None):
         if type(default) is str and re.match("Y|y|N|n",default):
             self._default = default
             
-        RegexedQuestion.__init__(self,question+" Y/N","Y|y|N|n",default)
+        RegexedQuestion.__init__(self,question+" Y/N",errorMsg,logger,"Y|y|N|n",default)
         self._options = {
                          "Y" : self.ok,
                          "y" : self.ok,
@@ -75,8 +80,8 @@ class BinaryQuestion(RegexedQuestion):
 class PathQuestion(RegexedQuestion):
     _checkExists = False
 
-    def __init__(self,question,regex = ".?" ,default = None,checkExists = False):
-        RegexedQuestion.__init__(self,question,regex,default)
+    def __init__(self,question,errorMsg,logger,regex = ".?" ,default = None,checkExists = False):
+        RegexedQuestion.__init__(self,question,errorMsg,logger,regex,default)
         self._checkExists = checkExists        
         
     def ask(self):

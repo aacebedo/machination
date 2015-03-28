@@ -20,6 +20,11 @@ import random
 import os
 import errno
 import functools
+import socket
+import fcntl
+import struct
+import array
+ 
 
 from machination.exceptions import InvalidArgumentNumberError
 from machination.exceptions import ArgumentValidationError
@@ -96,3 +101,22 @@ def demote(user_uid, user_gid):
         os.setgid(user_gid)
         os.setuid(user_uid)
     return result
+  
+
+def getAllNetInterfaces():
+    max_possible = 128  # arbitrary. raise if needed.
+    vals = max_possible * 32
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    names = array.array('B', '\0' * vals)
+    outbytes = struct.unpack('iL', fcntl.ioctl(
+        s.fileno(),
+        0x8912,  # SIOCGIFCONF
+        struct.pack('iL', vals, names.buffer_info()[0])
+    ))[0]
+    namestr = names.tostring()
+    lst = []
+    for i in range(0, outbytes, 40):
+        name = namestr[i:i+16].split('\0', 1)[0]
+        lst.append(name)
+    return lst
+ 

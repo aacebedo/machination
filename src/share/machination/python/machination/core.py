@@ -41,6 +41,7 @@ from machination.exceptions import InvalidMachineTemplateException
 
 from machination.registries import MachineTemplateRegistry
 from machination.helpers import accepts
+from machination.helpers import getAllNetInterfaces
 
 import machination.helpers
 
@@ -367,8 +368,9 @@ class MachineInstance(yaml.YAMLObject):
         if len(name) == 0:
             raise InvalidArgumentValue("name",name)
 
-        # The host_interface must be of the form <Alphanumeric><Numeric>
-        if not re.match("[a-z]+[0-9]+", hostInterface):
+        # The host_interface must be one from the host
+        networkInterfaces = getAllNetInterfaces()
+        if hostInterface not in networkInterfaces:
             raise InvalidArgumentValue("host_interface",hostInterface)
 
         # Manually check the type of list elements
@@ -522,23 +524,18 @@ class MachineInstance(yaml.YAMLObject):
       output += "  Provisioner: {0}\n".format(self.getProvisioner())
       output += "  Provider: {0}\n".format(self.getProvider())
       output += "  Host interface: {0}\n".format(self.getHostInterface())
+      p = subprocess.Popen("vagrant ssh -c \"ip address show eth0 | grep 'inet ' | sed -e 's/^.*inet //' -e 's/\/.*$//'\"", shell=True,  stderr=subprocess.PIPE, stdout=subprocess.PIPE, cwd=self.getPath())
+      if p.returncode != 0:
+          output += "  Primary IPAddress of the container: {0}".format(p.communicate()[0])
       if len(self.getGuestInterfaces()) != 0 :
-        output +="  Network interfaces:"
+        output +="  Network interfaces:\n"
         for intf in self.getGuestInterfaces():
-          output += "    Name: eth{0}\n".format(i)
+          output += "  - Name: eth{0}\n".format(i)
           output += "    IPAddress: {0}\n".format(intf.getIPAddr())
           output += "    MACAddress: {0}\n".format(intf.getMACAddr())
           if intf.getHostname() != None:
             output += "    Hostname: {0}\n".format(intf.getHostname())
-          output += "\n"
           i += 1
-      p = subprocess.Popen("docker inspect {0}".format(self.getName()), shell=True,  stderr=subprocess.PIPE, stdout=subprocess.PIPE, cwd=self.getPath())
-      if p.returncode != 0:
-        doc = json.loads(p.communicate()[0])
-        if len(doc)==1 :
-          output += "  Primary IPAddress of the container: {0}\n".format(doc[0]["NetworkSettings"]["IPAddress"])
-          output += "  Primary Gateway of the container: {0}\n".format(doc[0]["NetworkSettings"]["Gateway"])
-          output += "  Primary MacAddress of the container: {0}\n".format(doc[0]["NetworkSettings"]["MacAddress"])
       return output
 
     # ##

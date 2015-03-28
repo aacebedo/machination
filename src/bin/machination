@@ -22,6 +22,7 @@ import sys
 sys.path.append(os.path.abspath(os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)),'..','share','machination','python'))))
 from machination.cmdline import CmdLine
 from machination.helpers import mkdir_p
+
 from machination.constants import MACHINATION_USERINSTANCESDIR
 from machination.constants import MACHINATION_USERTEMPLATESDIR
 from machination.constants import MACHINATION_USERPROVISIONERSDIR
@@ -34,7 +35,7 @@ def __main__():
     mkdir_p(MACHINATION_USERANSIBLEPLAYBOOKSDIR)
     mkdir_p(MACHINATION_USERANSIBLEROLESDIR)
     mkdir_p(MACHINATION_USERTEMPLATESDIR)
-
+    
     cmd = CmdLine()
     cmd.parseArgs(sys.argv)
 
