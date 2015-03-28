@@ -293,14 +293,12 @@ class CmdLine:
                           raise InvalidCmdLineArgument("sharedfolder",s)
                     try:
                         # Try to create the new machine
-                        pass
                         instance = MachineInstance(args.name, template, arch, osVersion, provider, provisioner, hostInterface, guestInterfaces, syncedFolders)
                         instance.generateFiles()
                         COMMANDLINELOGGER.info("Summary of the created machine:")
                         instances = instanceReg.getInstances()
                         COMMANDLINELOGGER.info(instances[args.name].getInfos())
                     except Exception as e:
-                        raise
                         COMMANDLINELOGGER.error("Unable to create machine instance '{0}'".format(e))
                         res = errno.EINVAL
                 else:
@@ -310,7 +308,6 @@ class CmdLine:
                 COMMANDLINELOGGER.error("Unable to create machine: Machine instance named '{0}' already exists. Change the name of your new machine instance or delete the existing instance.".format(args.name))
                 return errno.EALREADY
         except Exception as e:
-            raise
             COMMANDLINELOGGER.error("Unable to create machine instance '{0}'.".format(str(e)))
             return errno.EINVAL
         return res
