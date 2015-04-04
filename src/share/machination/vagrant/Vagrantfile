@@ -25,7 +25,7 @@ supportedProvisioners = ["Ansible"]
 supportedProviders = ["Docker"]
 supportedArchs = ["x64"]
 
-name = cwd.split('/').last
+name = "machination-"+cwd.split('/').last
 
 if not machine_config["arch"]
 	abort("Architecture is missing from the configuration file. Check the machine_instance_config file.")
@@ -51,60 +51,82 @@ if not supportedProvisioners.include?(machine_config["provisioner"])
 	abort("Given provisioner "+machine_config["provisioner"]+" is not supported. Supported provisioners are "+supportedProvisioners+". Check the machine_instance_config file.")
 end
 
+templateSplit = machine_config["template"].split("|")
+if templateSplit.length != 2
+  abort("Invalid template name (shall be <template_name>|<version>.")
+end
+
 Vagrant.configure("2") do |config|
   config.ssh.forward_agent = true
   config.vm.network "public_network"
   config.ssh.forward_x11 = true
+  config.ssh.insert_key = false
+  config.ssh.private_key_path = ["~/.ssh/id_rsa","~/.vagrant.d/insecure_private_key"]
   config.vm.hostname = name
 
   if machine_config["synced_folders"]
 	  for f in machine_config["synced_folders"]
 	  	if f["host_dir"] and f["guest_dir"]
 		  	config.vm.synced_folder f["host_dir"], f["guest_dir"]
-		end
+      end
 	  end
   end
   if machine_config["provider"] == "Docker"
+    imageName = "machination-"+templateSplit[0]+"-"+machine_config["arch"]+"-"+machine_config["os_version"]+"-"+machine_config["provisioner"]+"-"+templateSplit[1]
+    imageName = imageName.downcase
+    cmd = ` docker images | cut -d ' ' -f 1 | grep #{imageName}`
+    imageNeedsToCreated = (cmd == "")
     config.vm.define name do |a|
-     a.vm.provider "docker" do |d|
-  	  d.image = "aacebedo/ubuntu-"+machine_config["os_version"]+"-vagrant-"+machine_config["arch"]
+      a.vm.provider "docker" do |d|
+        if imageNeedsToCreated
+          d.image = "aacebedo/ubuntu-"+machine_config["os_version"]+"-vagrant-"+machine_config["arch"]
+  	    else
+  	      d.image = imageName
+        end
         d.name = name
         d.remains_running = true
         d.create_args = ["-t","-i"]
         d.privileged = true
         d.cmd = ["/sbin/init"]
         d.has_ssh = true
-  end
-  config.vm.provision :host_shell,run: "always" do |host_shell|
-    command = ""
-    counter=0
-    if ARGV[0] == "up"
-      for i in machine_config["guest_interfaces"]
-       counter+=1
-       if machine_config["host_interface"] and i["ip_addr"] and i["mac_addr"]
-         if i["hostname"]
-           command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + name + " " + i[hostname] + " " + i["ip_addr"] + " " + i["mac_addr"] + ";"
-         else
-          command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + name + " " name + " " + i["ip_addr"] + " " + i["mac_addr"] + ";"
-         end
-       else
-         puts("An interface description is malformed. Check the machine_instance_config file.")
-       end
+      end
+    end
+    config.vm.provision :host_shell,run: "always" do |host_shell|
+      command = ""
+      counter=0
+      if ARGV[0] == "up"
+        for i in machine_config["guest_interfaces"]
+          counter+=1
+          if machine_config["host_interface"] and i["ip_addr"] and i["mac_addr"]
+            if i["hostname"]
+              command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_<s + " " + name + " " + i["hostname"] + " " + i["ip_addr"] + " " + i["mac_addr"] + ";"
+            else
+              command += "pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + name + " " + name + " " + i["ip_addr"] + " " + i["mac_addr"] + ";"
+            end
+          else
+            puts("An interface description is malformed. Check the machine_instance_config file.")
+          end
+        end
       end
       host_shell.inline = command
     end
+    if(ARGV[0] != "ssh" and ARGV[0] != "infos" and ARGV[0] != "halt" and ARGV[0] != "destroy") and imageNeedsToCreated or ARGV[0] == "provision"
+      puts("Docker image #{imageName} is not available yet. It will be committed.")
+      if machine_config["provisioner"] == "Ansible"
+        config.vm.provision :ansible do |ansible|
+          playbookPath = File.join("provisioners","ansible","playbooks",templateSplit[0]+".playbook")
+          if not File.exist?(playbookPath)
+            abort("Ansible playbook file is missing ("+playbookPath+"). Check your instance.")
+          end
+          ENV['ANSIBLE_CONFIG'] = File.join(".","ansible.cfg")
+          ansible.playbook = playbookPath
+          ansible.sudo = true
+          ansible.verbose = "v"
+        end
+      end
+      config.vm.provision :host_shell,run: "always" do |host_shell|
+        host_shell.inline = "docker commit #{name} #{imageName}"
+      end
     end
-  end
-end
-
-  config.vm.provision :ansible do |ansible|
-    playbookPath = File.join("provisioners","ansible","playbooks",machine_config["template"]+".playbook")
-    if not File.exist?(playbookPath)
-      abort("Ansible playbook file is missing ("+playbookPath+"). Check your instance.")
-    end
-    ENV['ANSIBLE_CONFIG'] = File.join(".","ansible.cfg")
-    ansible.playbook = playbookPath
-    ansible.sudo = true
-    ansible.verbose = "v"
   end
 end

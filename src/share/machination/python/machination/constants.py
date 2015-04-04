@@ -20,8 +20,8 @@ import os
 
 # Path of the program files
 MACHINATION_INSTALLDIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)),"..",'..','..','..'))
-MACHINATION_BASEPROVISIONERSDIR = os.path.abspath(os.path.join(MACHINATION_INSTALLDIR,"share","machination","provisioners"))
-MACHINATION_BASEPROVIDERSDIR = os.path.abspath(os.path.join(MACHINATION_INSTALLDIR,"share","machination","providers"))
+MACHINATION_DEFAULTTEMPLATESDIR = os.path.abspath(os.path.join(MACHINATION_INSTALLDIR,"etc","defaults","machination","templates"))
+MACHINATION_DEFAULTPROVISIONERSDIR = os.path.abspath(os.path.join(MACHINATION_INSTALLDIR,"etc","defaults","machination","provisioners"))
 
 # User dir to store instances and templates
 MACHINATION_USERDIR = os.path.abspath(os.path.join(os.path.expanduser("~"),".machination"))

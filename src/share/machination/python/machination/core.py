@@ -211,12 +211,13 @@ class MachineTemplate(yaml.YAMLObject):
     _osVersions = []
     _archs = []
     _guestInterfaces = []
+    _version = None
 
     # ##
     # Constructor
     # ##
-    @accepts(None, str, list, list, list, list)
-    def __init__(self, path, archs, osVersions , providers, provisioners, guestInterfaces):
+    @accepts(None, str,str, list, list, list, list)
+    def __init__(self, path,version, archs, osVersions , providers, provisioners, guestInterfaces):
         # Checking the arguments
 
         if not os.path.exists(path):
@@ -251,6 +252,7 @@ class MachineTemplate(yaml.YAMLObject):
                 raise InvalidMachineTemplateException("Invalid guest interface")
 
         self._path = path
+        self._version = version
         self._archs = archs
         self._osVersions = osVersions
         self._providers = providers
@@ -282,6 +284,9 @@ class MachineTemplate(yaml.YAMLObject):
     def getGuestInterfaces(self):
         return self._guestInterfaces
 
+    def getVersion(self):
+        return self._version
+
     # ##
     # Function to dump the object into YAML
     # ##
@@ -291,6 +296,7 @@ class MachineTemplate(yaml.YAMLObject):
                             "path" : data.getPath(),
                             "archs" : data.getArchs(),
                             "os_versions" : str(data.getOsVersions()),
+                            "version" : str(data.getVersion()),
                             "providers" : str(data.getProviders()),
                             "provisioners" : str(data.getProvisioners()),
                             "guest_interfaces" : data.getGuestInterfaces(),
@@ -303,9 +309,7 @@ class MachineTemplate(yaml.YAMLObject):
     # ##
     @classmethod
     def from_yaml(cls, loader, node):
-
         representation = loader.construct_mapping(node, deep=True)
-
         archs = []
         # Check if architectures are present in the template
         if "archs" in representation.keys() and type(representation["archs"]) is list:
@@ -317,6 +321,11 @@ class MachineTemplate(yaml.YAMLObject):
         if "providers" in representation.keys() and type(representation["providers"]) is list:
             for p in representation["providers"]:
                 providers.append(Provider.fromString(p))
+
+        version = ""
+        # Check if version is present in the template
+        if "version" in representation.keys():
+          version = str(representation["version"])
 
         provisioners = []
         # Check if provisioners are present in the template
@@ -334,6 +343,7 @@ class MachineTemplate(yaml.YAMLObject):
             guestInterfaces = representation["guest_interfaces"]
 
         return MachineTemplate(loader.stream.name,
+                               version,
                                archs,
                                osVersions,
                                providers,
@@ -416,9 +426,8 @@ class MachineInstance(yaml.YAMLObject):
                 # Generate the file related to the provisioner
                 generator = Provisioner.getFileGenerator(self.getProvisioner())
                 generator.generateFiles(self.getTemplate(), self.getPath())
-                
+
             except InvalidMachineTemplateException as e:
-                CORELOGGER.error("Unable to instantiate the machine: Invalid template '{0}'".format(str(e)))
                 shutil.rmtree(self.getPath())
                 raise e
         else:
@@ -563,7 +572,7 @@ class MachineInstance(yaml.YAMLObject):
     @classmethod
     def to_yaml(cls, dumper, data):
         representation = {
-                               "template" : data.getTemplate().getName(),
+                               "template" : "{0}|{1}".format(data.getTemplate().getName(),data.getTemplate().getVersion()),
                                "arch" : str(data.getArch()),
                                "os_version" : str(data.getOsVersion()),
                                "provider" : str(data.getProvider()),
@@ -599,9 +608,11 @@ class MachineInstance(yaml.YAMLObject):
 
         template = None
         if "template" in representation.keys():
-            # Retrieve the template from the registry
-            templateReg = MachineTemplateRegistry([os.path.join(MACHINATION_INSTALLDIR, 'share', 'machination', 'templates'), os.path.join(MACHINATION_USERDIR, 'templates') ])
-            template = templateReg.getTemplates()[representation["template"]]
+            content = representation["template"].split("|")
+            if(len(content) == 2):
+              # Retrieve the template from the registry
+              templateReg = MachineTemplateRegistry([os.path.join(MACHINATION_INSTALLDIR, 'share', 'machination', 'templates'), os.path.join(MACHINATION_USERDIR, 'templates') ])
+              template = templateReg.getTemplates()[content[0]]
 
         osVersion = None
         if "os_version" in representation.keys():

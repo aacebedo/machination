@@ -53,8 +53,8 @@ class MachineInstanceRegistry():
                         instance = yaml.load(openedFile)
                         if instance != None:
                             instances[instance.getName()] = instance
-                    except:
-                        REGISTRYLOGGER.error("Unable to load instance from {0}".format(iDir))
+                    except Exception as e:
+                        REGISTRYLOGGER.error("Unable to load instance from '{0}' ({1})".format(iDir,str(e)))
         return instances
 
 ###

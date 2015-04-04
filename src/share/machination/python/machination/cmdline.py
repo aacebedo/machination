@@ -78,7 +78,7 @@ class CmdLine:
             data = {'name': [], 'version': [], 'path': [], 'provisioners': [], 'providers': [], 'archs': []}
             for f in templates.values():
                 data['name'].append(f.getName())
-                data['version'].append('1.0')
+                data['version'].append(f.getVersion())
                 data['path'].append(os.path.abspath(f.getPath()))
                 data['provisioners'].append(",".join(map(str, f.getProvisioners())))
                 data['providers'].append(",".join(map(str, f.getProviders())))
@@ -184,7 +184,7 @@ class CmdLine:
                     syncedFolders = []
                     hostInterface = None
                     networkInterfaces = getAllNetInterfaces();
-                    if len(networkInterfaces) == 0: 
+                    if len(networkInterfaces) == 0:
                       raise InvalidHardwareSupport("Your machine does not have any network interface. Machine instances cannot be executed")
                     # Ask for the host interface to use
                     if args.hostinterface != None:
@@ -192,11 +192,11 @@ class CmdLine:
                       if hostInterface not in networkInterfaces:
                         raise InvalidCmdLineArgument("hostinterface",args.hostinterface)
                     else:
-                      hostInterface = RegexedQuestion("Enter the host interface [{0}]".format(",".join(map(str, networkInterfaces))), 
+                      hostInterface = RegexedQuestion("Enter the host interface [{0}]".format(",".join(map(str, networkInterfaces))),
                                                        "Host interfaces must be from {0}".format(",".join(map(str, networkInterfaces))),
                                                        COMMANDLINELOGGER,
                                                        "^{0}$".format("\\b|\\b".join(map(str, networkInterfaces))), networkInterfaces[0]).ask()
-                    
+
                     # If there is more than one architecture available for the template
                     # Ask the user to choose
                     if len(template.getArchs()) > 1 :
@@ -208,7 +208,7 @@ class CmdLine:
                             if arch not in template.getArchs():
                                 raise InvalidCmdLineArgument("architecture",args.arch)
                         else:
-                            arch = Architecture.fromString(RegexedQuestion("Select an architecture [{0}]".fomat(",".join(map(str, template.getArchs()))), 
+                            arch = Architecture.fromString(RegexedQuestion("Select an architecture [{0}]".fomat(",".join(map(str, template.getArchs()))),
                                                                            "Architecture must be from {0}".format(",".join(map(str, template.getArchs()))),
                                                                            COMMANDLINELOGGER,
                                                                            "^[{0}]$".format("\\b|\\b".join(map(str, template.getArchs()))), arch.name).ask())
@@ -295,7 +295,7 @@ class CmdLine:
                                                     COMMANDLINELOGGER,
                                                     "^{0}$".format(ipAddrRegex),
                                                     i.getIPAddr()).ask()
-                        macAddr = RegexedQuestion("Enter a MAC address for the interface", 
+                        macAddr = RegexedQuestion("Enter a MAC address for the interface",
                                                   "MAC address must be of form XX:XX:XX:XX:XX",
                                                     COMMANDLINELOGGER,
                                                   "^{0}$".format(macAddrRegex), i.getMACAddr()).ask()
@@ -309,7 +309,7 @@ class CmdLine:
                                                     COMMANDLINELOGGER,
                                                     "^{0}$".format(hostnameRegex),
                                                      "Enter a Y or a N",COMMANDLINELOGGER, "").ask()
-                          ipAddr = RegexedQuestion("Enter an IP address for the interface", 
+                          ipAddr = RegexedQuestion("Enter an IP address for the interface",
                                                    "IPAddress must be of form XXX.XXX.XXX.XXX",
                                                     COMMANDLINELOGGER,
                                                    "^{0}$".format(ipAddrRegex),"Enter a Y or a N",COMMANDLINELOGGER, "").ask()
@@ -324,12 +324,12 @@ class CmdLine:
                       while BinaryQuestion("Do you want to add a synced folder ?",
                                            "Enter a Y or a N",COMMANDLINELOGGER, "N").ask():
                           hostPathQues = PathQuestion("Enter a path to an existing folder on the host",
-                                                      "Entered path is invalid, Please enter a valid path", 
-                                                      COMMANDLINELOGGER, 
+                                                      "Entered path is invalid, Please enter a valid path",
+                                                      COMMANDLINELOGGER,
                                                       ".+", None, True).ask()
                           guestPathQues = PathQuestion("Enter the mount path on the guest directory: ",
-                                                       "Entered path is invalid, Please enter a valid path", 
-                                                       COMMANDLINELOGGER, 
+                                                       "Entered path is invalid, Please enter a valid path",
+                                                       COMMANDLINELOGGER,
                                                        "^/.+", None, False).ask()
                           syncedFolders.append(SyncedFolder(hostPathQues, guestPathQues))
 
@@ -349,16 +349,16 @@ class CmdLine:
                         instances = instanceReg.getInstances()
                         COMMANDLINELOGGER.info(instances[args.name].getInfos())
                     except Exception as e:
-                        COMMANDLINELOGGER.error("Unable to create machine instance '{0}'".format(e))
+                        COMMANDLINELOGGER.error("Unable to create machine instance {0}.".format(e))
                         res = errno.EINVAL
                 else:
-                    COMMANDLINELOGGER.error("Unable to create machine: Machine template {0} does not exists".format(args.template))
+                    COMMANDLINELOGGER.error("Unable to create machine: Machine template '{0}' does not exists".format(args.template))
                     return errno.EINVAL
             else:
                 COMMANDLINELOGGER.error("Unable to create machine: Machine instance named '{0}' already exists. Change the name of your new machine instance or delete the existing instance.".format(args.name))
                 return errno.EALREADY
         except Exception as e:
-            COMMANDLINELOGGER.error("Unable to create machine instance '{0}'.".format(str(e)))
+            COMMANDLINELOGGER.error("Unable to create machine instance {0}.".format(str(e)))
             return errno.EINVAL
         return res
 
@@ -378,7 +378,7 @@ class CmdLine:
                 # Ask the user if it's ok to delete the machine
                 v = args.force
                 if v == False:
-                  v = BinaryQuestion("Are you sure you want to destroy the machine named {0}. Directory {1}) will be destroyed".format(instances[args.name].getName(), 
+                  v = BinaryQuestion("Are you sure you want to destroy the machine named {0}. Directory {1}) will be destroyed".format(instances[args.name].getName(),
                                                                                                                                        instances[args.name].getPath()),
                                                                                                                                        "Enter a Y or a N",COMMANDLINELOGGER, "Y").ask()
                 if v == True:
@@ -526,7 +526,7 @@ class CmdLine:
         destroyParser.add_argument('name', help='Name of the machine to destroy')
         destroyParser.add_argument('--force', help='Do not ask for confirmation', action='store_true')
         destroyParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.destroyMachine))
-        
+
         # Parser for start command
         startParser = rootSubparsers.add_parser('start', help='Start the given machine instance')
         startParser.add_argument('name', help='Name of the machine to start')

@@ -24,7 +24,7 @@ from abc import abstractmethod
 from machination.exceptions import InvalidMachineTemplateException
 from machination.exceptions import PathNotExistError,InvalidArgumentValue
 from machination.constants import MACHINATION_INSTALLDIR, MACHINATION_USERDIR
-from machination.constants import MACHINATION_BASEPROVISIONERSDIR, MACHINATION_USERPROVISIONERSDIR
+from machination.constants import MACHINATION_USERPROVISIONERSDIR
 from machination.loggers import FILEGENERATORLOGGER
 import machination.core
 
@@ -59,7 +59,7 @@ class AnsibleProvisionerFileGenerator(ProvisionerFileGenerator):
               if "role" in r.keys() and not os.path.exists(os.path.join(dest,"roles",r["role"])):
                 AnsibleProvisionerFileGenerator.copyRole(dest,r["role"])
       else:
-        raise InvalidMachineTemplateException("Unable to find ansible role {0}".format(role))
+        raise InvalidMachineTemplateException("Unable to find ansible role '{0}'.".format(role))
 
     @staticmethod
     def generateFiles(template,dest):
@@ -69,15 +69,15 @@ class AnsibleProvisionerFileGenerator(ProvisionerFileGenerator):
             raise PathNotExistError(dest)
         ansibleFilesDest = os.path.join(dest,"provisioners","ansible")
         playbookPath = None
-        for d in [os.path.join(MACHINATION_BASEPROVISIONERSDIR,"ansible","playbooks"),os.path.join(MACHINATION_USERPROVISIONERSDIR,"ansible","playbooks")] :
+        for d in [os.path.join(MACHINATION_USERPROVISIONERSDIR,"ansible","playbooks")] :
             playbookPath = os.path.join(d,"{0}.playbook".format(template.getName()))
-            FILEGENERATORLOGGER.debug("Searching template in {0}".format(playbookPath))
+            FILEGENERATORLOGGER.debug("Searching template in '{0}'...".format(playbookPath))
             if not os.path.exists(playbookPath):
                 playbookPath = None
             else:
                 break
         if playbookPath == None:
-            raise InvalidMachineTemplateException("Template {0} was not found".format(playbookPath))
+            raise InvalidMachineTemplateException("Template '{0}' was not found".format(template.getName()))
         else:
             openedFile = open(playbookPath)
             playbook = yaml.load(openedFile)
