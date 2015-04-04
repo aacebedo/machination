@@ -30,6 +30,7 @@ from machination.loggers import COMMANDLINELOGGER
 from machination.constants import MACHINATION_INSTALLDIR
 from machination.constants import MACHINATION_USERTEMPLATESDIR
 from machination.constants import MACHINATION_USERINSTANCESDIR
+from machination.constants import MACHINATION_DEFAULTTEMPLATESDIR
 
 from machination.registries import MachineTemplateRegistry
 from machination.registries import MachineInstanceRegistry
@@ -68,7 +69,7 @@ class CmdLine:
     def listTemplates(self, args):
         res = 0
         # Create the template registry that will list all available template on the machine
-        templateReg = MachineTemplateRegistry([os.path.join(MACHINATION_INSTALLDIR, 'share', 'machination', 'templates'), os.path.join(MACHINATION_USERTEMPLATESDIR) ])
+        templateReg = MachineTemplateRegistry([os.path.join(MACHINATION_INSTALLDIR, 'etc','defaults', 'machination', 'templates'), os.path.join(MACHINATION_USERTEMPLATESDIR) ])
         COMMANDLINELOGGER.debug("Listing machine templates")
 
         try:
@@ -161,7 +162,7 @@ class CmdLine:
         res = 0
         COMMANDLINELOGGER.info("Creating a new machine instance named '{0}' using template '{1}'".format(args.name, args.template))
         # Creating the template and instances registries
-        templateReg = MachineTemplateRegistry([os.path.join(MACHINATION_INSTALLDIR,'share','machination', 'templates'),MACHINATION_USERTEMPLATESDIR])
+        templateReg = MachineTemplateRegistry([MACHINATION_DEFAULTTEMPLATESDIR,MACHINATION_USERTEMPLATESDIR])
         instanceReg = MachineInstanceRegistry([MACHINATION_USERINSTANCESDIR])
 
         templates = []

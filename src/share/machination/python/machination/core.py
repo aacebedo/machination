@@ -29,6 +29,8 @@ from machination.loggers import CORELOGGER
 
 from machination.constants import MACHINATION_INSTALLDIR
 from machination.constants import MACHINATION_USERDIR
+from machination.constants import MACHINATION_DEFAULTTEMPLATESDIR
+from machination.constants import MACHINATION_USERTEMPLATESDIR
 
 from machination.enums import Provider
 from machination.enums import Provisioner
@@ -474,14 +476,7 @@ class MachineInstance(yaml.YAMLObject):
             pw_record = pwd.getpwnam(os.getenv("SUDO_USER"))
             # Fire up the vagrant machine
             p = subprocess.Popen("vagrant up", shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
-            while True:
-                out = p.stderr.read(1)
-                if out == '' and p.poll() != None:
-                    break
-                if out != '':
-                    sys.stdout.write(out)
-                    sys.stdout.flush()
-            p.wait()
+            p.communicate()[0]
             # change the owner of the created files
             os.chown(self.getPath(), pw_record.pw_uid, pw_record.pw_gid)
             for root, dirs, files in os.walk(self.getPath()):
@@ -511,14 +506,7 @@ class MachineInstance(yaml.YAMLObject):
     def stop(self):
         if os.geteuid() == 0:
             p = subprocess.Popen("vagrant halt", shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
-            while True:
-                out = p.stderr.read(1)
-                if out == '' and p.poll() != None:
-                    break
-                if out != '':
-                    sys.stdout.write(out)
-                    sys.stdout.flush()
-            p.wait()
+            p.communicate()[0]
             if p.returncode != 0:
                 raise RuntimeError("Error while firing up the machine");
         else:
@@ -533,13 +521,21 @@ class MachineInstance(yaml.YAMLObject):
       output += "  Provisioner: {0}\n".format(self.getProvisioner())
       output += "  Provider: {0}\n".format(self.getProvider())
       output += "  Host interface: {0}\n".format(self.getHostInterface())
-      p = subprocess.Popen("vagrant ssh -c \"ip address show eth0 | grep 'inet ' | sed -e 's/^.*inet //' -e 's/\/.*$//'\"", shell=True,  stderr=subprocess.PIPE, stdout=subprocess.PIPE, cwd=self.getPath())
+      p = subprocess.Popen("vagrant ssh-config", shell=True,  stderr=subprocess.PIPE, stdout=subprocess.PIPE, cwd=self.getPath())
       out = p.communicate()[0]
       if p.returncode == 0:
-          output += "  Primary IPAddress of the container: {0}".format(out)
-          output += "  State: Running\n"
+        ipAddrSearch = re.search("HostName (.*)",out)
+        if ipAddrSearch != None :
+          output += "  Primary IPAddress of the container: {0}\n".format(ipAddrSearch.group(1))
+  
+      p = subprocess.Popen("vagrant status", shell=True,  stderr=subprocess.PIPE, stdout=subprocess.PIPE, cwd=self.getPath())
+      isStarted = False
+      out = p.communicate()[0]
+      isStarted = (isStarted or (re.search("(.*)machination-{0}(.*)running(.*)".format(self.getName()),out) != None)) 
+      if p.returncode == 0 and isStarted:
+           output += "  State: Running\n"
       else:
-          output += "  State: Stopped"
+          output += "  State: Stopped\n"
       if len(self.getGuestInterfaces()) != 0 :
         output +="  Network interfaces:\n"
         for intf in self.getGuestInterfaces():
@@ -611,7 +607,7 @@ class MachineInstance(yaml.YAMLObject):
             content = representation["template"].split("|")
             if(len(content) == 2):
               # Retrieve the template from the registry
-              templateReg = MachineTemplateRegistry([os.path.join(MACHINATION_INSTALLDIR, 'share', 'machination', 'templates'), os.path.join(MACHINATION_USERDIR, 'templates') ])
+              templateReg = MachineTemplateRegistry([MACHINATION_DEFAULTTEMPLATESDIR, MACHINATION_USERTEMPLATESDIR ])
               template = templateReg.getTemplates()[content[0]]
 
         osVersion = None

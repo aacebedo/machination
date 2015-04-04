@@ -89,7 +89,7 @@ def configure(ctx):
       ctx.fatal("Missing requirements. Installation will not continue.")
     if not checkVersion("Docker","docker --version","Docker version ([0-9\.]*)(.*)","1.4.1",0):
       ctx.fatal("Missing requirements. Installation will not continue.")
-    if not checkBinary("Udhcpc","udhcpc --help",1):
+    if not checkBinary("Udhcpc","udhcpc --help",0):
       ctx.fatal("Missing requirements. Installation will not continue.")
     if not checkPythonModule("enum"):
       ctx.fatal("Missing requirements. Installation will not continue.")

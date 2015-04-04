@@ -30,7 +30,6 @@ import machination.core
 
 
 class ProvisionerFileGenerator:
-
     @abstractmethod
     def generateFiles(self):
         pass
