@@ -79,10 +79,10 @@ Vagrant.configure("2") do |config|
     imageName = "machination-"+templateSplit[0]+"-"+machine_config["arch"]+"-"+machine_config["os_version"]+"-"+machine_config["provisioner"]+"-"+templateSplit[1]
     imageName = imageName.downcase
     cmd = ` docker images | cut -d ' ' -f 1 | grep #{imageName}`
-    imageNeedsToCreated = (cmd == "")
+    imageIsCreated = (cmd != "")
     config.vm.define name do |a|
       a.vm.provider "docker" do |d|
-        if imageNeedsToCreated
+        if !imageIsCreated
           d.image = "aacebedo/ubuntu-"+machine_config["os_version"]+"-vagrant-"+machine_config["arch"]
   	    else
   	      d.image = imageName
@@ -116,10 +116,9 @@ Vagrant.configure("2") do |config|
           end
         end
       end
-      puts(command)
       host_shell.inline = command
     end
-    if(ARGV[0] != "ssh" and ARGV[0] != "infos" and ARGV[0] != "halt" and ARGV[0] != "destroy") and imageNeedsToCreated or ARGV[0] == "provision"
+    if((ARGV[0] != "ssh" and ARGV[0] != "infos" and ARGV[0] != "halt" and ARGV[0] != "destroy") and !imageIsCreated) or ARGV[0] == "provision"
       if machine_config["provisioner"] == "Ansible"
         config.vm.provision :ansible do |ansible|
           playbookPath = File.join("provisioners","ansible","playbooks",templateSplit[0]+".playbook")

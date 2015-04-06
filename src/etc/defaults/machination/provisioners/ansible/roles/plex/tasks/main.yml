@@ -1,8 +1,8 @@
-  - name: Update apt cache
-    apt: update_cache=yes
+  - name: Download plexmediaserver
+    get_url: url={{ plexmediaserver_deb_url }} dest=/tmp/plexmediaserver.deb
 
-  - name: Download plex
-    get_url: url={{ plex_deb_url }} dest=/tmp/plex.deb
+  - name: Install plexmediaserver
+    apt: deb=/tmp/plexmediaserver.deb  state=installed
 
-  - name: Install plex
-    apt: deb=/tmp/plex.deb  state=installed
+   -name: Start plexmediaserver
+    service: name=plexmediaserver state=started

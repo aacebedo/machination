@@ -1,4 +1,0 @@
-CP_USER={{ user }}
-CP_HOME={{ install_dir }}
-CP_DATA={{ datas_dir }}
-CP_OPTS=--config={{ datas_dir }}/config.ini

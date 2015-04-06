@@ -68,9 +68,9 @@ class AnsibleProvisionerFileGenerator(ProvisionerFileGenerator):
             raise PathNotExistError(dest)
         ansibleFilesDest = os.path.join(dest,"provisioners","ansible")
         playbookPath = None
-        for d in [os.path.join(MACHINATION_USERPROVISIONERSDIR,"ansible","playbooks")] :
+        for d in [os.path.join(MACHINATION_USERPROVISIONERSDIR,"ansible","playbooks"),os.path.join(MACHINATION_DEFAULTPROVISIONERSDIR,"ansible","playbooks")] :
             playbookPath = os.path.join(d,"{0}.playbook".format(template.getName()))
-            FILEGENERATORLOGGER.debug("Searching template in '{0}'...".format(playbookPath))
+            FILEGENERATORLOGGER.debug("Searching ansible playbook in '{0}'...".format(playbookPath))
             if not os.path.exists(playbookPath):
                 playbookPath = None
             else:
