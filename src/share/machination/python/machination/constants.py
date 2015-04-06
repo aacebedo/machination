@@ -22,14 +22,16 @@ import os
 MACHINATION_INSTALLDIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)),"..",'..','..','..'))
 MACHINATION_DEFAULTTEMPLATESDIR = os.path.abspath(os.path.join(MACHINATION_INSTALLDIR,"etc","defaults","machination","templates"))
 MACHINATION_DEFAULTPROVISIONERSDIR = os.path.abspath(os.path.join(MACHINATION_INSTALLDIR,"etc","defaults","machination","provisioners"))
+MACHINATION_DEFAULTANSIBLEPLAYBOOKSDIR = os.path.join(MACHINATION_DEFAULTPROVISIONERSDIR,"ansible","playbooks")
+MACHINATION_DEFAULTANSIBLEROLESDIR = os.path.join(MACHINATION_DEFAULTPROVISIONERSDIR,"ansible","roles")
+
 
 # User dir to store instances and templates
 MACHINATION_USERDIR = os.path.abspath(os.path.join(os.path.expanduser("~"),".machination"))
 MACHINATION_USERINSTANCESDIR = os.path.join(MACHINATION_USERDIR,"instances")
 MACHINATION_USERTEMPLATESDIR = os.path.join(MACHINATION_USERDIR,"templates")
 MACHINATION_USERPROVISIONERSDIR = os.path.join(MACHINATION_USERDIR,"provisioners")
-
-MACHINATION_USERANSIBLEPLAYBOOKSDIR = os.path.join(MACHINATION_USERDIR,"provisioners","ansible","playbooks")
-MACHINATION_USERANSIBLEROLESDIR = os.path.join(MACHINATION_USERDIR,"provisioners","ansible","roles")
+MACHINATION_USERANSIBLEPLAYBOOKSDIR = os.path.join(MACHINATION_USERPROVISIONERSDIR,"ansible","playbooks")
+MACHINATION_USERANSIBLEROLESDIR = os.path.join(MACHINATION_USERPROVISIONERSDIR,"ansible","roles")
 
 MACHINATION_CONFIGFILE_NAME="machine_instance_config.yml"

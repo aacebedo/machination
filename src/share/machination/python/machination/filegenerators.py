@@ -24,7 +24,7 @@ from abc import abstractmethod
 from machination.exceptions import InvalidMachineTemplateException
 from machination.exceptions import PathNotExistError,InvalidArgumentValue
 from machination.constants import MACHINATION_INSTALLDIR, MACHINATION_USERDIR
-from machination.constants import MACHINATION_USERPROVISIONERSDIR
+from machination.constants import MACHINATION_USERPROVISIONERSDIR, MACHINATION_USERANSIBLEPLAYBOOKSDIR, MACHINATION_DEFAULTANSIBLEPLAYBOOKSDIR, MACHINATION_DEFAULTANSIBLEROLESDIR, MACHINATION_USERANSIBLEROLESDIR
 from machination.loggers import FILEGENERATORLOGGER
 import machination.core
 
@@ -38,7 +38,7 @@ class AnsibleProvisionerFileGenerator(ProvisionerFileGenerator):
     @staticmethod
     def copyRole(dest,role):
       roleDir = None
-      roleDirs = [os.path.join(MACHINATION_INSTALLDIR,"share","machination","provisioners","ansible","roles",role),os.path.join(MACHINATION_USERDIR,"provisioners","ansible","roles",role)]
+      roleDirs = [os.path.join(MACHINATION_DEFAULTANSIBLEROLESDIR,role),os.path.join(MACHINATION_USERANSIBLEROLESDIR,role)]
 
       for tmpRoleDir in roleDirs:
         if os.path.exists(tmpRoleDir):
@@ -68,7 +68,7 @@ class AnsibleProvisionerFileGenerator(ProvisionerFileGenerator):
             raise PathNotExistError(dest)
         ansibleFilesDest = os.path.join(dest,"provisioners","ansible")
         playbookPath = None
-        for d in [os.path.join(MACHINATION_USERPROVISIONERSDIR,"ansible","playbooks"),os.path.join(MACHINATION_DEFAULTPROVISIONERSDIR,"ansible","playbooks")] :
+        for d in [MACHINATION_DEFAULTANSIBLEPLAYBOOKSDIR,MACHINATION_USERANSIBLEPLAYBOOKSDIR] :
             playbookPath = os.path.join(d,"{0}.playbook".format(template.getName()))
             FILEGENERATORLOGGER.debug("Searching ansible playbook in '{0}'...".format(playbookPath))
             if not os.path.exists(playbookPath):

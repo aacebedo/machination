@@ -286,8 +286,9 @@ class CmdLine:
                       hostnameRegex = "([0-9a-zA-Z]*)"
                       ipAddrRegex = "(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|dhcp"
                       macAddrRegex = "([0-9a-fA-F]{2}[\.:-]){5}([0-9a-fA-F]{2})"
+                      counter = 0
                       for i in template.getGuestInterfaces():
-                        hostname = RegexedQuestion("Enter an Hostname for the interface",
+                        hostname = RegexedQuestion("Enter an Hostname for the interface eth{0}".format(counter),
                                                    "Hostname must be a string",
                                                     COMMANDLINELOGGER,
                                                     "^{0}$".format(hostnameRegex), i.getHostname()).ask()
@@ -301,6 +302,7 @@ class CmdLine:
                                                     COMMANDLINELOGGER,
                                                   "^{0}$".format(macAddrRegex), i.getMACAddr()).ask()
                         guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostname))
+                        counter+=1
 
                       # Ask for additional network interfaces
                       if args.quiet == False:
