@@ -32,7 +32,7 @@
   - name: Install python dependencies
     apt: name={{ item }} state=present
     with_items:
-      - git-core
+      - git
       - python
     
   - name: Install utilities
@@ -42,22 +42,22 @@
       - unrar
 
   - name: Add group
-    group: name={{ couchpotato_group }} state=present gid={{ couchpotato_gid }}
+    group: name={{ couchpotato_group }} state=present
 
   - name: Add User
-    user: name={{ couchpotato_user }} group={{ couchpotato_group }} home=/usr/local/share/couchpotato state=present system=yes shell=/sbin/nologin uid={{ couchpotato_uid }}
+    user: name={{ couchpotato_user }} group={{ couchpotato_group }} home=/usr/local/share/couchpotato state=present system=yes shell=/sbin/nologin
 
   - name: Clone couchpotato
-    git: repo=git://github.com/RuudBurger/CouchPotatoServer.git dest={{ install_dir }} accept_hostkey=true
+    git: repo=git://github.com/RuudBurger/CouchPotatoServer.git dest={{ couchpotato_install_dir }} accept_hostkey=true
  
   - name: Change owner of couchpotato folder
-    file: path={{ install_dir }} recurse=true owner={{ couchpotato_user }}  group={{ couchpotato_group }}
+    file: path={{ couchpotato_install_dir }} recurse=true owner={{ couchpotato_user }}  group={{ group }}
 
   - name: Create the data storage folder
     file: path={{ datas_dir }}  owner={{ couchpotato_user }}  group={{ couchpotato_group }} state=directory
 
   - name: Copy init script
-    command: cp {{ install_dir }}/init/ubuntu /etc/init.d/couchpotato
+    command: cp {{ couchpotato_install_dir }}/init/ubuntu /etc/init.d/couchpotato
 
   - name: Change owner of init script
     file: path=/etc/init.d/couchpotato mode="755" owner="root" group="root"

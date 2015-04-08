@@ -4,5 +4,5 @@
   - name: Install plexmediaserver
     apt: deb=/tmp/plexmediaserver.deb  state=installed
 
-   -name: Start plexmediaserver
+  - name: Start plexmediaserver
     service: name=plexmediaserver state=started

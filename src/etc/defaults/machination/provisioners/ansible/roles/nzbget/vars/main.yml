@@ -1,6 +1,6 @@
 ##########################################################################
 # Machination
-# Copyright (c) 2014, Alexandre ACEBEDO, All rights reserved.
+# Copyright (c) 2015, Alexandre ACEBEDO, All rights reserved.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -15,15 +15,6 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.
 ##########################################################################
----
-!MachineTemplate
-archs: ["x64"]
-version: 1.0
-os_versions: ["trusty"]
-provisioners: ["Ansible"]
-providers: ["Docker"]
-guest_interfaces :
-- !NetworkInterface
-  hostname: "streambox"
-  ip_addr: "dhcp"
 
+nzbget_user: nzbget
+nzbget_group: seedboxusers

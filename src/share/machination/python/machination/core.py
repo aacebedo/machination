@@ -23,12 +23,10 @@ import subprocess
 import sys
 import pwd
 import shutil
-import json
 
-from machination.loggers import CORELOGGER
 
 from machination.constants import MACHINATION_INSTALLDIR
-from machination.constants import MACHINATION_USERDIR
+from machination.constants import MACHINATION_USERINSTANCESDIR
 from machination.constants import MACHINATION_DEFAULTTEMPLATESDIR
 from machination.constants import MACHINATION_USERTEMPLATESDIR
 
@@ -407,7 +405,7 @@ class MachineInstance(yaml.YAMLObject):
     # Simple getters
     # ##
     def getPath(self):
-        return os.path.join(MACHINATION_USERDIR, "instances", self.getName())
+        return os.path.join(MACHINATION_USERINSTANCESDIR, self.getName())
 
     # ##
     # Function to generate the file attached to the instance
@@ -434,7 +432,7 @@ class MachineInstance(yaml.YAMLObject):
                 raise e
         else:
             # Raise an error about the fact the machine already exists
-            raise RuntimeError("Machine {0} already exists".format(self.getPath()))
+            raise RuntimeError("Machine instance '{0}' already exists".format(self.getPath()))
 
     # ##
     # Simple getters
@@ -485,9 +483,9 @@ class MachineInstance(yaml.YAMLObject):
                 for f in files:
                     os.lchown(os.path.join(root, f), pw_record.pw_uid, pw_record.pw_gid)
             if p.returncode != 0:
-                raise RuntimeError("Error while firing up the machine");
+                raise RuntimeError("Error while starting '{0}'".format(self.getName()));
         else:
-            raise RuntimeError("Only root can start a machine");
+            raise RuntimeError("Only root can start a machine instance");
 
     # ##
     # Function to destroy an instance
@@ -497,7 +495,7 @@ class MachineInstance(yaml.YAMLObject):
         p = subprocess.Popen("vagrant destroy -f", shell=True, stdout=subprocess.PIPE, cwd=self.getPath())
         p.wait()
         if p.returncode != 0:
-            raise RuntimeError("Error while destroying the machine");
+            raise RuntimeError("Error while destroying '{0}'".format(self.getName()));
         shutil.rmtree(self.getPath())
 
     # ##
@@ -508,9 +506,9 @@ class MachineInstance(yaml.YAMLObject):
             p = subprocess.Popen("vagrant halt", shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
             p.communicate()[0]
             if p.returncode != 0:
-                raise RuntimeError("Error while firing up the machine");
+                raise RuntimeError("Error while stopping'{0}'".format(self.getName()));
         else:
-            raise RuntimeError("Only root can stop a machine")
+            raise RuntimeError("Only root can stop a machine instance")
 
     # ##
     # ##
@@ -533,7 +531,7 @@ class MachineInstance(yaml.YAMLObject):
       out = p.communicate()[0]
       isStarted = (isStarted or (re.search("(.*)machination-{0}(.*)running(.*)".format(self.getName()),out) != None)) 
       if p.returncode == 0 and isStarted:
-           output += "  State: Running\n"
+          output += "  State: Running\n"
       else:
           output += "  State: Stopped\n"
       if len(self.getGuestInterfaces()) != 0 :
@@ -547,6 +545,14 @@ class MachineInstance(yaml.YAMLObject):
           i += 1
       return output
 
+    # ##
+    # ##
+    def provision(self):
+      p = subprocess.Popen("vagrant provision", shell=True,  stderr=subprocess.PIPE, stdout=subprocess.PIPE, cwd=self.getPath())
+      p.communicate()[0]
+      if p.returncode != 0:
+        raise RuntimeError("Error while provisioning '{0}'".format(self.getName()));
+    
     # ##
     # Function to ssh to an instance
     # ##
@@ -625,7 +631,7 @@ class MachineInstance(yaml.YAMLObject):
         syncedFolders = []
         if "sync_folders" in representation.keys():
             syncedFolders = representation["sync_folders"]
-
+        
         return MachineInstance(name,
                                    template,
                                    arch,

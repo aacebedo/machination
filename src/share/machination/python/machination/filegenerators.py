@@ -23,8 +23,7 @@ from abc import abstractmethod
 
 from machination.exceptions import InvalidMachineTemplateException
 from machination.exceptions import PathNotExistError,InvalidArgumentValue
-from machination.constants import MACHINATION_INSTALLDIR, MACHINATION_USERDIR
-from machination.constants import MACHINATION_USERPROVISIONERSDIR, MACHINATION_USERANSIBLEPLAYBOOKSDIR, MACHINATION_DEFAULTANSIBLEPLAYBOOKSDIR, MACHINATION_DEFAULTANSIBLEROLESDIR, MACHINATION_USERANSIBLEROLESDIR
+from machination.constants import MACHINATION_USERANSIBLEPLAYBOOKSDIR, MACHINATION_DEFAULTANSIBLEPLAYBOOKSDIR, MACHINATION_DEFAULTANSIBLEROLESDIR, MACHINATION_USERANSIBLEROLESDIR
 from machination.loggers import FILEGENERATORLOGGER
 import machination.core
 
@@ -87,5 +86,4 @@ class AnsibleProvisionerFileGenerator(ProvisionerFileGenerator):
             ansibleConfig=open(os.path.join(dest,"ansible.cfg"), "w+")
             ansibleConfig.write("[defaults]\r\n")
             ansibleConfig.write("roles_path = {0}".format(os.path.join("provisioners","ansible","roles")))
-
 

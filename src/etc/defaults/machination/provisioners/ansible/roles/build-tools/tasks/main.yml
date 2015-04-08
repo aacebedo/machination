@@ -53,8 +53,8 @@
   - name: Install Java
     apt: name={{ item }} state=present
     with_items:
-        - oracle-java{{ javaversion }}-installer
-        - oracle-java{{ javaversion }}-set-default
+        - oracle-java{{ build-tools_javaversion }}-installer
+        - oracle-java{{ build-tools_javaversion }}-set-default
 
   - name: Add google tools
     apt: name={{ item }} state=present

@@ -11,7 +11,7 @@ IFNAME=$1
 
 # default value set further down if not set here
 CONTAINER_IFNAME=
-:if [ "$2" = "-i" ]; then
+if [ "$2" = "-i" ]; then
   CONTAINER_IFNAME=$3
   shift 2
 fi

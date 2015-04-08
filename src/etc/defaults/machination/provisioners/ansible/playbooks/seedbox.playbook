@@ -20,7 +20,7 @@
 - hosts: all
   roles:
    #- nfsclient
-   #- sickrage
-   - couchpotato
+   - sickrage
+   #- couchpotato
    #- nzbget
    #- transmission

@@ -18,9 +18,9 @@
   - name: Remove default public key
     file: dest=/home/{{ base_user }}/.ssh/authorized_keys state=absent
 
-  - name: Add user public key
+  - name: Add user public keycentaiur
     authorized_key: user={{ base_user }} key="{{ lookup('file', '~/.ssh/id_rsa.pub') }}" state=present
-
+    
   - name: Add python-apt
     apt: name={{ item }} state=present update_cache=yes
     with_items:
@@ -49,6 +49,8 @@
     - git
     - vim-athena
     - locate
+    - tree
+    - unzip
 
   - name: Add default user group
     group: name={{ base_user }} state=present
@@ -80,7 +82,7 @@
     shell: sed -i "s/ZSH_THEME=.*/ZSH_THEME=\"gianu\"/g" /home/{{ base_user }}/.zshrc
     when: zsh_repo_cloned | changed
 
-  - name: Change base_user shell
+  - name: Change user shell
     user: name={{ base_user }} shell=/bin/zsh
     when: zsh_repo_cloned | changed
 

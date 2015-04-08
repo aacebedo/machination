@@ -17,7 +17,7 @@
 ##########################################################################
 ---
 !MachineTemplate
-archs: ["x64","i386"]
+archs: ["x64"]
 os_versions: ["trusty"]
 version: 1.0
 provisioners: ["Ansible"]

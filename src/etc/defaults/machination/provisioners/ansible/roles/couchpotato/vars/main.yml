@@ -17,8 +17,6 @@
 ##########################################################################
 
 couchpotato_user: couchpotato
-couchpotato_uid: 10001
 couchpotato_group: seedboxusers
-couchpotato_gid: 10000
-install_dir: /opt/couchpotato
-datas_dir: /usr/local/share/couchpotato  
+couchpotato_install_dir: /opt/couchpotato
+couchpotato_datas_dir: /usr/local/share/couchpotato  
