@@ -407,7 +407,7 @@ class CmdLine:
           COMMANDLINELOGGER.debug(traceback.format_exc())
           return errno.EINVAL    
       else:
-        COMMANDLINELOGGER.debug("Only root can create a machine")
+        COMMANDLINELOGGER.error("Only root can create a machine.")
       return res
 
     # ##
