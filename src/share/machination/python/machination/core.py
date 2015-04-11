@@ -24,6 +24,7 @@ import sys
 import pwd
 import shutil
 
+from distutils.version import LooseVersion
 
 from machination.constants import MACHINATION_INSTALLDIR
 from machination.constants import MACHINATION_USERINSTANCESDIR
@@ -290,6 +291,7 @@ class SyncedFolder(yaml.YAMLObject):
 class MachineTemplate(yaml.YAMLObject):
     yaml_tag = '!MachineTemplate'
     _path = None
+    _name = None
     _provisioners = []
     _providers = []
     _osVersions = []
@@ -300,8 +302,8 @@ class MachineTemplate(yaml.YAMLObject):
     # ##
     # Constructor
     # ##
-    @accepts(None, str,str, list, list, list, list)
-    def __init__(self, path,version, archs, osVersions , providers, provisioners, guestInterfaces):
+    @accepts(None, str, list, list, list, list)
+    def __init__(self, path, archs, osVersions , providers, provisioners, guestInterfaces):
       # Checking the arguments
 
       if not os.path.exists(path):
@@ -335,8 +337,12 @@ class MachineTemplate(yaml.YAMLObject):
         if type(i) is not NetworkInterfaceTemplate:
           raise InvalidMachineTemplateException("Invalid guest interface")
 
+      fileName = os.path.basename(path)
+      nameAndVersion = os.path.splitext(fileName)[0]
+      versionIdx = nameAndVersion.find('.')
+      self._name = nameAndVersion[0:versionIdx]
+      self._version = LooseVersion(nameAndVersion[versionIdx+1:])
       self._path = path
-      self._version = version
       self._archs = archs
       self._osVersions = osVersions
       self._providers = providers
@@ -346,10 +352,6 @@ class MachineTemplate(yaml.YAMLObject):
     # ##
     # Simple getters
     # ##
-    def getName(self):
-      fileName = os.path.basename(self._path)
-      return os.path.splitext(fileName)[0]
-
     def getPath(self):
       return self._path
 
@@ -370,6 +372,9 @@ class MachineTemplate(yaml.YAMLObject):
 
     def getVersion(self):
       return self._version
+    
+    def getName(self):
+      return self._name
 
     # ##
     # Function to dump the object into YAML
@@ -380,7 +385,6 @@ class MachineTemplate(yaml.YAMLObject):
                           "path" : data.getPath(),
                           "archs" : data.getArchs(),
                           "os_versions" : str(data.getOsVersions()),
-                          "version" : str(data.getVersion()),
                           "providers" : str(data.getProviders()),
                           "provisioners" : str(data.getProvisioners()),
                           "guest_interfaces" : data.getGuestInterfaces(),
@@ -406,11 +410,6 @@ class MachineTemplate(yaml.YAMLObject):
           for p in representation["providers"]:
               providers.append(Provider.fromString(p))
 
-      version = ""
-      # Check if version is present in the template
-      if "version" in representation.keys():
-        version = str(representation["version"])
-
       provisioners = []
       # Check if provisioners are present in the template
       if "provisioners" in representation.keys() and type(representation["provisioners"]) is list:
@@ -427,7 +426,6 @@ class MachineTemplate(yaml.YAMLObject):
           guestInterfaces = representation["guest_interfaces"]
 
       return MachineTemplate(loader.stream.name,
-                             version,
                              archs,
                              osVersions,
                              providers,

@@ -79,7 +79,7 @@ class CmdLine:
         data = {'name': [], 'version': [], 'path': [], 'provisioners': [], 'providers': [], 'archs': []}
         for f in templates.values():
           data['name'].append(f.getName())
-          data['version'].append(f.getVersion())
+          data['version'].append(str(f.getVersion()))
           data['path'].append(os.path.abspath(f.getPath()))
           data['provisioners'].append(",".join(map(str, f.getProvisioners())))
           data['providers'].append(",".join(map(str, f.getProviders())))

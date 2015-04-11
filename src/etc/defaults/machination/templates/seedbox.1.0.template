@@ -18,12 +18,11 @@
 ---
 !MachineTemplate
 archs: ["x64"]
-version: 1.0
 os_versions: ["trusty"]
 provisioners: ["Ansible"]
 providers: ["Docker"]
 guest_interfaces :
 - !NetworkInterfaceTemplate
-  hostname: "streambox"
+  hostname: "seedbox"
   ip_addr: "dhcp"
 
