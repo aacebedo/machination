@@ -23,7 +23,7 @@ os_versions: ["trusty"]
 provisioners: ["Ansible"]
 providers: ["Docker"]
 guest_interfaces :
-- !NetworkInterface
+- !NetworkInterfaceTemplate
   hostname: "streambox"
   ip_addr: "dhcp"
 

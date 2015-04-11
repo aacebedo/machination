@@ -30,7 +30,7 @@ import machination.core
 
 class ProvisionerFileGenerator:
     @abstractmethod
-    def generateFiles(self):
+    def create(self):
         pass
 
 class AnsibleProvisionerFileGenerator(ProvisionerFileGenerator):
@@ -60,7 +60,7 @@ class AnsibleProvisionerFileGenerator(ProvisionerFileGenerator):
         raise InvalidMachineTemplateException("Unable to find ansible role '{0}'.".format(role))
 
     @staticmethod
-    def generateFiles(template,dest):
+    def create(template,dest):
         if type(template) is not  machination.core.MachineTemplate:
             raise InvalidArgumentValue("template")
         if not os.path.exists(dest):

@@ -38,7 +38,7 @@ FILEGENERATORLOGGER.addHandler(strHandler)
 
   
 def setGlobalLogLevel(lvl):
-  FILEGENERATORLOGGER.setLevel(logging.DEBUG)
-  CORELOGGER.setLevel(logging.DEBUG)
-  REGISTRYLOGGER.setLevel(logging.DEBUG)
-  COMMANDLINELOGGER.setLevel(logging.DEBUG)
+  FILEGENERATORLOGGER.setLevel(lvl)
+  CORELOGGER.setLevel(lvl)
+  REGISTRYLOGGER.setLevel(lvl)
+  COMMANDLINELOGGER.setLevel(lvl)
