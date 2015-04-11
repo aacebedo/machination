@@ -19,7 +19,7 @@
 ---
 - hosts: all
   roles:
-   #- nfsclient
+   - nfsclient
    - sickrage
    #- couchpotato
    #- nzbget

@@ -18,68 +18,74 @@
 
 import yaml
 import os
+import traceback
 
 from machination.helpers import listPath
 from machination.helpers import accepts
 from machination.loggers import REGISTRYLOGGER
-import machination.core
-
-###
+from machination.constants import MACHINATION_CONFIGFILE_NAME
+# ##
 # Class representing the set of instances available
-###
+# ##
 class MachineInstanceRegistry():
-    instanceDirs = None
+  _instanceDirs = None
 
-    ###
-    # Constructor
-    ###
-    @accepts(None,list)
-    def __init__(self,instanceDirs):
-        self.instanceDirs = instanceDirs
+  # ##
+  # Constructor
+  # ##
+  @accepts(None, list)
+  def __init__(self, instanceDirs):
+    REGISTRYLOGGER.debug("Template registry initialized.")
+    self._instanceDirs = instanceDirs
+    REGISTRYLOGGER.debug("Instances will be searched in the following directories: {0}".format(', '.join(self._instanceDirs)))
 
-    ###
-    # Function to retrieve the available instances
-    ###
-    def getInstances(self):
-        instances = {}
-        for d in self.instanceDirs:
-            path = listPath(d)
-            # For each path to scan
-            for iDir in path:
-                # Check if the file exists and if there is a VagrantFile and a config file in it
-                if os.path.isdir(iDir) and os.path.exists(os.path.join(iDir,"Vagrantfile")) and os.path.exists(os.path.join(iDir,machination.constants.MACHINATION_CONFIGFILE_NAME)):
-                    try:
-                        openedFile = open(os.path.join(iDir,machination.constants.MACHINATION_CONFIGFILE_NAME),"r")
-                        instance = yaml.load(openedFile)
-                        if instance != None:
-                            instances[instance.getName()] = instance
-                    except Exception as e:
-                        REGISTRYLOGGER.error("Unable to load instance from '{0}' ({1})".format(iDir,str(e)))
-        return instances
+  # ##
+  # Function to retrieve the available instances
+  # ##
+  def getInstances(self):
+    _instances = {}
+    for d in self._instanceDirs:
+      path = listPath(d)
+      # For each path to scan
+      for iDir in path:
+        # Check if the file exists and if there is a VagrantFile and a config file in it
+        if os.path.isdir(iDir) and os.path.exists(os.path.join(iDir, "Vagrantfile")) and os.path.exists(os.path.join(iDir, MACHINATION_CONFIGFILE_NAME)):
+          try:
+            filename = os.path.join(iDir, MACHINATION_CONFIGFILE_NAME)
+            REGISTRYLOGGER.debug("Trying to load instance located in '{0}'".format(filename))
+            openedFile = open(filename, "r")
+            instance = yaml.load(openedFile)
+            _instances[instance.getName()] = instance
+          except Exception as e:
+            REGISTRYLOGGER.error("Unable to load instance from '{0}': {1}".format(iDir, str(e)))
+            REGISTRYLOGGER.debug(traceback.format_exc())
+    return _instances
 
-###
+# ##
 # Class to retrieve the available templates
-###
+# ##
 class MachineTemplateRegistry():
-    templateDirs = None
-
-    ###
+    _templateDirs = None
+    # ##
     # Constructor
-    ###
-    @accepts(None,list)
-    def __init__(self,templateDirs):
-        self.templateDirs = templateDirs
+    # ##
+    @accepts(None, list)
+    def __init__(self, templateDirs):
+      self._templateDirs = templateDirs
+      REGISTRYLOGGER.debug("Templates will be searched in the following directories: {0}".format(','.join(self._templateDirs)))
 
     def getTemplates(self):
-        machineTemplates = {}
-        for d in self.templateDirs:
-            files = listPath(d)
-            for f in files:
-                if os.path.isfile(f) and  os.path.splitext(os.path.basename(f))[1] == ".template":
-                    openedFile = open(os.path.join(f),"r")
-                    template = yaml.load(openedFile)
-                    if template != None and type(template) is machination.core.MachineTemplate:
-                        machineTemplates[template.getName()] = template
-                    else:
-                        REGISTRYLOGGER.warning("Skipped invalid template: {0}".format(f))
-        return machineTemplates
+      machineTemplates = {}
+      for d in self._templateDirs:
+        files = listPath(d)
+        for f in files:
+          if os.path.isfile(f) and  os.path.splitext(os.path.basename(f))[1] == ".template":
+            try:
+              openedFile = open(os.path.join(f), "r")
+              REGISTRYLOGGER.debug("Trying to load instance located in '{0}'".format(f))
+              template = yaml.load(openedFile)
+              machineTemplates[template.getName()] = template
+            except Exception as e:
+              REGISTRYLOGGER.warning("Unable to load template from'{0}: {1}".format(f,str(e)))
+              REGISTRYLOGGER.debug(traceback.format_exc())
+      return machineTemplates

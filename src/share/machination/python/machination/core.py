@@ -27,8 +27,7 @@ import shutil
 
 from machination.constants import MACHINATION_INSTALLDIR
 from machination.constants import MACHINATION_USERINSTANCESDIR
-from machination.constants import MACHINATION_DEFAULTTEMPLATESDIR
-from machination.constants import MACHINATION_USERTEMPLATESDIR
+from machination.globals import MACHINE_TEMPLATE_REGISTRY
 
 from machination.enums import Provider
 from machination.enums import Provisioner
@@ -39,7 +38,6 @@ from machination.exceptions import InvalidArgumentValue
 from machination.exceptions import InvalidYAMLException
 from machination.exceptions import InvalidMachineTemplateException
 
-from machination.registries import MachineTemplateRegistry
 from machination.helpers import accepts
 from machination.helpers import getAllNetInterfaces
 
@@ -613,8 +611,7 @@ class MachineInstance(yaml.YAMLObject):
             content = representation["template"].split("|")
             if(len(content) == 2):
               # Retrieve the template from the registry
-              templateReg = MachineTemplateRegistry([MACHINATION_DEFAULTTEMPLATESDIR, MACHINATION_USERTEMPLATESDIR ])
-              template = templateReg.getTemplates()[content[0]]
+              template = MACHINE_TEMPLATE_REGISTRY.getTemplates()[content[0]]
 
         osVersion = None
         if "os_version" in representation.keys():

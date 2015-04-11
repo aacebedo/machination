@@ -25,18 +25,20 @@ strHandler.setLevel(logging.DEBUG)
 strHandler.setFormatter(formatter)
 
 COMMANDLINELOGGER = logging.getLogger("cmdline")
-COMMANDLINELOGGER.setLevel(logging.DEBUG)
 COMMANDLINELOGGER.addHandler(strHandler)
 
 REGISTRYLOGGER = logging.getLogger("registries")
-REGISTRYLOGGER.setLevel(logging.DEBUG)
 REGISTRYLOGGER.addHandler(strHandler)
 
 CORELOGGER = logging.getLogger("core")
-CORELOGGER.setLevel(logging.DEBUG)
 CORELOGGER.addHandler(strHandler)
 
 FILEGENERATORLOGGER = logging.getLogger("filegenerator")
-FILEGENERATORLOGGER.setLevel(logging.DEBUG)
 FILEGENERATORLOGGER.addHandler(strHandler)
 
+  
+def setGlobalLogLevel(lvl):
+  FILEGENERATORLOGGER.setLevel(logging.DEBUG)
+  CORELOGGER.setLevel(logging.DEBUG)
+  REGISTRYLOGGER.setLevel(logging.DEBUG)
+  COMMANDLINELOGGER.setLevel(logging.DEBUG)
