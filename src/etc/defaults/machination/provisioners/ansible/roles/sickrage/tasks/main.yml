@@ -29,14 +29,14 @@
       - unzip
       - unrar
 
+  - name: Clone sickrage
+    git: repo=git://github.com/echel0n/SickRage.git dest={{ sickrage_install_dir }} force=yes accept_hostkey=true update=yes
+
   - name: Add seedboxers group
     group: name={{ sickrage_group }} state=present
 
   - name: Add sickrage user
     user: name={{ sickrage_user }} group={{ sickrage_group }} home={{ sickrage_install_dir }} state=present system=yes shell=/sbin/nologin
-
-  - name: Clone sickrage
-    git: repo=git://github.com/echel0n/SickRage.git dest={{ sickrage_install_dir }} force=yes accept_hostkey=true update=yes
  
   - name: Change owner of sickrage folder
     file: path={{ sickrage_install_dir }} recurse=true owner={{ sickrage_user }} group={{ sickrage_group }}

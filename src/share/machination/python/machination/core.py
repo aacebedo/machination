@@ -47,8 +47,8 @@ from machination.helpers import accepts
 # #
 # Class representing a network interface
 #
-class NetworkInterfaceInstance(yaml.YAMLObject):
-    yaml_tag = "!NetworkInterfaceInstance"
+class NetworkInterface(yaml.YAMLObject):
+    yaml_tag = "!NetworkInterface"
     _ipAddr = None
     _macAddr = None
     _hostname = None
@@ -143,82 +143,7 @@ class NetworkInterfaceInstance(yaml.YAMLObject):
       if "hostname" in representation.keys():
         hostname = representation["hostname"]
 
-      return NetworkInterfaceInstance(representation["ip_addr"],  representation["mac_addr"], representation["host_interface"], hostname)
-
-# #
-# Class representing a network interface
-#
-class NetworkInterfaceTemplate(yaml.YAMLObject):
-    yaml_tag = "!NetworkInterfaceTemplate"
-    _ipAddr = None
-    _hostname = None
-
-    # ##
-    # Constructor
-    # ##
-    @accepts(None, str, None)
-    def __init__(self, ipAddr, hostname="None"):
-      # Check each given argument
-      # IP Address can be also dhcp
-      if re.match("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|dhcp$", ipAddr):
-        self._ipAddr = ipAddr
-      else:
-        raise InvalidArgumentValue("ipAddr",ipAddr)
-      
-      if hostname == None or (type(hostname) is str and re.match("^([0-9a-zA-Z]*)$", hostname)):
-        self._hostname = hostname
-      else:
-        raise InvalidArgumentValue("hostname",hostname)
-
-    # ##
-    # Simple getters
-    # ##
-    def getIPAddr(self):
-      return self._ipAddr
-    
-    def getHostname(self):
-      if self._hostname == None:
-        return ""
-      else:
-        return self._hostname
-
-    # ##
-    # ToString method
-    # ##
-    def __str__(self):
-      res = ""
-      if self._hostname != None :
-          res = self._hostname + "|"
-      return res + self.getIPAddr() + "|" + self.getMACAddr() + "|" + self.getHostInterface()
-
-    # ##
-    # Function to dump a network interface to yaml
-    # ##
-    @classmethod
-    def to_yaml(cls, dumper, data):
-      representation = {
-                         "ip_addr" : data.getIPAddr(),
-                         }
-      # Only dump the hostname if it has been set
-      if data.getHostname() != None:
-          representation["hostname"] = data.getHostname()
-      return dumper.represent_mapping(data.yaml_tag, representation)
-
-    # ##
-    # Function to retrieve an object from yaml
-    # ##
-    @classmethod
-    def from_yaml(cls, loader, node):
-      representation = loader.construct_mapping(node, deep=True)
-      # Need to check if IP Address or MAC Address are available
-      if not "ip_addr" in representation.keys():
-        raise InvalidYAMLException("Invalid Network Interface: Missing IP address")
-
-      hostname = None
-      if "hostname" in representation.keys():
-        hostname = representation["hostname"]
-
-      return NetworkInterfaceTemplate(representation["ip_addr"], hostname)
+      return NetworkInterface(representation["ip_addr"],  representation["mac_addr"], representation["host_interface"], hostname)
     
 # ##
 # Class representing a sync folder between host and guest
@@ -302,7 +227,7 @@ class MachineTemplate(yaml.YAMLObject):
     # ##
     # Constructor
     # ##
-    @accepts(None, str, list, list, list, list)
+    @accepts(None, str, list, list, list, None)
     def __init__(self, path, archs, osVersions , providers, provisioners, guestInterfaces):
       # Checking the arguments
 
@@ -332,10 +257,6 @@ class MachineTemplate(yaml.YAMLObject):
 
       if len(osVersions) == 0:
         raise InvalidMachineTemplateException("Invalid number of os versions")
-
-      for i in guestInterfaces:
-        if type(i) is not NetworkInterfaceTemplate:
-          raise InvalidMachineTemplateException("Invalid guest interface")
 
       fileName = os.path.basename(path)
       nameAndVersion = os.path.splitext(fileName)[0]
@@ -421,8 +342,8 @@ class MachineTemplate(yaml.YAMLObject):
       if "os_versions" in representation.keys() and type(representation["os_versions"]) is list:
           osVersions = representation["os_versions"]
 
-      guestInterfaces = []
-      if "guest_interfaces" in representation.keys() and type(representation["guest_interfaces"]) is list:
+      guestInterfaces = 0
+      if "guest_interfaces" in representation.keys():
           guestInterfaces = representation["guest_interfaces"]
 
       return MachineTemplate(loader.stream.name,
@@ -460,7 +381,7 @@ class MachineInstance(yaml.YAMLObject):
         
       # Manually check the type of list elements
       for i in guestInterfaces:
-        if not type(i) is NetworkInterfaceInstance:
+        if not type(i) is NetworkInterface:
           raise InvalidArgumentValue("guest_interfaces",i)
 
       for f in syncedFolders:
@@ -506,7 +427,7 @@ class MachineInstance(yaml.YAMLObject):
             p = subprocess.Popen("vagrant up", shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
             p.communicate()[0]
             if p.returncode != 0:
-              shutil.rmtree(self.getPath())
+              #shutil.rmtree(self.getPath())
               raise RuntimeError("Error while creating machine '{0}'".format(self.getName()));            
             else:
               # change the owner of the created files
@@ -518,7 +439,7 @@ class MachineInstance(yaml.YAMLObject):
                   os.lchown(os.path.join(root, f), pw_record.pw_uid, pw_record.pw_gid)
 
           except InvalidMachineTemplateException as e:
-            shutil.rmtree(self.getPath())
+            #shutil.rmtree(self.getPath())
             raise e
         else:
             raise RuntimeError("Only root can create a machine instance.");

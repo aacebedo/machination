@@ -24,7 +24,7 @@ import re
 import logging
 
 import machination.helpers
-from machination.core import MachineInstance, NetworkInterfaceInstance
+from machination.core import MachineInstance, NetworkInterface
 from machination.core import SyncedFolder
 
 from machination.loggers import COMMANDLINELOGGER, setGlobalLogLevel
@@ -281,7 +281,7 @@ class CmdLine:
                     itfCounter = 0
                     if args.guestinterface != None:
                       if type(args.guestinterface) is list and len(args.guestinterface) >= len(template.getGuestInterfaces()):
-                        for i in template.getGuestInterfaces():
+                        for i in range(0,template.getGuestInterfaces()):
                           m = re.search("^(.*)\|(.*)(\|(.*)){0,2}", args.guestinterface[itfCounter])
                           if m != None:
                             hostInterface = m.group(1)
@@ -290,7 +290,7 @@ class CmdLine:
                             if(macAddr == None):
                               macAddr = machination.helpers.randomMAC()
                             hostname = m.group(4)
-                            guestInterfaces.append(NetworkInterfaceInstance(ipAddr, macAddr, hostInterface, hostname))
+                            guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostInterface, hostname))
                             itfCounter += 1
                           else:
                             raise InvalidCmdLineArgument("guestinterface", args.guestinterface[itfCounter])
@@ -304,7 +304,7 @@ class CmdLine:
                             if(macAddr == None):
                               macAddr = machination.helpers.randomMAC()
                             hostname = m.group(4)
-                            guestInterfaces.append(NetworkInterfaceInstance(ipAddr, macAddr, hostInterface, hostname))
+                            guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostInterface, hostname))
                             itfCounter += 1
                           else:
                             raise InvalidCmdLineArgument("guestinterface", args.guestinterface[itfCounter])
@@ -315,16 +315,16 @@ class CmdLine:
                       ipAddrRegex = "(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|dhcp"
                       macAddrRegex = "([0-9a-fA-F]{2}[\.:-]){5}([0-9a-fA-F]{2})"
                       counter = 0
-                      for i in template.getGuestInterfaces():
+                      for i in range(0,template.getGuestInterfaces()):
                         hostname = RegexedQuestion("Enter an Hostname for the interface eth{0}".format(counter),
                                                    "Hostname must be a string",
                                                     COMMANDLINELOGGER,
-                                                    "^{0}$".format(hostnameRegex), i.getHostname()).ask()
+                                                    "^{0}$".format(hostnameRegex), "").ask()
                         ipAddr = RegexedQuestion("Enter an IP address for the interface",
                                                     "IPAddress must be of form XXX.XXX.XXX.XXX",
                                                     COMMANDLINELOGGER,
                                                     "^{0}$".format(ipAddrRegex),
-                                                    i.getIPAddr()).ask()
+                                                    "dhcp").ask()
                         macAddr = RegexedQuestion("Enter a MAC address for the interface",
                                                   "MAC address must be of form XX:XX:XX:XX:XX",
                                                     COMMANDLINELOGGER,
@@ -336,32 +336,32 @@ class CmdLine:
                                                      COMMANDLINELOGGER,
                                                      "^{0}$".format("\\b|\\b".join(map(str, networkInterfaces))), networkInterfaces[0]).ask()
   
-                        guestInterfaces.append(NetworkInterfaceInstance(ipAddr, macAddr, hostInterface, hostname))
+                        guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostInterface, hostname))
                         counter += 1
   
                       # Ask for additional network interfaces
                       if args.quiet == False:
                         while BinaryQuestion("Do you want to add an additional network interface?", "Enter a Y or a N", COMMANDLINELOGGER, "N").ask():
-                          hostname = RegexedQuestion("Enter an Hostname for the interface",
-                                                    "Hostname must be a string",
-                                                    COMMANDLINELOGGER,
-                                                    "^{0}$".format(hostnameRegex),
-                                                     "Enter a Y or a N", COMMANDLINELOGGER, "").ask()
+                          hostname = RegexedQuestion("Enter an Hostname for the interface eth{0}".format(counter),
+                                                     "Hostname must be a string",
+                                                      COMMANDLINELOGGER,
+                                                      "^{0}$".format(hostnameRegex), "").ask()
                           ipAddr = RegexedQuestion("Enter an IP address for the interface",
-                                                   "IPAddress must be of form XXX.XXX.XXX.XXX",
-                                                    COMMANDLINELOGGER,
-                                                   "^{0}$".format(ipAddrRegex), "Enter a Y or a N", COMMANDLINELOGGER, "").ask()
+                                                      "IPAddress must be of form XXX.XXX.XXX.XXX",
+                                                      COMMANDLINELOGGER,
+                                                      "^{0}$".format(ipAddrRegex),
+                                                      "dhcp").ask()
                           macAddr = RegexedQuestion("Enter a MAC address for the interface",
                                                     "MAC address must be of form XX:XX:XX:XX:XX",
-                                                    COMMANDLINELOGGER,
-                                                     "^{0}$".format(macAddrRegex), "Enter a Y or a N", COMMANDLINELOGGER, machination.helpers.randomMAC()).ask()
+                                                      COMMANDLINELOGGER,
+                                                    "^{0}$".format(macAddrRegex), machination.helpers.randomMAC()).ask()
                           # Ask for the host interface to use
                           COMMANDLINELOGGER.debug("Request an host interface...")
                           hostInterface = RegexedQuestion("Enter the host interface [{0}]".format(",".join(map(str, networkInterfaces))),
                                                        "Host interfaces must be from {0}".format(",".join(map(str, networkInterfaces))),
                                                        COMMANDLINELOGGER,
                                                        "^{0}$".format("\\b|\\b".join(map(str, networkInterfaces))), networkInterfaces[0]).ask()
-                          guestInterfaces.append(NetworkInterfaceInstance(ipAddr, macAddr,hostInterface, hostname))
+                          guestInterfaces.append(NetworkInterface(ipAddr, macAddr,hostInterface, hostname))
   
                     if args.quiet == False:
                       # Ask for adding a new synced folder

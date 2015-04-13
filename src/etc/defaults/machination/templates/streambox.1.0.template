@@ -21,8 +21,4 @@ archs: ["x64"]
 os_versions: ["trusty"]
 provisioners: ["Ansible"]
 providers: ["Docker"]
-guest_interfaces :
-- !NetworkInterfaceTemplate
-  hostname: "streambox"
-  ip_addr: "dhcp"
-
+guest_interfaces : 1
