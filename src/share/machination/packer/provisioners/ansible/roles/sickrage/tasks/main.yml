@@ -1,0 +1,57 @@
+##########################################################################
+# Machination
+# Copyright (c) 2015, Alexandre ACEBEDO, All rights reserved.
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 3.0 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.
+##########################################################################
+ 
+  - name: Install python dependencies
+    apt: name={{ item }} state=present
+    with_items:
+      - git-core
+      - python
+      - python-cheetah
+
+  - name: Install utilities
+    apt: name={{ item }} state=present
+    with_items:
+      - unzip
+      - unrar
+
+  - name: Clone sickrage
+    git: repo=git://github.com/echel0n/SickRage.git dest={{ sickrage_install_dir }} force=yes accept_hostkey=true update=yes
+
+  - name: Add seedboxers group
+    group: name={{ sickrage_group }} state=present
+
+  - name: Add sickrage user
+    user: name={{ sickrage_user }} group={{ sickrage_group }} home={{ sickrage_install_dir }} state=present system=yes shell=/sbin/nologin
+ 
+  - name: Change owner of sickrage folder
+    file: path={{ sickrage_install_dir }} recurse=true owner={{ sickrage_user }} group={{ sickrage_group }}
+
+  - name: Copy init script
+    command: cp {{ sickrage_install_dir }}/init.ubuntu /etc/init.d/sickbeard
+
+  - name: Change owner of init script
+    file: path=/etc/init.d/sickbeard mode="755" owner="root" group="root"
+
+  - name: Add script to startup
+    command: update-rc.d sickbeard defaults
+
+  #- name: Add sickrage config file
+  #  copy: src=sickbeard dest=/etc/default/sickbeard
+
+  - name: Start service
+    service: name=sickbeard state=started

@@ -1,0 +1,19 @@
+#!/bin/sh
+# Start/stop the NZBget daemon.
+#
+case "$1" in
+start)   echo -n "Start services: NZBget"
+   /usr/bin/nzbget -D
+   ;;
+stop)   echo -n "Stop services: NZBget"
+   /usr/bin/nzbget -Q
+   ;;
+restart)
+   $0 stop
+   $0 start
+        ;;
+*)   echo "Usage: $0 start|stop|restart"
+        exit 1
+        ;;
+esac
+exit 0

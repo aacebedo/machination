@@ -1,0 +1,3 @@
+---
+dependencies:
+  - { role: base, base_user: vagrant }
