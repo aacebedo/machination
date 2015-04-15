@@ -1,4 +1,0 @@
-CP_USER={{ couchpotato_user }}
-CP_HOME={{ couchpotato_install_dir }}
-CP_DATA={{ couchpotato_datas_dir }}
-CP_OPTS=--config={{ couchpotato_datas_dir }}/config.ini

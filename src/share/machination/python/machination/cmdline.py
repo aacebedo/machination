@@ -24,7 +24,7 @@ import re
 import logging
 
 import machination.helpers
-from machination.core import MachineInstance, NetworkInterface
+from machination.core import Machine, NetworkInterface
 from machination.core import SyncedFolder
 
 from machination.loggers import COMMANDLINELOGGER, setGlobalLogLevel
@@ -187,8 +187,9 @@ class CmdLine:
             if args.name not in instances.keys():
                 # Check if the requested template exists
                 COMMANDLINELOGGER.debug("Instance '{0}' does not exist, proceeding to its creation.".format(args.name))
-                if args.template in templates.keys():
-                  template = templates[args.template]
+                templateKey = "{0}:{1}".format(args.template,args.templateversion) 
+                if templateKey in templates.keys():
+                  template = templates[templateKey]
                   guestInterfaces = []
                   arch = template.getArchs()[0]
                   provider = template.getProviders()[0]
@@ -386,7 +387,7 @@ class CmdLine:
                           raise InvalidCmdLineArgument("sharedfolder", s)
                     try:
                       # Try to create the new machine
-                      instance = MachineInstance(args.name, template, arch, osVersion, provider, provisioner, guestInterfaces, syncedFolders)
+                      instance = Machine(args.name, template, arch, osVersion, provider, provisioner, guestInterfaces, syncedFolders)
                       instance.create()
                       COMMANDLINELOGGER.info("Summary of the created machine:")
                       instances = MACHINE_INSTANCE_REGISTRY.getInstances()
@@ -396,7 +397,7 @@ class CmdLine:
                       COMMANDLINELOGGER.debug(traceback.format_exc())
                       res = errno.EINVAL
                 else:
-                  COMMANDLINELOGGER.error("Unable to create machine: Machine template '{0}' does not exists".format(args.template))
+                  COMMANDLINELOGGER.error("Unable to create machine: Machine template '{0}:{1}' does not exists".format(args.template,args.templateversion))
                   return errno.EINVAL
             else:
               COMMANDLINELOGGER.error("Unable to create machine: Machine instance named '{0}' already exists. Change the name of your new machine instance or delete the existing instance.".format(args.name))
@@ -580,6 +581,7 @@ class CmdLine:
       # Parser for create command
       createParser = rootSubparsers.add_parser('create', help='Create the given machine in the path')
       createParser.add_argument('template', help='Name of the template to create', type=str)
+      createParser.add_argument('templateversion', help='Version of the template to create', type=str)
       createParser.add_argument('name', help='Name of the machine to create', type=str)
       createParser.add_argument('--arch', help='Architecture of new the machine', type=str)
       createParser.add_argument('--provider', help='Provider to use for the new machine', type=str)

@@ -1,8 +1,0 @@
-  - name: Download plexmediaserver
-    get_url: url={{ plexmediaserver_deb_url }} dest=/tmp/plexmediaserver.deb
-
-  - name: Install plexmediaserver
-    apt: deb=/tmp/plexmediaserver.deb  state=installed
-
-  - name: Start plexmediaserver
-    service: name=plexmediaserver state=started

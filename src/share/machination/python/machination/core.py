@@ -24,7 +24,7 @@ import subprocess
 import sys
 import pwd
 import shutil
-
+import traceback
 from distutils.version import LooseVersion
 
 from machination.constants import MACHINATION_INSTALLDIR
@@ -359,8 +359,8 @@ class MachineTemplate(yaml.YAMLObject):
 # ##
 # Class representing a Machine instance
 # ##
-class MachineInstance(yaml.YAMLObject):
-    yaml_tag = '!MachineInstance'
+class Machine(yaml.YAMLObject):
+    yaml_tag = '!Machine'
     _name = None
     _template = None
     _provisioner = None
@@ -433,7 +433,7 @@ class MachineInstance(yaml.YAMLObject):
             variables["os_version"] = self.getOsVersion()
             variables["architecture"] = str(self.getArch())
             variables["template_name"] = self.getTemplate().getName()
-            variables["version"] = str(self.getTemplate().getVersion())
+            variables["template_version"] = str(self.getTemplate().getVersion())
             self.getPackerFile()["variables"] = variables
             self.getPackerFile()["builders"] = []
             self.getPackerFile()["provisioners"] = []
@@ -457,7 +457,7 @@ class MachineInstance(yaml.YAMLObject):
               returnCode = p.returncode
             
             if returnCode != 0:
-              #shutil.rmtree(self.getPath())
+              shutil.rmtree(self.getPath())
               raise RuntimeError("Error while creating machine '{0}'".format(self.getName()));
             else:
               # change the owner of the created files
@@ -469,7 +469,8 @@ class MachineInstance(yaml.YAMLObject):
                   os.lchown(os.path.join(root, f), pw_record.pw_uid, pw_record.pw_gid)
 
           except InvalidMachineTemplateException as e:
-            #shutil.rmtree(self.getPath())
+            shutil.rmtree(self.getPath())
+            CORELOGGER.debug(traceback.format_exc())
             raise e
         else:
             raise RuntimeError("Only root can create a machine instance.");
@@ -658,7 +659,7 @@ class MachineInstance(yaml.YAMLObject):
         if "sync_folders" in representation.keys():
             syncedFolders = representation["sync_folders"]
         
-        return MachineInstance(name,
+        return Machine(name,
                                    template,
                                    arch,
                                    osVersion,

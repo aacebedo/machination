@@ -17,47 +17,47 @@
 ##########################################################################
  
   - name: Add multiverse repository
-    apt_repository: repo="{{item}}"
+    apt_repository: repo="{{ item }}"
     register: multiverse_installed
     with_items:
-     - 'deb http://archive.ubuntu.com/ubuntu {{ansible_distribution_release}} multiverse'
-     - 'deb-src http://archive.ubuntu.com/ubuntu {{ansible_distribution_release}} multiverse'
-     - 'deb http://archive.ubuntu.com/ubuntu {{ansible_distribution_release}}-updates multiverse'
-     - 'deb-src http://archive.ubuntu.com/ubuntu {{ansible_distribution_release}}-updates multiverse'
+     - "deb http://archive.ubuntu.com/ubuntu {{ ansible_distribution_release }} multiverse"
+     - "deb-src http://archive.ubuntu.com/ubuntu {{ ansible_distribution_release }} multiverse"
+     - "deb http://archive.ubuntu.com/ubuntu {{ ansible_distribution_release }}-updates multiverse"
+     - "deb-src http://archive.ubuntu.com/ubuntu {{ ansible_distribution_release }}-updates multiverse"
 
   - name: Update apt cache
     apt: update_cache= true
     when: multiverse_installed | changed
 
   - name: Install python dependencies
-    apt: name={{ item }} state=present
+    apt: name="{{ item }}" state=present
     with_items:
       - git
       - python
     
   - name: Install utilities
-    apt: name={{ item }} state=present
+    apt: name="{{ item }}" state=present
     with_items:
       - unzip
       - unrar
 
   - name: Add group
-    group: name={{ couchpotato_group }} state=present
+    group: name="{{ couchpotato_group }}" state=present
 
   - name: Add User
-    user: name={{ couchpotato_user }} group={{ couchpotato_group }} home=/usr/local/share/couchpotato state=present system=yes shell=/sbin/nologin
+    user: name="{{ couchpotato_user }}" group="{{ couchpotato_group }}" home=/usr/local/share/couchpotato state=present system=yes shell=/sbin/nologin
 
   - name: Clone couchpotato
-    git: repo=git://github.com/RuudBurger/CouchPotatoServer.git dest={{ couchpotato_install_dir }} accept_hostkey=true
+    git: repo=git://github.com/RuudBurger/CouchPotatoServer.git dest="{{ couchpotato_install_dir }}" accept_hostkey=true
  
   - name: Change owner of couchpotato folder
-    file: path={{ couchpotato_install_dir }} recurse=true owner={{ couchpotato_user }}  group={{ group }}
+    file: path="{{ couchpotato_install_dir }}" recurse=true owner="{{ couchpotato_user }}"  group="{{ couchpotato_group }}"
 
   - name: Create the data storage folder
-    file: path={{ datas_dir }}  owner={{ couchpotato_user }}  group={{ couchpotato_group }} state=directory
+    file: path="{{ couchpotato_datas_dir }}"  owner="{{ couchpotato_user }}" group="{{ couchpotato_group }}" state=directory
 
   - name: Copy init script
-    command: cp {{ couchpotato_install_dir }}/init/ubuntu /etc/init.d/couchpotato
+    command: "cp {{ couchpotato_install_dir }}/init/ubuntu" /etc/init.d/couchpotato
 
   - name: Change owner of init script
     file: path=/etc/init.d/couchpotato mode="755" owner="root" group="root"

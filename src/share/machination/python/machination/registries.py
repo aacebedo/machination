@@ -84,7 +84,7 @@ class MachineTemplateRegistry():
               openedFile = open(os.path.join(f), "r")
               REGISTRYLOGGER.debug("Trying to load instance located in '{0}'".format(f))
               template = yaml.load(openedFile)
-              machineTemplates[template.getName()] = template
+              machineTemplates["{0}:{1}".format(template.getName(),template.getVersion())] = template
             except Exception as e:
               REGISTRYLOGGER.warning("Unable to load template from'{0}: {1}".format(f,str(e)))
               REGISTRYLOGGER.debug(traceback.format_exc())

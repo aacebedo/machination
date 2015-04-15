@@ -1,6 +1,6 @@
 ##########################################################################
 # Machination
-# Copyright (c) 2014, Alexandre ACEBEDO, All rights reserved.
+# Copyright (c) 2015, Alexandre ACEBEDO, All rights reserved.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,5 @@
 # License along with this library.
 ##########################################################################
 
----
-- hosts: all
-  roles:
-   - wordpress
+wordpress-pkg-url: http://wordpress.org/latest.tar.gz
+sqlite-integration-pkg-url: http://downloads.wordpress.org/plugin/sqlite-integration.1.7.zip

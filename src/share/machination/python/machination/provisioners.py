@@ -71,7 +71,7 @@ class AnsibleProvisioner(Provisioner):
       ansibleFilesDest = os.path.join(instance.getPath(),"provisioners","ansible")
       playbookPath = None
       for d in [MACHINATION_DEFAULTANSIBLEPLAYBOOKSDIR,MACHINATION_USERANSIBLEPLAYBOOKSDIR] :
-        playbookPath = os.path.join(d,"{0}.playbook".format(instance.getTemplate().getName()))
+        playbookPath = os.path.join(d,"{0}.{1}.playbook".format(instance.getTemplate().getName(),instance.getTemplate().getVersion()))
         FILEGENERATORLOGGER.debug("Searching ansible playbook in '{0}'...".format(playbookPath))
         if not os.path.exists(playbookPath):
           playbookPath = None
@@ -85,7 +85,7 @@ class AnsibleProvisioner(Provisioner):
         for r in playbook[0]["roles"]:
             AnsibleProvisioner.copyRole(ansibleFilesDest,r)
         mkdir_p(os.path.join(ansibleFilesDest,"playbooks"))
-        shutil.copy(playbookPath, os.path.join(ansibleFilesDest,"playbooks","{0}.playbook".format(instance.getTemplate().getName())))
+        shutil.copy(playbookPath, os.path.join(ansibleFilesDest,"playbooks","{0}.{1}.playbook".format(instance.getTemplate().getName(),instance.getTemplate().getVersion())))
         instance.getPackerFile()["variables"]["provisioner"] = self.__str__().lower()
         instance.getPackerFile()["variables"]["ansible_staging_directory"] = "/tmp/packer-provisioner-ansible-local"
         
@@ -107,7 +107,7 @@ class AnsibleProvisioner(Provisioner):
         
         provisioner = {}
         provisioner["type"] = "ansible-local"
-        provisioner["playbook_file"] = "provisioners/ansible/playbooks/{{user `template_name`}}.playbook"
+        provisioner["playbook_file"] = "provisioners/ansible/playbooks/{{user `template_name`}}.{{user `template_version`}}.playbook"
         instance.getPackerFile()["provisioners"].append(provisioner)
         
         provisioner = {}
