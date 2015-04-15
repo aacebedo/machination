@@ -34,8 +34,8 @@ from machination.questions import BinaryQuestion
 from machination.questions import PathQuestion
 
 from machination.enums import Architecture
-from machination.enums import Provider
-from machination.enums import Provisioner
+from machination.providers import Provider
+from machination.provisioners import Provisioner
 
 from machination.exceptions import InvalidCmdLineArgument
 from machination.exceptions import InvalidHardwareSupport
@@ -258,7 +258,7 @@ class CmdLine:
                                                                              "Provisioner must be from {0}".format(",".join(map(str, template.getProvisioners()))),
                                                                              COMMANDLINELOGGER,
                                                                              "[{0}]".format("\\b|\\b".join(map(str, template.getProvisioners()))),
-                                                                              provisioner.name).ask())
+                                                                              provisioner.name).ask())()
                     else:
                       COMMANDLINELOGGER.debug("Template has only one provisioner. It will be used as the default value")
   
@@ -272,11 +272,10 @@ class CmdLine:
                         if provider not in template.getProviders():
                           raise InvalidCmdLineArgument("provider", args.provider)
                       else:
-                        provider = Provider.fromString(RegexedQuestion("Select a Provider {0}".format(",".join(map(str, template.getProviders()))),
+                        provider = Provider.fromString(RegexedQuestion("Select a Provider [{0}]".format(",".join(map(str, template.getProviders()))),
                                                                          "Provider must be from {0}".format(",".join(map(str, template.getProviders()))),
                                                                          COMMANDLINELOGGER,
-                                                                         "[{0}]".format("\\b|\\b".join(map(str, template.getProviders()))), provider.name).ask())
-  
+                                                                         "[{0}]".format("\\b|\\b".join(map(str, template.getProviders()))), str(template.getProviders()[0])).ask())()
                     # Ask for configuration of network interface of the template
                     itfCounter = 0
                     if args.guestinterface != None:

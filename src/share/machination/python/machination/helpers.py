@@ -64,7 +64,7 @@ def accepts(*accepted_arg_types):
             # argument number with the incorrect type to ArgumentValidationError.
             for arg_num, (actual_arg, accepted_arg_type) in enumerate(zip(function_args, accepted_arg_types)):
                               
-                if accepted_arg_type != None and not type(actual_arg) is accepted_arg_type:                    
+                if accepted_arg_type != None and not isinstance(actual_arg,accepted_arg_type):
                     ord_num = ordinal(arg_num + 1)
                     raise ArgumentValidationError(ord_num,
                                                   validate_function.__name__,

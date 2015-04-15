@@ -18,53 +18,12 @@
 
 from enum import Enum
 from machination.helpers import accepts
-from machination.filegenerators import AnsibleProvisionerFileGenerator
 from machination.exceptions import InvalidArgumentValue
 
 class StringifiedEnum(Enum):  
     def __str__(self):
         return str(self.value)
-
-class Provider(StringifiedEnum):
-    Docker = "Docker"
-    
-    @staticmethod
-    @accepts(str)
-    def fromString(val):
-        vals = {
-                "Docker" : Provider.Docker,
-                }
-        if val in vals:
-            return vals[val]
-        else:
-            raise InvalidArgumentValue("Unknown provider")
         
-        
-class Provisioner(StringifiedEnum):
-    Ansible = "Ansible"
-    
-    @staticmethod
-    def getFileGenerator(pro):
-        ctrs = {
-            Provisioner.Ansible : AnsibleProvisionerFileGenerator
-                        }
-        if pro in ctrs:
-            return ctrs[pro]()
-        else:
-            raise InvalidArgumentValue("Unknown provisioner")
-    
-    @staticmethod
-    @accepts(str)
-    def fromString(val):
-        vals = {
-                "Ansible" : Provisioner.Ansible,
-                }
-        if val in vals:
-            return vals[val]
-        else:
-            raise InvalidArgumentValue("Unknown provisioner")
-
-
 class Architecture(StringifiedEnum):
     i386 = "i386"
     x64 = "x64"

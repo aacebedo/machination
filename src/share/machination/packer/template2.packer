@@ -1,0 +1,53 @@
+{
+  "variables": {
+    "os_version": null,
+    "architecture": null,
+    "template_name": null,
+    "version": null,
+    "ansible_staging_directory": "/tmp/packer-provisioner-ansible-local"
+  },
+  
+  "builders": [
+    {
+      "type": "docker",
+      "image": "aacebedo/ubuntu-{{user `os_version`}}-vagrant-{{user `architecture`}}",
+      "export_path": "machination-{{user `template_name`}}-{{user `architecture`}}-{{user `os_version`}}-ansible.tar",
+      "run_command": ["-d","-i","-t", "--privileged","{{.Image}}","/sbin/init"]
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline":  ["apt-get install -y ansible python-apt"]
+    },
+    {
+      "type": "shell",
+      "inline": ["mkdir -p {{ user `ansible_staging_directory` }}"]
+    },
+    {
+    "type": "file",
+    "source": "provisioners/ansible/roles",
+    "destination": "{{ user `ansible_staging_directory` }}"
+    },
+  	{
+  	  "type": "ansible-local",
+  	  "playbook_file": "provisioners/ansible/playbooks/{{user `template_name`}}.playbook"
+  	},
+  	{
+        "type": "shell",
+        "inline":  ["apt-get remove -y ansible","apt-get autoremove -y"]
+    },
+    {
+      "type": "shell",
+      "inline": [ "rm -rf  {{ user `ansible_staging_directory` }}"]
+    }
+    ],
+    "post-processors": [
+      {
+        "type": "docker-import",
+        "repository": "machination-{{user `template_name`}}-{{user `architecture`}}-{{user `os_version`}}-ansible",
+        "tag": "1.0"
+      }
+    ]
+  
+}

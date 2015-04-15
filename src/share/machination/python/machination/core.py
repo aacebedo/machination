@@ -19,6 +19,7 @@
 import re
 import os
 import yaml
+import json
 import subprocess
 import sys
 import pwd
@@ -29,12 +30,13 @@ from distutils.version import LooseVersion
 from machination.constants import MACHINATION_INSTALLDIR
 from machination.constants import MACHINATION_USERINSTANCESDIR
 from machination.constants import MACHINATION_CONFIGFILE_NAME
+from machination.constants import MACHINATION_PACKERFILE_NAME
+
+from machination.provisioners import Provisioner
+from machination.providers import Provider
 
 from machination.globals import MACHINE_TEMPLATE_REGISTRY
 
-
-from machination.enums import Provider
-from machination.enums import Provisioner
 from machination.enums import Architecture
 
 from machination.exceptions import PathNotExistError
@@ -43,6 +45,7 @@ from machination.exceptions import InvalidYAMLException
 from machination.exceptions import InvalidMachineTemplateException
 
 from machination.helpers import accepts
+from machination.loggers import CORELOGGER
 
 # #
 # Class representing a network interface
@@ -245,14 +248,14 @@ class MachineTemplate(yaml.YAMLObject):
         raise InvalidMachineTemplateException("Invalid number of providers")
       else:
         for p in providers:
-          if type(p) is not Provider:
+          if not isinstance(p,Provider):
             raise InvalidMachineTemplateException("Invalid provider")
 
       if len(provisioners) == 0:
         raise InvalidMachineTemplateException("Invalid number of provisioners")
       else:
         for p in provisioners:
-          if type(p) is not Provisioner:
+          if not isinstance(p,Provisioner):
             raise InvalidMachineTemplateException("Invalid provisioner")
 
       if len(osVersions) == 0:
@@ -329,13 +332,13 @@ class MachineTemplate(yaml.YAMLObject):
       # Check if providers are present in the template
       if "providers" in representation.keys() and type(representation["providers"]) is list:
           for p in representation["providers"]:
-              providers.append(Provider.fromString(p))
+              providers.append(Provider.fromString(p)())
 
       provisioners = []
       # Check if provisioners are present in the template
       if "provisioners" in representation.keys() and type(representation["provisioners"]) is list:
           for p in representation["provisioners"]:
-              provisioners.append(Provisioner.fromString(p))
+              provisioners.append(Provisioner.fromString(p)())
 
       osVersions = None
       # Check if osVersions are present in the template
@@ -366,6 +369,7 @@ class MachineInstance(yaml.YAMLObject):
     _guestInterfaces = None
     _arch = None
     _syncedFolders = None
+    _packerFile = None
 
     # ##
     # Constructor
@@ -395,6 +399,7 @@ class MachineInstance(yaml.YAMLObject):
       self._provisioner = provisioner
       self._guestInterfaces = guestInterfaces
       self._syncedFolders = syncedFolders
+      self._packerFile = {}
 
     # ##
     # Simple getters
@@ -402,6 +407,9 @@ class MachineInstance(yaml.YAMLObject):
     def getPath(self):
       return os.path.join(MACHINATION_USERINSTANCESDIR, self.getName())
 
+    def getPackerFile(self):
+      return self._packerFile
+    
     # ##
     # Function to generate the file attached to the instance
     # ##
@@ -420,15 +428,37 @@ class MachineInstance(yaml.YAMLObject):
             openedFile = open(os.path.join(self.getPath(), MACHINATION_CONFIGFILE_NAME), "w+")
             openedFile.write(configFile)
             openedFile.close()
-            # Generate the file related to the provisioner
-            generator = Provisioner.getFileGenerator(self.getProvisioner())
-            generator.create(self.getTemplate(), self.getPath())
-            # Fire up the vagrant machine
-            p = subprocess.Popen("vagrant up", shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
-            p.communicate()[0]
-            if p.returncode != 0:
+            # Generate the file related to the provisioner and the provider
+            variables = {}
+            variables["os_version"] = self.getOsVersion()
+            variables["architecture"] = str(self.getArch())
+            variables["template_name"] = self.getTemplate().getName()
+            variables["version"] = str(self.getTemplate().getVersion())
+            self.getPackerFile()["variables"] = variables
+            self.getPackerFile()["builders"] = []
+            self.getPackerFile()["provisioners"] = []
+            self.getPackerFile()["post-processors"] = []
+      
+            self.getProvider().generateFileFor(self)
+            self.getProvisioner().generateFileFor(self)
+            
+            outfile = open(os.path.join(self.getPath(),MACHINATION_PACKERFILE_NAME),"w")
+            json.dump(self.getPackerFile(),outfile,indent=2)
+            outfile.close()
+            returnCode = 0
+            
+            if self.getProvider().needsProvision(self):
+              CORELOGGER.debug("Image needs provisioning, starting packer... ({0})")
+              cmd = "packer build ./{0}".format(MACHINATION_PACKERFILE_NAME)
+              
+              # Fire up the vagrant machine
+              p = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
+              p.communicate()[0]
+              returnCode = p.returncode
+            
+            if returnCode != 0:
               #shutil.rmtree(self.getPath())
-              raise RuntimeError("Error while creating machine '{0}'".format(self.getName()));            
+              raise RuntimeError("Error while creating machine '{0}'".format(self.getName()));
             else:
               # change the owner of the created files
               os.chown(self.getPath(), pw_record.pw_uid, pw_record.pw_gid)
@@ -601,11 +631,11 @@ class MachineInstance(yaml.YAMLObject):
 
         provider = None
         if "provider" in representation.keys():
-            provider = Provider.fromString(representation["provider"])
+            provider = Provider.fromString(representation["provider"])()
 
         provisioner = None
         if "provisioner" in representation.keys():
-            provisioner = Provisioner.fromString(representation["provisioner"])
+            provisioner = Provisioner.fromString(representation["provisioner"])()
 
         name = os.path.basename(os.path.dirname(loader.stream.name))
 
