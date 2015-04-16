@@ -16,4 +16,11 @@
 # License along with this library.
 ##########################################################################
 
-build_tools_javaversion: 7
+  - name: Download arduino dev framework
+    get_url: url={{ arduino_dev_tools_env_url }} dest=/tmp/arduino.tar.gz
+    
+  - name: Unzip donwloaded framework
+    unarchive: src=/tmp/arduino.tar.gz dest=/opt/arduino-dev-env
+    
+  #- name: Install eclipse plugin
+  #  shell: "{{ arduino_dev_tools_eclipspath }}/eclipse -nosplash -application org.eclipse.equinox.p2.director -repository http://www.baeyens.it/eclipse/V2 -destination {{ arduino_dev_tools_eclipspath }} -installIU it.baeyens.arduino.feature.feature.group"

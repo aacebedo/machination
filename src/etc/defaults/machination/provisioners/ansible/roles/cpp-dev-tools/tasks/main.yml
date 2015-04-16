@@ -38,24 +38,6 @@
       - cmake
       - gdb
 
-  - name: Add oracle java PPA
-    register: oracle_java_ppa_added
-    apt_repository: repo='ppa:webupd8team/java' state=present
-
-  - name: Update apt cache
-    apt: update_cache=yes
-    when: oracle_java_ppa_added | changed
-
-  - name: Force java licence validation
-    shell: echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections
-    when: oracle_java_ppa_added | changed
-
-  - name: Install Java
-    apt: name="{{ item }}" state=present
-    with_items:
-        - "oracle-java{{ build_tools_javaversion }}-installer"
-        - "oracle-java{{ build_tools_javaversion }}-set-default"
-
   - name: Add google tools
     apt: name="{{ item }}" state=present
     with_items:

@@ -1,6 +1,4 @@
 ---
 - hosts: all
   roles:
-   - base
-   - nfsclient
-   - plex
+   - arduino-dev-tools
