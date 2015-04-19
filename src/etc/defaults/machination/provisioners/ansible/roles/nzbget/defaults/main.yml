@@ -18,3 +18,4 @@
 
 nzbget_user: nzbget
 nzbget_group: seedboxusers
+nzbget_dst_path: /mnt/dst/nzb

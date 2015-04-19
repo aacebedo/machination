@@ -1,4 +1,4 @@
-SB_USER=sickrage
-SB_HOME=/opt/sickrage/
-SB_DATA=/usr/local/share/sickrage/
-SB_OPTS=--config=/usr/local/share/sickrage/config.ini
+SB_USER={{ sickrage_user }}
+SB_HOME={{ sickrage_install_dir }}
+SB_DATA={{ sickrage_datas_dir }}
+SB_OPTS=--config={{ sickrage_datas_dir }}/config.ini

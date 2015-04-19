@@ -3,10 +3,10 @@
 #
 case "$1" in
 start)   echo -n "Start services: NZBget"
-   /usr/bin/nzbget -D
+   su -s /bin/bash -c "/usr/bin/nzbget -D" {{ nzbget_user }}
    ;;
 stop)   echo -n "Stop services: NZBget"
-   /usr/bin/nzbget -Q
+   su -s /bin/bash -c "/usr/bin/nzbget -Q" {{ nzbget_user }}
    ;;
 restart)
    $0 stop

@@ -37,7 +37,7 @@ class MachineInstanceRegistry():
   def __init__(self, instanceDirs):
     REGISTRYLOGGER.debug("Template registry initialized.")
     self._instanceDirs = instanceDirs
-    REGISTRYLOGGER.debug("Instances will be searched in the following directories: {0}".format(', '.join(self._instanceDirs)))
+    REGISTRYLOGGER.debug("Instances are searched in the following directories: {0}".format(', '.join(self._instanceDirs)))
 
   # ##
   # Function to retrieve the available instances
@@ -52,12 +52,13 @@ class MachineInstanceRegistry():
         if os.path.isdir(iDir) and os.path.exists(os.path.join(iDir, "Vagrantfile")) and os.path.exists(os.path.join(iDir, MACHINATION_CONFIGFILE_NAME)):
           try:
             filename = os.path.join(iDir, MACHINATION_CONFIGFILE_NAME)
-            REGISTRYLOGGER.debug("Trying to load instance located in '{0}'".format(filename))
             openedFile = open(filename, "r")
             instance = yaml.load(openedFile)
             _instances[instance.getName()] = instance
+            REGISTRYLOGGER.debug("Instance stored in '{0}' loaded".format(filename))
+            
           except Exception as e:
-            REGISTRYLOGGER.error("Unable to load instance from '{0}': {1}".format(iDir, str(e)))
+            REGISTRYLOGGER.error("Unable to load instance stored in '{0}': {1}".format(iDir, str(e)))
             REGISTRYLOGGER.debug(traceback.format_exc())
     return _instances
 
@@ -72,7 +73,7 @@ class MachineTemplateRegistry():
     @accepts(None, list)
     def __init__(self, templateDirs):
       self._templateDirs = templateDirs
-      REGISTRYLOGGER.debug("Templates will be searched in the following directories: {0}".format(','.join(self._templateDirs)))
+      REGISTRYLOGGER.debug("Templates are searched in the following directories: {0}".format(','.join(self._templateDirs)))
 
     def getTemplates(self):
       machineTemplates = {}
@@ -82,10 +83,10 @@ class MachineTemplateRegistry():
           if os.path.isfile(f) and  os.path.splitext(os.path.basename(f))[1] == ".template":
             try:
               openedFile = open(os.path.join(f), "r")
-              REGISTRYLOGGER.debug("Trying to load instance located in '{0}'".format(f))
               template = yaml.load(openedFile)
               machineTemplates["{0}:{1}".format(template.getName(),template.getVersion())] = template
+              REGISTRYLOGGER.debug("Template stored in '{0}' loaded".format(f))
             except Exception as e:
-              REGISTRYLOGGER.warning("Unable to load template from'{0}: {1}".format(f,str(e)))
+              REGISTRYLOGGER.warning("Unable to load template stored in '{0}: {1}".format(f,str(e)))
               REGISTRYLOGGER.debug(traceback.format_exc())
       return machineTemplates

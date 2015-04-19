@@ -36,9 +36,17 @@ CORELOGGER.addHandler(strHandler)
 FILEGENERATORLOGGER = logging.getLogger("filegenerator")
 FILEGENERATORLOGGER.addHandler(strHandler)
 
+PROVISIONERSLOGGER = logging.getLogger("provisioners")
+PROVISIONERSLOGGER.addHandler(strHandler)
+
+PROVIDERSLOGGER = logging.getLogger("providers")
+PROVIDERSLOGGER.addHandler(strHandler)
+
   
 def setGlobalLogLevel(lvl):
   FILEGENERATORLOGGER.setLevel(lvl)
   CORELOGGER.setLevel(lvl)
   REGISTRYLOGGER.setLevel(lvl)
   COMMANDLINELOGGER.setLevel(lvl)
+  PROVISIONERSLOGGER.setLevel(lvl)
+  PROVIDERSLOGGER.setLevel(lvl)

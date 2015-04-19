@@ -21,6 +21,6 @@
   roles:
    - nfsclient
    - sickrage
-   #- couchpotato
-   #- nzbget
-   #- transmission
+   - couchpotato
+   - nzbget
+   - transmission

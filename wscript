@@ -91,6 +91,8 @@ def configure(ctx):
       ctx.fatal("Missing requirements. Installation will not continue.")
     if not checkBinary("Udhcpc","udhcpc --help",0):
       ctx.fatal("Missing requirements. Installation will not continue.")
+    if not checkVersion("packer","packer -v","([0-9\.]*)(.*)","0.7.5",0):
+      ctx.fatal("Missing requirements. Installation will not continue.")
     if not checkPythonModule("enum"):
       ctx.fatal("Missing requirements. Installation will not continue.")
 

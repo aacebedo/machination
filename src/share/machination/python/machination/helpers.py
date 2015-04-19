@@ -117,6 +117,7 @@ def getAllNetInterfaces():
     lst = []
     for i in range(0, outbytes, 40):
         name = namestr[i:i+16].split('\0', 1)[0]
-        lst.append(name)
+        if name != "lo":
+          lst.append(name)
     return lst
  

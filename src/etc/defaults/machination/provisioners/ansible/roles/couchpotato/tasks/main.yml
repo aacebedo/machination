@@ -41,32 +41,26 @@
       - unzip
       - unrar
 
+  - name: Clone couchpotato
+    git: repo=git://github.com/RuudBurger/CouchPotatoServer.git dest="{{ couchpotato_install_dir }}" accept_hostkey=true
+ 
   - name: Add group
     group: name="{{ couchpotato_group }}" state=present
 
   - name: Add User
     user: name="{{ couchpotato_user }}" group="{{ couchpotato_group }}" home=/usr/local/share/couchpotato state=present system=yes shell=/sbin/nologin
-
-  - name: Clone couchpotato
-    git: repo=git://github.com/RuudBurger/CouchPotatoServer.git dest="{{ couchpotato_install_dir }}" accept_hostkey=true
- 
-  - name: Change owner of couchpotato folder
-    file: path="{{ couchpotato_install_dir }}" recurse=true owner="{{ couchpotato_user }}"  group="{{ couchpotato_group }}"
-
-  - name: Create the data storage folder
-    file: path="{{ couchpotato_datas_dir }}"  owner="{{ couchpotato_user }}" group="{{ couchpotato_group }}" state=directory
-
+    
+  - name: Create data storage folder
+    file: path="{{ couchpotato_datas_dir }}" owner="{{ couchpotato_user }}" group="{{ couchpotato_group }}" recurse=true
+    
   - name: Copy init script
-    command: "cp {{ couchpotato_install_dir }}/init/ubuntu" /etc/init.d/couchpotato
-
-  - name: Change owner of init script
-    file: path=/etc/init.d/couchpotato mode="755" owner="root" group="root"
- 
-  - name: Add script to startup
-    command: update-rc.d couchpotato defaults
+    shell: "cp {{ couchpotato_install_dir }}/init/ubuntu /etc/init.d/couchpotato" 
 
   - name: Add couchpotato config file
     template: src=couchpotato dest=/etc/default/couchpotato
-
-  - name: Start service
-    service: name=couchpotato state=started
+    
+  - name: Change owner of init script
+    file: path=/etc/init.d/couchpotato mode="755" owner="root" group="root"
+  
+  - name: Add script to startup
+    command: update-rc.d couchpotato defaults

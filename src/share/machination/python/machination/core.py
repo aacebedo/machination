@@ -357,10 +357,10 @@ class MachineTemplate(yaml.YAMLObject):
                              guestInterfaces)
 
 # ##
-# Class representing a Machine instance
+# Class representing a MachineInstance instance
 # ##
-class Machine(yaml.YAMLObject):
-    yaml_tag = '!Machine'
+class MachineInstance(yaml.YAMLObject):
+    yaml_tag = '!MachineInstance'
     _name = None
     _template = None
     _provisioner = None
@@ -416,67 +416,55 @@ class Machine(yaml.YAMLObject):
     def create(self):
       # If the machine does not exist yet
       if not os.path.exists(self.getPath()):
-        if os.geteuid() == 0:
-          # Get the real user behind the sudo
-          pw_record = pwd.getpwnam(os.getenv("SUDO_USER"))
-          # Create its folder and copy the Vagrant file
-          os.makedirs(self.getPath())
-          shutil.copy(os.path.join(MACHINATION_INSTALLDIR, "share", "machination", "vagrant", "Vagrantfile"), os.path.join(self.getPath(), "Vagrantfile"))
-          try:
-            # Create the machine config file
-            configFile = yaml.dump(self)
-            openedFile = open(os.path.join(self.getPath(), MACHINATION_CONFIGFILE_NAME), "w+")
-            openedFile.write(configFile)
-            openedFile.close()
-            # Generate the file related to the provisioner and the provider
-            variables = {}
-            variables["os_version"] = self.getOsVersion()
-            variables["architecture"] = str(self.getArch())
-            variables["template_name"] = self.getTemplate().getName()
-            variables["template_version"] = str(self.getTemplate().getVersion())
-            self.getPackerFile()["variables"] = variables
-            self.getPackerFile()["builders"] = []
-            self.getPackerFile()["provisioners"] = []
-            self.getPackerFile()["post-processors"] = []
-      
-            self.getProvider().generateFileFor(self)
-            self.getProvisioner().generateFileFor(self)
+        # Create its folder and copy the Vagrant file
+        os.makedirs(self.getPath())
+        shutil.copy(os.path.join(MACHINATION_INSTALLDIR, "share", "machination", "vagrant", "Vagrantfile"), os.path.join(self.getPath(), "Vagrantfile"))
+        try:
+          # Create the machine config file
+          configFile = yaml.dump(self)
+          openedFile = open(os.path.join(self.getPath(), MACHINATION_CONFIGFILE_NAME), "w+")
+          openedFile.write(configFile)
+          openedFile.close()
+          # Generate the file related to the provisioner and the provider
+          variables = {}
+          variables["os_version"] = self.getOsVersion()
+          variables["architecture"] = str(self.getArch())
+          variables["template_name"] = self.getTemplate().getName()
+          variables["template_version"] = str(self.getTemplate().getVersion())
+          self.getPackerFile()["variables"] = variables
+          self.getPackerFile()["builders"] = []
+          self.getPackerFile()["provisioners"] = []
+          self.getPackerFile()["post-processors"] = []
+    
+          self.getProvider().generateFileFor(self)
+          self.getProvisioner().generateFileFor(self)
+          
+          outfile = open(os.path.join(self.getPath(),MACHINATION_PACKERFILE_NAME),"w")
+          json.dump(self.getPackerFile(),outfile,indent=2)
+          outfile.close()
+          returnCode = 0
+          
+          if self.getProvider().needsProvision(self):
+            CORELOGGER.debug("Image needs provisioning, starting packer...")
+            cmd = "packer build ./{0}".format(MACHINATION_PACKERFILE_NAME)
             
-            outfile = open(os.path.join(self.getPath(),MACHINATION_PACKERFILE_NAME),"w")
-            json.dump(self.getPackerFile(),outfile,indent=2)
-            outfile.close()
-            returnCode = 0
-            
-            if self.getProvider().needsProvision(self):
-              CORELOGGER.debug("Image needs provisioning, starting packer... ({0})")
-              cmd = "packer build ./{0}".format(MACHINATION_PACKERFILE_NAME)
-              
-              # Fire up the vagrant machine
-              p = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
-              p.communicate()[0]
-              returnCode = p.returncode
-            
-            if returnCode != 0:
-              shutil.rmtree(self.getPath())
-              raise RuntimeError("Error while creating machine '{0}'".format(self.getName()));
-            else:
-              # change the owner of the created files
-              os.chown(self.getPath(), pw_record.pw_uid, pw_record.pw_gid)
-              for root, dirs, files in os.walk(self.getPath()):
-                for d in dirs:
-                  os.lchown(os.path.join(root, d), pw_record.pw_uid, pw_record.pw_gid)
-                for f in files:
-                  os.lchown(os.path.join(root, f), pw_record.pw_uid, pw_record.pw_gid)
-
-          except InvalidMachineTemplateException as e:
+            # Fire up the vagrant machine
+            p = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
+            p.communicate()[0]
+            returnCode = p.returncode
+          
+          if returnCode != 0:
             shutil.rmtree(self.getPath())
-            CORELOGGER.debug(traceback.format_exc())
-            raise e
-        else:
-            raise RuntimeError("Only root can create a machine instance.");
+            raise RuntimeError("Error while creating machine '{0}'".format(self.getName()));
+
+        except Exception as e:
+          shutil.rmtree(self.getPath())
+          CORELOGGER.debug(traceback.format_exc())
+          raise e
       else:
+        shutil.rmtree(self.getPath())
         # Raise an error about the fact the machine already exists
-        raise RuntimeError("Machine instance '{0}' already exists".format(self.getPath()))
+        raise RuntimeError("MachineInstance instance '{0}' already exists".format(self.getPath()))
 
     # ##
     # Simple getters
@@ -510,23 +498,11 @@ class Machine(yaml.YAMLObject):
     # This function must be ran as root as some action in the the provisioner or the provider may require a root access
     # ##
     def start(self):
-      if os.geteuid() == 0:
-        # Get the real user behind the sudo
-        pw_record = pwd.getpwnam(os.getenv("SUDO_USER"))
-        # Fire up the vagrant machine
-        p = subprocess.Popen("vagrant up", shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
-        p.communicate()[0]
-        # change the owner of the created files
-        os.chown(self.getPath(), pw_record.pw_uid, pw_record.pw_gid)
-        for root, dirs, files in os.walk(self.getPath()):
-          for d in dirs:
-            os.lchown(os.path.join(root, d), pw_record.pw_uid, pw_record.pw_gid)
-          for f in files:
-            os.lchown(os.path.join(root, f), pw_record.pw_uid, pw_record.pw_gid)
-        if p.returncode != 0:
-          raise RuntimeError("Error while starting '{0}'".format(self.getName()));
-      else:
-          raise RuntimeError("Only root can start a machine instance");
+      # Fire up the vagrant machine
+      p = subprocess.Popen("vagrant up", shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
+      p.communicate()[0]
+      if p.returncode != 0:
+        raise RuntimeError("Error while starting machine instance: '{0}'".format(self.getName()));
 
     # ##
     # Function to destroy an instance
@@ -536,20 +512,17 @@ class Machine(yaml.YAMLObject):
       p = subprocess.Popen("vagrant destroy -f", shell=True, stdout=subprocess.PIPE, cwd=self.getPath())
       p.wait()
       if p.returncode != 0:
-        raise RuntimeError("Error while destroying '{0}'".format(self.getName()));
+        raise RuntimeError("Error while destroying machine instance '{0}'".format(self.getName()));
       shutil.rmtree(self.getPath())
 
     # ##
     # Function to stop an instance
     # ##
     def stop(self):
-      if os.geteuid() == 0:
-        p = subprocess.Popen("vagrant halt", shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
-        p.communicate()[0]
-        if p.returncode != 0:
-          raise RuntimeError("Error while stopping'{0}'".format(self.getName()));
-      else:
-        raise RuntimeError("Only root can stop a machine instance")
+      p = subprocess.Popen("vagrant halt", shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
+      p.communicate()[0]
+      if p.returncode != 0:
+        raise RuntimeError("Error while stopping machine instance: '{0}'".format(self.getName()));
 
     # ##
     # ##
@@ -565,12 +538,7 @@ class Machine(yaml.YAMLObject):
         ipAddrSearch = re.search("HostName (.*)",out)
         if ipAddrSearch != None :
           output += "  Primary IPAddress of the container: {0}\n".format(ipAddrSearch.group(1))
-  
-      p = subprocess.Popen("vagrant status", shell=True,  stderr=subprocess.PIPE, stdout=subprocess.PIPE, cwd=self.getPath())
-      isStarted = False
-      out = p.communicate()[0]
-      isStarted = (isStarted or (re.search("(.*)machination-{0}(.*)running(.*)".format(self.getName()),out) != None)) 
-      if p.returncode == 0 and isStarted:
+      if(self.isStarted()):
           output += "  State: Running\n"
       else:
           output += "  State: Stopped\n"
@@ -590,6 +558,7 @@ class Machine(yaml.YAMLObject):
     # Function to ssh to an instance
     # ##
     def ssh(self):
+      if(self.isStarted()):
         # Start vagrant ssh to ssh into the instance
         val = subprocess.Popen("vagrant ssh", shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
         # get the output of the machine
@@ -600,14 +569,26 @@ class Machine(yaml.YAMLObject):
             if out != '':
                 sys.stdout.write(out)
                 sys.stdout.flush()
+      else:
+        raise RuntimeError("Machine instance not started")
 
+    def isStarted(self):
+      p = subprocess.Popen("vagrant status", shell=True,  stderr=subprocess.PIPE, stdout=subprocess.PIPE, cwd=self.getPath())
+      isStarted = False
+      out = p.communicate()[0]
+      isStarted = (isStarted or (re.search("(.*)machination-{0}(.*)running(.*)".format(self.getName()),out) != None)) 
+      if p.returncode == 0 and isStarted:
+        return True
+      else:
+        return False
+      
     # ##
     # Function to dump the object to YAML
     # ##
     @classmethod
     def to_yaml(cls, dumper, data):
         representation = {
-                               "template" : "{0}|{1}".format(data.getTemplate().getName(),data.getTemplate().getVersion()),
+                               "template" : "{0}:{1}".format(data.getTemplate().getName(),data.getTemplate().getVersion()),
                                "arch" : str(data.getArch()),
                                "os_version" : str(data.getOsVersion()),
                                "provider" : str(data.getProvider()),
@@ -642,10 +623,7 @@ class Machine(yaml.YAMLObject):
 
         template = None
         if "template" in representation.keys():
-            content = representation["template"].split("|")
-            if(len(content) == 2):
-              # Retrieve the template from the registry
-              template = MACHINE_TEMPLATE_REGISTRY.getTemplates()[content[0]]
+          template = MACHINE_TEMPLATE_REGISTRY.getTemplates()[representation["template"]]
 
         osVersion = None
         if "os_version" in representation.keys():
@@ -659,7 +637,7 @@ class Machine(yaml.YAMLObject):
         if "sync_folders" in representation.keys():
             syncedFolders = representation["sync_folders"]
         
-        return Machine(name,
+        return MachineInstance(name,
                                    template,
                                    arch,
                                    osVersion,

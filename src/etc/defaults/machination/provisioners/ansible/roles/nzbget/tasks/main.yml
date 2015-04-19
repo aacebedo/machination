@@ -30,10 +30,13 @@
     when: multiverse_installed | changed
 
   - name: Add seedboxers group
-    group: name=seedboxers state=present gid=10000
+    group: name="{{ nzbget_group }}" state=present
 
   - name: Add nzbget user
-    user: name="{{ nzbget_user }}" group="{{ nzbget_group }}" home=/usr/local/share/nzbget state=present system=yes shell=/sbin/nologin
+    user: name="{{ nzbget_user }}" group="{{ nzbget_group }}" home=/usr/local/share/nzbget state=present system=yes shell=/sbin/bash
+
+  - name: Create dst dir
+    file: path="{{ nzbget_dst_path }}" owner="{{ nzbget_user }}" group="{{ nzbget_group }}" state=directory
 
   - name: Install nzbget
     apt: name="{{ item }}" state=present
@@ -41,10 +44,14 @@
       - nzbget
   
   - name: Copy default config files
-    copy: src=nzbget.conf dest=/etc/nzbget.conf owner="{{ nzbget_user }}" group="{{ nzbget_group }}"
+    template: src=nzbget.conf dest=/etc/nzbget.conf owner="{{ nzbget_user }}" group="{{ nzbget_group }}"
 
   - name: Copy init file
-    copy: src=nzbget dest=/etc/init.d/nzbget owner=root group=root mode="744"
+    template: src=nzbget dest=/etc/init.d/nzbget owner=root group=root mode="744"
   
   - name: Start service
     service: name=nzbget state=started 
+
+  - name: Add service to startup
+    shell: sudo update-rc.d nzbget defaults
+    

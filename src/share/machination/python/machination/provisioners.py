@@ -27,7 +27,7 @@ class Provisioner(object):
     @accepts(str)
     def fromString(val):
       vals = {
-                "Ansible" : AnsibleProvisioner,
+                "ansible" : AnsibleProvisioner,
                 }
       if val in vals:
         return vals[val]
@@ -122,4 +122,4 @@ class AnsibleProvisioner(Provisioner):
         
        
     def __str__(self):
-      return "Ansible"
+      return "ansible"

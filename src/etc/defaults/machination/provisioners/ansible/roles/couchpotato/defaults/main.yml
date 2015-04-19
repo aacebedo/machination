@@ -19,4 +19,5 @@
 couchpotato_user: couchpotato
 couchpotato_group: seedboxusers
 couchpotato_install_dir: /opt/couchpotato
-couchpotato_datas_dir: /usr/local/share/couchpotato  
+couchpotato_datas_dir: /usr/local/share/couchpotato
+couchpotato_url: git://github.com/RuudBurger/CouchPotatoServer.git

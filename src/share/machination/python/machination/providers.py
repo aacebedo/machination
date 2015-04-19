@@ -2,7 +2,8 @@ import subprocess
 import re
 from machination.helpers import accepts
 from machination.exceptions import InvalidArgumentValue
- 
+from machination.loggers import PROVIDERSLOGGER
+
 from abc import abstractmethod
  
 class Provider(object):
@@ -14,8 +15,8 @@ class Provider(object):
     @accepts(str)
     def fromString(val):
       vals = {
-                "Docker" : DockerProvider,
-                "VBox" : VBoxProvider,
+                "docker" : DockerProvider,
+                "vbox" : VBoxProvider,
                 }
       if val in vals:
         return vals[val]
@@ -50,9 +51,10 @@ class DockerProvider(Provider):
       postproc["repository"] = "machination-{{user `template_name`}}-{{user `architecture`}}-{{user `os_version`}}-{{user `provisioner`}}"
       postproc["tag"] = str(instance.getTemplate().getVersion())
       instance.getPackerFile()["post-processors"].append(postproc)
+      PROVIDERSLOGGER.debug("Files generated for docker provider.")
 
     def __str__(self):
-      return "Docker"
+      return "docker"
     
     @abstractmethod
     def needsProvision(self,instance):
@@ -81,11 +83,23 @@ class VBoxProvider(Provider):
       builder["iso_url"] = "http://releases.ubuntu.com/trusty/ubuntu-14.04.2-server-amd64.iso"
       builder["iso_checksum_type"] = "none"
       builder["ssh_username"] = "vagrant"
+      builder["boot_command"] = [ "<esc><esc><enter><wait>",
+                                  "/install/vmlinuz noapic ",
+                                  "preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg ",
+                                  "debian-installer=en_US auto locale=en_US kbd-chooser/method=us ",
+                                  "hostname={{ .Name }} ",
+                                  "fb=false debconf/frontend=noninteractive ",
+                                  "keyboard-configuration/modelcode=SKIP keyboard-configuration/layout=USA ",
+                                  "keyboard-configuration/variant=USA console-setup/ask_detect=false ",
+                                  "initrd=/install/initrd.gz -- <enter>"
+      ]
       instance.getPackerFile()["builders"].append(builder)
+      PROVIDERSLOGGER.debug("Files generated for Vbox provider.")
 
     def __str__(self):
-      return "VBox"
+      return "vbox"
     
     @abstractmethod
     def needsProvision(self,instance):
+      # Vbox always needs provisioning
       return True

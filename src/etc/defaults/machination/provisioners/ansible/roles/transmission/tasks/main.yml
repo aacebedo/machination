@@ -32,17 +32,23 @@
   - name: Add seedboxers group
     group: name="{{ transmission_group }}" state=present
 
-  - name: Add transmission user
-    user: name="{{ transmission_user }}" group="{{ transmission_group }}" state=present system=yes shell=/sbin/nologin
-
   - name: Install transmission
     apt: name="{{ item }}" state=present
     with_items:
       - transmission-daemon
+
+  - name: Create dst dir
+    file: path="{{ transmission_dst_path }}" owner=debian-transmission group="{{ transmission_group }}" state=directory
+  
+  - name: Add transmission user
+    user: name=debian-transmission group="{{ transmission_group }}" state=present system=yes shell=/sbin/nologin
   
   - name: Add configuration file
-    copy: src=settings.json dest=/etc/transmission-daemon/settings.json owner="{{ transmission_user }}" group="{{ transmission_group }}"
+    template: src=settings.json dest=/etc/transmission-daemon/settings.json owner=debian-transmission group="{{ transmission_group }}" mode="755"
 
   - name: Start service
     service: name=transmission-daemon state=started
+    
+  - name: Add service to startup
+    shell: sudo update-rc.d transmission-daemon defaults
    

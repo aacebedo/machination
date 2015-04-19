@@ -16,8 +16,24 @@
 # License along with this library.
 ##########################################################################
 
+  - name: Install graphical libraries
+    apt: name="{{ item }}" state=present
+    with_items:
+    - libxtst6
+    - libgtk2.0-0
+    
   - name: Download eclipse
     get_url: url={{ eclipse_url }} dest=/tmp/eclipse.tar.gz
-    
+
   - name: Unzip donwloaded file
-    unarchive: src=/tmp/eclipse.tar.gz dest=/opt/eclipse
+    unarchive: src=/tmp/eclipse.tar.gz dest="{{ eclipse_path }}"
+    
+  - name: Install eclipse CDT
+    shell: "{{ arduino_dev_tools_eclipse_path }}/eclipse -nosplash
+    	-application org.eclipse.equinox.p2.director
+    	-repository http://download.eclipse.org/releases/{{ eclipse_version }}/,http://download.eclipse.org/tools/cdt/releases/{{ eclipse_version }}/
+    	-destination {{ arduino_dev_tools_eclipse_path }}
+		  -installIU org.eclipse.cdt.feature.group
+		  -installIU org.eclipse.cdt.sdk.feature.group
+		  -installIU org.eclipse.cdt.platform.feature.group
+		  -installIU org.eclipse.cdt.debug.ui.memory.feature.group"

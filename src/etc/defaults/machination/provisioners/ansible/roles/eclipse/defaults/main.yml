@@ -15,5 +15,6 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.
 ##########################################################################
-
-eclipse_url: http://mirror.ibcp.fr/pub/eclipse//technology/epp/downloads/release/luna/SR2/eclipse-java-luna-SR2-linux-gtk-x86_64.tar.gz
+eclipse_version: luna
+eclipse_url: http://mirror.ibcp.fr/pub/eclipse//technology/epp/downloads/release/luna/SR2/eclipse-java-{{ eclipse_version }}-SR2-linux-gtk-x86_64.tar.gz
+eclipse_path: /opt

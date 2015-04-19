@@ -50,8 +50,12 @@
   - name: Add script to startup
     command: update-rc.d sickbeard defaults
 
-  #- name: Add sickrage config file
-  #  copy: src=sickbeard dest=/etc/default/sickbeard
+  - name: Add sickrage config file
+    template: src=sickbeard dest=/etc/default/sickbeard
 
   - name: Start service
     service: name=sickbeard state=started
+    
+  - name: Add service to startup
+    shell: sudo update-rc.d sickbeard defaults
+

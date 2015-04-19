@@ -19,6 +19,6 @@
 !MachineTemplate
 archs: ["x64"]
 os_versions: ["trusty"]
-provisioners: ["Ansible"]
-providers: ["Docker","VBox"]
+provisioners: ["ansible"]
+providers: ["docker","vbox"]
 guest_interfaces : 0

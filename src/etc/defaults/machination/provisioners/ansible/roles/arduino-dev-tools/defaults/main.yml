@@ -16,4 +16,7 @@
 # License along with this library.
 ##########################################################################
 
-arduino_dev_tools_env_url: http://downloads.arduino.cc/arduino-1.6.3-linux64.tar.xz
+arduino_dev_tools_env_version: arduino-1.6.3
+arduino_dev_tools_env_path: /opt
+arduino_dev_tools_eclipse_path: /opt/eclipse
+arduino_user: vagrant
