@@ -20,7 +20,7 @@ FROM ubuntu:utopic
 ENV user vagrant
 
 RUN apt-get update -y
-RUN apt-get install wget ssh -y
+RUN apt-get install wget ssh sudo -y
 
 RUN useradd -m $user
 RUN echo "$user:$user" | chpasswd
