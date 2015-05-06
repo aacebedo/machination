@@ -7,6 +7,8 @@ from distutils.version import LooseVersion, StrictVersion
 import imp
 import re
 import stat
+import distutils.spawn
+
 top = "."
 out = "build"
 src = "src"
@@ -44,19 +46,12 @@ def checkVersion(name,cmd,regex,requiredVersion,returnCode):
         Logs.pprint('RED','Unable to get version ({0}).'.format(e))
     return res
 
-def checkBinary(name,cmd,returnCode):
+def checkBinary(name,cmd):
     res = False
     Logs.pprint('WHITE','{0: <40}'.format('Checking {0} version'.format(name)),sep=': ')
     try:
-        p = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE,stdout=subprocess.PIPE)
-        line=" "
-        p.wait()
-        for line in iter(p.stdout.readline,''):
-           pass
-        for line in iter(p.stderr.readline,''):
-           pass
-        res =  { "returncode": p.returncode, "out":line[0:-1] }
-        if res["returncode"] != returnCode:
+    	res = distutils.spawn.find_executable(cmd)
+        if res is None:
            Logs.pprint('RED','{0} is not available. Cannot continue.'.format(name))
         else:
            Logs.pprint('GREEN',"present")
@@ -89,9 +84,9 @@ def configure(ctx):
       ctx.fatal("Missing requirements. Installation will not continue.")
     if not checkVersion("Docker","docker --version","Docker version ([0-9\.]*)(.*)","1.4.1",0):
       ctx.fatal("Missing requirements. Installation will not continue.")
-    if not checkBinary("Udhcpc","udhcpc --help",0):
+    if not checkBinary("Udhcpc","udhcpc"):
       ctx.fatal("Missing requirements. Installation will not continue.")
-    if not checkVersion("packer","packer -v","([0-9\.]*)(.*)","0.7.5",0):
+    if not checkVersion("packer","packer --version","(.*)([0-9\.]*)(.*)","0.7.5",1):
       ctx.fatal("Missing requirements. Installation will not continue.")
     if not checkPythonModule("enum"):
       ctx.fatal("Missing requirements. Installation will not continue.")
