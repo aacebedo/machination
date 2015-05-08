@@ -136,6 +136,8 @@ class CmdLine:
           COMMANDLINELOGGER.info("No templates available")
       except Exception as e:
         COMMANDLINELOGGER.error("Unable to list templates: {0}".format(str(e)))
+        if (not args.verbose):
+          COMMANDLINELOGGER.info("Run with --verbose flag for more details")
         COMMANDLINELOGGER.debug(traceback.format_exc())
         res = errno.EINVAL
       except (KeyboardInterrupt, SystemExit):
@@ -178,6 +180,8 @@ class CmdLine:
             COMMANDLINELOGGER.info("No instances available")
         except Exception as e:
           COMMANDLINELOGGER.error("Unable to list instances: {0}".format(str(e)))
+          if (not args.verbose):
+            COMMANDLINELOGGER.info("Run with --verbose flag for more details")
           COMMANDLINELOGGER.debug(traceback.format_exc())
           res = errno.EINVAL
         except (KeyboardInterrupt, SystemExit):
@@ -427,6 +431,8 @@ class CmdLine:
             return errno.EALREADY
       except Exception as e:
         COMMANDLINELOGGER.error("Unable to create machine instance '{0}': {1}.".format(args.name,str(e)))
+        if (not args.verbose):
+          COMMANDLINELOGGER.info("Run with --verbose flag for more details")
         COMMANDLINELOGGER.debug(traceback.format_exc())
         res = errno.EINVAL
       else:
@@ -468,6 +474,8 @@ class CmdLine:
           res = errno.EINVAL
       except Exception as e:
         COMMANDLINELOGGER.error("Unable to destroy machine '{0}': {1}".format(args.name,str(e)))
+        if (not args.verbose):
+          COMMANDLINELOGGER.info("Run with --verbose flag for more details")
         COMMANDLINELOGGER.debug(traceback.format_exc())
         res = errno.EINVAL
       except (KeyboardInterrupt, SystemExit):
@@ -500,6 +508,8 @@ class CmdLine:
       except Exception as e:
         COMMANDLINELOGGER.error("Unable to start machine instance '{0}': {1}.".format(args.name,str(e)))
         COMMANDLINELOGGER.debug(traceback.format_exc())
+        if (not args.verbose):
+          COMMANDLINELOGGER.info("Run with --verbose flag for more details")
         res = errno.EINVAL
       except (KeyboardInterrupt, SystemExit):
         COMMANDLINELOGGER.debug(traceback.format_exc())
@@ -529,6 +539,8 @@ class CmdLine:
         COMMANDLINELOGGER.info("MachineInstance instance '{0}' successfully stopped.".format(args.name))
       except Exception as e:
         COMMANDLINELOGGER.error("Unable to stop machine instance '{0}': {1}.".format(args.name,str(e)))
+        if (not args.verbose):
+          COMMANDLINELOGGER.info("Run with --verbose flag for more details")
         COMMANDLINELOGGER.debug(traceback.format_exc())
         res = errno.EINVAL
       except (KeyboardInterrupt, SystemExit):
@@ -565,6 +577,8 @@ class CmdLine:
           res = errno.EINVAL
       except Exception as e:
         COMMANDLINELOGGER.error("Unable to get informations for machine instance '{0}': '{1}'.".format(args.name, str(e)))
+        if (not args.verbose):
+          COMMANDLINELOGGER.info("Run with --verbose flag for more details")
         COMMANDLINELOGGER.debug(traceback.format_exc())
         res = errno.EINVAL
       except (KeyboardInterrupt, SystemExit):
@@ -595,11 +609,12 @@ class CmdLine:
           COMMANDLINELOGGER.error("MachineInstance instance '{0}' does not exist.".format(args.name))
       except Exception as e:
         COMMANDLINELOGGER.error("Unable to SSH into machine instance '{0}': ".format(str(e)))
+        if (not args.verbose):
+          COMMANDLINELOGGER.info("Run with --verbose flag for more details")
         COMMANDLINELOGGER.debug(traceback.format_exc())
         res = errno.EINVAL
       except (KeyboardInterrupt, SystemExit):
         COMMANDLINELOGGER.debug(traceback.format_exc())
-        res = errno.EINVAL
       return res
         
     # ##
@@ -618,12 +633,12 @@ class CmdLine:
 
       templateSubparser = listSubparsers.add_parser('templates', help='List machine templates')
       templateSubparser.add_argument('provisioner', choices=['ansible'], nargs='*', default='ansible', help="List templates")
-      templateSubparser.add_argument('--verbose', help='Verbose mode', action='store_true')
+      templateSubparser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
       templateSubparser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.listMachineTemplates))
 
       instanceSubparser = listSubparsers.add_parser('instances', help='List instances')
       instanceSubparser.add_argument('provisioner', choices=['ansible'], nargs='*', default='ansible', help="List instances")
-      instanceSubparser.add_argument('--verbose', help='Verbose mode', action='store_true')
+      instanceSubparser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
       instanceSubparser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.listMachineInstances))
 
       # Parser for create command
@@ -631,52 +646,53 @@ class CmdLine:
       createParser.add_argument('template', help='Name of the template to create', type=str)
       createParser.add_argument('templateversion', help='Version of the template to create', type=str)
       createParser.add_argument('name', help='Name of the machine to create', type=str)
-      createParser.add_argument('--arch', help='Architecture of new the machine', type=str)
-      createParser.add_argument('--provider', help='Provider to use for the new machine', type=str)
-      createParser.add_argument('--provisioner', help='Provisioner to use for the new machine', type=str)
-      createParser.add_argument('--osversion', help='OS Version of the new machine', type=str)
-      createParser.add_argument('--guestinterface', help='Network interface to add to the new machine <hostinterface|ip_addr|mac_addr|hostname> | <hostinterface|ip_addr|mac_addr>', action='append', type=str)
-      createParser.add_argument('--sharedfolder', nargs=2, help='Shared folder between the new machine and the host <host_folder guest_folder>', action='append', type=str)
-      createParser.add_argument('--quiet', help='Do not request for interactive configuration of optional elements (interfaces,sharedfolders) of the instance', action='store_true')
-      createParser.add_argument('--verbose', help='Verbose mode', action='store_true')
+      createParser.add_argument('--arch','-a', help='Architecture of new the machine', type=str)
+      createParser.add_argument('--provider','-p', help='Provider to use for the new machine', type=str)
+      createParser.add_argument('--provisioner','-n', help='Provisioner to use for the new machine', type=str)
+      createParser.add_argument('--osversion','-o', help='OS Version of the new machine', type=str)
+      createParser.add_argument('--guestinterface','-i', help='Network interface to add to the new machine <hostinterface|ip_addr|mac_addr|hostname> | <hostinterface|ip_addr|mac_addr>', action='append', type=str)
+      createParser.add_argument('--sharedfolder','-s', nargs=2, help='Shared folder between the new machine and the host <host_folder guest_folder>', action='append', type=str)
+      createParser.add_argument('--quiet',"-q", help='Do not request for interactive configuration of optional elements (interfaces,sharedfolders) of the instance', action='store_true')
+      createParser.add_argument('--verbose',"-v", help='Verbose mode', action='store_true')
       createParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.createMachineInstance))
 
       # Parser for destroy command
       destroyParser = rootSubparsers.add_parser('destroy', help='Destroy the given machine in the path')
       destroyParser.add_argument('name', help='Name of the machine to destroy')
-      destroyParser.add_argument('--force', help='Do not ask for confirmation', action='store_true')
-      destroyParser.add_argument('--verbose', help='Verbose mode', action='store_true')
+      destroyParser.add_argument('--force','-f', help='Do not ask for confirmation', action='store_true')
+      destroyParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
       destroyParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.destroyMachineInstance))
 
       # Parser for start command
       startParser = rootSubparsers.add_parser('start', help='Start the given machine instance')
       startParser.add_argument('name', help='Name of the machine to start')
-      startParser.add_argument('--verbose', help='Verbose mode', action='store_true')
+      startParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
       startParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.startMachineInstance))
 
       # Parser for stop command
       stopParser = rootSubparsers.add_parser('stop', help='Stop the given machine instance')
       stopParser.add_argument('name', help='Name of the machine to stop')
-      stopParser.add_argument('--verbose', help='Verbose mode', action='store_true')
+      stopParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
       stopParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.stopMachineInstance))
 
       # Parser for restart command
       restartParser = rootSubparsers.add_parser('restart', help='Restart the given machine instance')
       restartParser.add_argument('name', help='Name of the machine to restart')
-      restartParser.add_argument('--verbose', help='Verbose mode', action='store_true')
+      restartParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
       restartParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.restartMachineInstance))
       
       # Parser for infos command
       infosParser = rootSubparsers.add_parser('infos', help='Get informations about a machine instance')
       infosParser.add_argument('name', help='Name of the machine instance from which infos shall be retrieved')
-      infosParser.add_argument('--verbose', help='Verbose mode', action='store_true')
+      infosParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
       infosParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.getMachineInstanceInfos))
       
       # Parser for ssh command
       sshParser = rootSubparsers.add_parser('ssh', help='SSH to the given machine')
       sshParser.add_argument('name', help='Name of the machine to ssh in')
-      sshParser.add_argument('--verbose', help='Verbose mode', action='store_true')
+      sshParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
       sshParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.sshIntoMachineInstance))
 
       # Parse the command
       parser.parse_args()
+      
