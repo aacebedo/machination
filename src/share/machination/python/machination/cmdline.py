@@ -25,7 +25,7 @@ import logging
 
 import machination.helpers
 from machination.core import MachineInstance, NetworkInterface
-from machination.core import SyncedFolder
+from machination.core import SharedFolder
 
 from machination.loggers import COMMANDLINELOGGER, setGlobalLogLevel
 
@@ -202,7 +202,7 @@ class CmdLine:
                 provider = template.getProviders()[0]
                 provisioner = template.getProvisioners()[0]
                 osVersion = template.getOsVersions()[0]
-                syncedFolders = []
+                sharedFolders = []
                 hostInterface = None
                 networkInterfaces = getAllNetInterfaces();
                 if len(networkInterfaces) == 0:
@@ -371,8 +371,8 @@ class CmdLine:
                         guestInterfaces.append(NetworkInterface(ipAddr, macAddr,hostInterface, hostname))
 
                   if args.quiet == False:
-                    # Ask for adding a new synced folder
-                    while BinaryQuestion("Do you want to add a synced folder ?",
+                    # Ask for adding a new shared folder
+                    while BinaryQuestion("Do you want to add a shared folder ?",
                                        "Enter a Y or a N", COMMANDLINELOGGER, "N").ask():
                       hostPathQues = PathQuestion("Enter a path to an existing folder on the host",
                                                 "Entered path is invalid, Please enter a valid path",
@@ -382,19 +382,19 @@ class CmdLine:
                                                  "Entered path is invalid, Please enter a valid path",
                                                  COMMANDLINELOGGER,
                                                  "^/.+", None, False).ask()
-                      syncedFolders.append(SyncedFolder(hostPathQues, guestPathQues))
+                      sharedFolders.append(SharedFolder(hostPathQues, guestPathQues))
 
                   if args.sharedfolder != None:
                     for s in args.sharedfolder:
                       regex = "^(.*)\|(.*)$"
                       m = re.search(regex, s)
                       if m != None:
-                        syncedFolders.append(SyncedFolder(m.group(1), m.group(2)))
+                        sharedFolders.append(SharedFolder(m.group(1), m.group(2)))
                       else:
                         raise InvalidCmdLineArgument("sharedfolder", s)
                   try:
                     # Try to create the new machine
-                    instance = MachineInstance(args.name, template, arch, osVersion, provider, provisioner, guestInterfaces, syncedFolders)
+                    instance = MachineInstance(args.name, template, arch, osVersion, provider, provisioner, guestInterfaces, sharedFolders)
                     instance.create()
                     COMMANDLINELOGGER.info("MachineInstance successfully created:")
                     instances = MACHINE_INSTANCE_REGISTRY.getInstances()
@@ -623,7 +623,7 @@ class CmdLine:
       createParser.add_argument('--provisioner', help='Provisioner to use for the new machine', type=str)
       createParser.add_argument('--osversion', help='OS Version of the new machine', type=str)
       createParser.add_argument('--guestinterface', help='Network interface to add to the new machine <hostinterface|ip_addr|mac_addr|hostname> | <hostinterface|ip_addr|mac_addr>', action='append', type=str)
-      createParser.add_argument('--sharedfolder', help='Shared folder to ad to the new machine <host_folder|guest_folder>', action='append', type=str)
+      createParser.add_argument('--sharedfolder', help='Shared folder to add to the new machine <host_folder|guest_folder>', action='append', type=str)
       createParser.add_argument('--quiet', help='Do not request for interactive configuration of optional elements (interfaces,sharedfolders) of the instance', action='store_true')
       createParser.add_argument('--verbose', help='Verbose mode', action='store_true')
       createParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.createMachineInstance))

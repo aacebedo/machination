@@ -20,8 +20,8 @@ import os
 
 # Path of the program files
 MACHINATION_INSTALLDIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)),"..",'..','..','..'))
-MACHINATION_DEFAULTTEMPLATESDIR = os.path.abspath(os.path.join(MACHINATION_INSTALLDIR,"etc","defaults","machination","templates"))
-MACHINATION_DEFAULTPROVISIONERSDIR = os.path.abspath(os.path.join(MACHINATION_INSTALLDIR,"etc","defaults","machination","provisioners"))
+MACHINATION_DEFAULTTEMPLATESDIR = os.path.abspath(os.path.join(MACHINATION_INSTALLDIR,"etc","default","machination","templates"))
+MACHINATION_DEFAULTPROVISIONERSDIR = os.path.abspath(os.path.join(MACHINATION_INSTALLDIR,"etc","default","machination","provisioners"))
 MACHINATION_DEFAULTANSIBLEPLAYBOOKSDIR = os.path.join(MACHINATION_DEFAULTPROVISIONERSDIR,"ansible","playbooks")
 MACHINATION_DEFAULTANSIBLEROLESDIR = os.path.join(MACHINATION_DEFAULTPROVISIONERSDIR,"ansible","roles")
 MACHINATION_DEFAULTPACKERDIR = os.path.join(MACHINATION_INSTALLDIR,"share","machination","packer")

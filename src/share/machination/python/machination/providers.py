@@ -35,7 +35,7 @@ class DockerProvider(Provider):
     @abstractmethod
     def generateFileFor(self,instance):
       folders = {}
-      for f in instance.getSyncedFolders():
+      for f in instance.getSharedFolders():
         folders[f.getHostDir()] = f.getGuestDir()
       instance.getPackerFile()["variables"]["provider"] = self.__str__().lower()
       builder = {}
@@ -74,7 +74,7 @@ class VBoxProvider(Provider):
     @abstractmethod
     def generateFileFor(self,instance):
       folders = {}
-      for f in instance.getSyncedFolders():
+      for f in instance.getSharedFolders():
         folders[f.getHostDir()] = f.getGuestDir()
       instance.getPackerFile()["variables"]["provider"] = self.__str__().lower()
       builder = {}

@@ -151,8 +151,8 @@ class NetworkInterface(yaml.YAMLObject):
 # ##
 # Class representing a sync folder between host and guest
 # ##
-class SyncedFolder(yaml.YAMLObject):
-    yaml_tag = "!SyncedFolder"
+class SharedFolder(yaml.YAMLObject):
+    yaml_tag = "!SharedFolder"
     _hostDir = None
     _guestDir = None
 
@@ -198,19 +198,19 @@ class SyncedFolder(yaml.YAMLObject):
       return dumper.represent_mapping(data.yaml_tag, representation)
 
     # ##
-    # Function to create a syncfolder from yaml
+    # Function to create a sharedfolder from yaml
     # ##
     @classmethod
     def from_yaml(cls, loader, node):
       representation = loader.construct_mapping(node, deep=True)
-      # A Synced folder shall have a host_dir and a guest_dir
+      # A Shared folder shall have a host_dir and a guest_dir
       if not "host_dir" in representation.keys():
-          raise InvalidYAMLException("Invalid Synced folder: missing host directory")
+          raise InvalidYAMLException("Invalid shared folder: missing host directory")
 
       if not "guest_dir" in representation.keys():
-          raise InvalidYAMLException("Invalid Synced folder: missing guest directory")
+          raise InvalidYAMLException("Invalid shared folder: missing guest directory")
 
-      return SyncedFolder(representation["host_dir"],
+      return SharedFolder(representation["host_dir"],
                           representation["guest_dir"])
 
 # ##
@@ -368,14 +368,14 @@ class MachineInstance(yaml.YAMLObject):
     _osVersion = None
     _guestInterfaces = None
     _arch = None
-    _syncedFolders = None
+    _sharedFolders = None
     _packerFile = None
 
     # ##
     # Constructor
     # ##
     @accepts(None, str, MachineTemplate, Architecture, str, Provider, Provisioner, list, list)
-    def __init__(self, name, template, arch, osVersion, provider, provisioner, guestInterfaces, syncedFolders):
+    def __init__(self, name, template, arch, osVersion, provider, provisioner, guestInterfaces, sharedFolders):
       # Check the arguments
       if len(osVersion) == 0:
         raise InvalidArgumentValue("osVersion",osVersion)
@@ -388,9 +388,9 @@ class MachineInstance(yaml.YAMLObject):
         if not type(i) is NetworkInterface:
           raise InvalidArgumentValue("guest_interfaces",i)
 
-      for f in syncedFolders:
-        if not type(f) is SyncedFolder:
-          raise InvalidArgumentValue("synced_folder",f)
+      for f in sharedFolders:
+        if not type(f) is SharedFolder:
+          raise InvalidArgumentValue("shared_folder",f)
       self._name = name
       self._template = template
       self._arch = arch
@@ -398,7 +398,7 @@ class MachineInstance(yaml.YAMLObject):
       self._provider = provider
       self._provisioner = provisioner
       self._guestInterfaces = guestInterfaces
-      self._syncedFolders = syncedFolders
+      self._sharedFolders = sharedFolders
       self._packerFile = {}
 
     # ##
@@ -481,8 +481,8 @@ class MachineInstance(yaml.YAMLObject):
     def getProvider(self):
       return self._provider
 
-    def getSyncedFolders(self):
-      return self._syncedFolders
+    def getSharedFolders(self):
+      return self._sharedFolders
 
     def getTemplate(self):
       return self._template
@@ -594,7 +594,7 @@ class MachineInstance(yaml.YAMLObject):
                                "provider" : str(data.getProvider()),
                                "provisioner" : str(data.getProvisioner()),
                                "guest_interfaces" : data.getGuestInterfaces(),
-                               "synced_folders" :  data.getSyncedFolders(),
+                               "shared_folders" :  data.getSharedFolders(),
                                }
         node = dumper.represent_mapping(data.yaml_tag, representation)
         return node
@@ -633,9 +633,9 @@ class MachineInstance(yaml.YAMLObject):
         if "guest_interfaces" in representation.keys():
             guestInterfaces = representation["guest_interfaces"]
 
-        syncedFolders = []
-        if "sync_folders" in representation.keys():
-            syncedFolders = representation["sync_folders"]
+        sharedFolders = []
+        if "shared_folders" in representation.keys():
+            sharedFolders = representation["shared_folders"]
         
         return MachineInstance(name,
                                    template,
@@ -644,4 +644,4 @@ class MachineInstance(yaml.YAMLObject):
                                    provider,
                                    provisioner,
                                    guestInterfaces,
-                                   syncedFolders)
+                                   sharedFolders)
