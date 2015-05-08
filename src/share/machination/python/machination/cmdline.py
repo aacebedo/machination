@@ -16,7 +16,7 @@
 # License along with this library.
 ##########################################################################
 
-import argparse
+import argparse, argcomplete
 import os
 import errno
 import traceback
@@ -216,9 +216,9 @@ class CmdLine:
           if args.name not in instances.keys():
               # Check if the requested template exists
               COMMANDLINELOGGER.debug("Instance '{0}' does not exist, proceeding to its creation.".format(args.name))
-              templateKey = "{0}:{1}".format(args.template,args.templateversion) 
-              if templateKey in templates.keys():
-                template = templates[templateKey]
+              args.template = args.template.replace("\\",'')
+              if args.template in templates.keys():
+                template = templates[args.template]
                 guestInterfaces = []
                 arch = template.getArchs()[0]
                 provider = template.getProviders()[0]
@@ -620,31 +620,33 @@ class CmdLine:
     # ##
     # Function to parse the command line arguments
     # ##
-    def parseArgs(self, args):
-      setGlobalLogLevel(logging.DEBUG)
-      
+    def parseArgs(self, args):      
+      templates = MACHINE_TEMPLATE_REGISTRY.getTemplates()
+      COMMANDLINELOGGER.debug("Templates loaded.")
+          
+      # Get instances
+      instances = MACHINE_INSTANCE_REGISTRY.getInstances()
+      COMMANDLINELOGGER.debug("Instances loaded.")
+    
       # Create main parser
       parser = argparse.ArgumentParser(prog="Machination", description='Machination utility, all your appliances belong to us.')
       rootSubparsers = parser.add_subparsers()
-
+      
       # Parser for list command
       listParser = rootSubparsers.add_parser('list', help='List templates and instances')
       listSubparsers = listParser.add_subparsers(help='List templates and instances')
 
       templateSubparser = listSubparsers.add_parser('templates', help='List machine templates')
-      templateSubparser.add_argument('provisioner', choices=['ansible'], nargs='*', default='ansible', help="List templates")
       templateSubparser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
       templateSubparser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.listMachineTemplates))
 
       instanceSubparser = listSubparsers.add_parser('instances', help='List instances')
-      instanceSubparser.add_argument('provisioner', choices=['ansible'], nargs='*', default='ansible', help="List instances")
       instanceSubparser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
       instanceSubparser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.listMachineInstances))
-
+      
       # Parser for create command
       createParser = rootSubparsers.add_parser('create', help='Create the given machine in the path')
-      createParser.add_argument('template', help='Name of the template to create', type=str)
-      createParser.add_argument('templateversion', help='Version of the template to create', type=str)
+      createParser.add_argument('template', help='Name of the template to create', type=str, choices = templates.keys())
       createParser.add_argument('name', help='Name of the machine to create', type=str)
       createParser.add_argument('--arch','-a', help='Architecture of new the machine', type=str)
       createParser.add_argument('--provider','-p', help='Provider to use for the new machine', type=str)
@@ -658,41 +660,59 @@ class CmdLine:
 
       # Parser for destroy command
       destroyParser = rootSubparsers.add_parser('destroy', help='Destroy the given machine in the path')
-      destroyParser.add_argument('name', help='Name of the machine to destroy')
+      destroyParser.add_argument('name', help='Name of the machine to destroy',choices=instances.keys())
       destroyParser.add_argument('--force','-f', help='Do not ask for confirmation', action='store_true')
       destroyParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
       destroyParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.destroyMachineInstance))
 
       # Parser for start command
       startParser = rootSubparsers.add_parser('start', help='Start the given machine instance')
-      startParser.add_argument('name', help='Name of the machine to start')
+      startParser.add_argument('name', help='Name of the machine to start',choices=instances.keys())
       startParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
       startParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.startMachineInstance))
 
       # Parser for stop command
       stopParser = rootSubparsers.add_parser('stop', help='Stop the given machine instance')
-      stopParser.add_argument('name', help='Name of the machine to stop')
+      stopParser.add_argument('name', help='Name of the machine to stop',choices=instances.keys())
       stopParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
       stopParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.stopMachineInstance))
 
       # Parser for restart command
       restartParser = rootSubparsers.add_parser('restart', help='Restart the given machine instance')
-      restartParser.add_argument('name', help='Name of the machine to restart')
+      restartParser.add_argument('name', help='Name of the machine to restart',choices=instances.keys())
       restartParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
       restartParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.restartMachineInstance))
       
       # Parser for infos command
       infosParser = rootSubparsers.add_parser('infos', help='Get informations about a machine instance')
-      infosParser.add_argument('name', help='Name of the machine instance from which infos shall be retrieved')
+      infosParser.add_argument('name', help='Name of the machine instance from which infos shall be retrieved',choices=instances.keys())
       infosParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
       infosParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.getMachineInstanceInfos))
       
       # Parser for ssh command
       sshParser = rootSubparsers.add_parser('ssh', help='SSH to the given machine')
-      sshParser.add_argument('name', help='Name of the machine to ssh in')
+      sshParser.add_argument('name', help='Name of the machine to ssh in',choices=instances.keys())
       sshParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
       sshParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.sshIntoMachineInstance))
 
       # Parse the command
+      argcomplete.autocomplete(parser)
       parser.parse_args()
       
+
+    #!/usr/bin/env python
+
+# import argcomplete, argparse, requests, pprint
+# 
+# def github_org_members(prefix, parsed_args, **kwargs):
+#     resource = "https://api.github.com/orgs/{org}/members".format(org=parsed_args.organization)
+#     return (member['login'] for member in requests.get(resource).json() if member['login'].startswith(prefix))
+# 
+# parser = argparse.ArgumentParser()
+# parser.add_argument("--organization", help="GitHub organization")
+# parser.add_argument("--member", help="GitHub member").completer = github_org_members
+
+# argcomplete.autocomplete(parser)
+# args = parser.parse_args()
+
+# pprint.pprint(requests.get("https://api.github.com/users/{m}".format(m=args.member)).json())

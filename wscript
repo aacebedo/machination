@@ -97,6 +97,9 @@ def configure(ctx):
       ctx.fatal("Missing requirements. Installation will not continue.")
     if not checkPythonModule("enum"):
       ctx.fatal("Missing requirements. Installation will not continue.")
+    if not checkPythonModule("argcomplete"):
+      ctx.fatal("Missing requirements. Installation will not continue.")
+      
 
 def build(ctx):
   sharePath = ctx.path.find_dir('src/share/')

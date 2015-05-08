@@ -317,6 +317,9 @@ class MachineTemplate(yaml.YAMLObject):
     
     def getRoles(self):
       return self._roles
+    
+    def __str__(self):
+      return self.getName()+":"+self.getVersion()
 
     # ##
     # Function to dump the object into YAML
@@ -524,6 +527,9 @@ class MachineInstance(yaml.YAMLObject):
 
     def getOsVersion(self):
       return self._osVersion
+
+    def __str__(self):
+      return self.getName()
 
     # ##
     # Function to start an instance
