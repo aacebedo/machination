@@ -227,12 +227,13 @@ class MachineTemplate(yaml.YAMLObject):
     _guestInterfaces = []
     _version = None
     _comments = ""
+    _roles = []
 
     # ##
     # Constructor
     # ##
-    @accepts(None, str, list, list, list,list, None,str)
-    def __init__(self, path, archs, osVersions , providers, provisioners, guestInterfaces,comments):
+    @accepts(None, str, list, list, list,list, None,str,list)
+    def __init__(self, path, archs, osVersions , providers, provisioners, guestInterfaces,comments,roles):
       # Checking the arguments
 
       if not os.path.exists(path):
@@ -262,6 +263,13 @@ class MachineTemplate(yaml.YAMLObject):
       if len(osVersions) == 0:
         raise InvalidMachineTemplateException("Invalid number of os versions")
       
+      if len(roles) == 0:
+        raise InvalidMachineTemplateException("Invalid number of roles")
+      else:
+        for r in roles:
+          if not isinstance(r,str):
+            raise InvalidMachineTemplateException("Invalid role")
+      
       fileName = os.path.basename(path)
       nameAndVersion = os.path.splitext(fileName)[0]
       versionIdx = nameAndVersion.find('.')
@@ -273,9 +281,9 @@ class MachineTemplate(yaml.YAMLObject):
       self._providers = providers
       self._provisioners = provisioners
       self._guestInterfaces = guestInterfaces
+      self._roles = roles
       if type(comments) is str:
         self._comments = comments
-
 
     # ##
     # Simple getters
@@ -306,6 +314,9 @@ class MachineTemplate(yaml.YAMLObject):
     
     def getComments(self):
       return self._comments
+    
+    def getRoles(self):
+      return self._roles
 
     # ##
     # Function to dump the object into YAML
@@ -320,6 +331,7 @@ class MachineTemplate(yaml.YAMLObject):
                           "provisioners" : str(data.getProvisioners()),
                           "guest_interfaces" : data.getGuestInterfaces(),
                           "comments" : data.getComments(),
+                          "roles" : data.getRoles()
                           }
       node = dumper.represent_mapping(data.yaml_tag, representation)
       return node
@@ -357,6 +369,10 @@ class MachineTemplate(yaml.YAMLObject):
       if "guest_interfaces" in representation.keys():
           guestInterfaces = representation["guest_interfaces"]
 
+      roles = []
+      if "roles" in representation.keys():
+          roles = representation["roles"]
+
       comments = ""
       if "comments" in representation.keys():
           comments = representation["comments"]
@@ -367,7 +383,8 @@ class MachineTemplate(yaml.YAMLObject):
                              providers,
                              provisioners,
                              guestInterfaces,
-                             comments)
+                             comments,
+                             roles)
 
 # ##
 # Class representing a MachineInstance instance
@@ -449,27 +466,14 @@ class MachineInstance(yaml.YAMLObject):
           self.getPackerFile()["provisioners"] = []
           self.getPackerFile()["post-processors"] = []
     
-          self.getProvider().generateFileFor(self)
-          self.getProvisioner().generateFileFor(self)
+          self.getProvider().generateFilesFor(self)
+          self.getProvisioner().generateFilesFor(self)
           
           outfile = open(os.path.join(self.getPath(),MACHINATION_PACKERFILE_NAME),"w")
           json.dump(self.getPackerFile(),outfile,indent=2)
           outfile.close()
-          returnCode = 0
+          self.pack()
           
-          if self.getProvider().needsProvision(self):
-            CORELOGGER.debug("Image needs provisioning, starting packer...")
-            cmd = "packer build ./{0}".format(MACHINATION_PACKERFILE_NAME)
-            
-            # Fire up the vagrant machine
-            p = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
-            p.communicate()[0]
-            returnCode = p.returncode
-          
-          if returnCode != 0:
-            shutil.rmtree(self.getPath())
-            raise RuntimeError("Error while creating machine '{0}'".format(self.getName()));
-
         except Exception as e:
           shutil.rmtree(self.getPath())
           CORELOGGER.debug(traceback.format_exc())
@@ -479,6 +483,21 @@ class MachineInstance(yaml.YAMLObject):
         # Raise an error about the fact the machine already exists
         raise RuntimeError("MachineInstance instance '{0}' already exists".format(self.getPath()))
 
+    def pack(self):
+      # If the machine does not exist yet
+      if os.path.exists(self.getPath()):
+        if self.getProvider().needsProvision(self):
+          CORELOGGER.debug("Image needs provisioning, starting packer...")
+          cmd = "packer build ./{0}".format(MACHINATION_PACKERFILE_NAME)
+          
+          # Fire up the vagrant machine
+          p = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
+          p.communicate()[0]
+          returnCode = p.returncode
+          if returnCode != 0:
+            raise RuntimeError("Error while creating packing '{0}'".format(self.getName()));
+      else:
+            raise RuntimeError("Error while packing machine '{0}'".format(self.getName()));
     # ##
     # Simple getters
     # ##
@@ -512,6 +531,7 @@ class MachineInstance(yaml.YAMLObject):
     # ##
     def start(self):
       # Fire up the vagrant machine
+      self.pack()
       p = subprocess.Popen("vagrant up", shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
       p.communicate()[0]
       if p.returncode != 0:
