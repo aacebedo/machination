@@ -22,3 +22,4 @@ os_versions: ["trusty","vivid"]
 provisioners: ["ansible"]
 providers: ["docker","vbox"]
 guest_interfaces : 0
+comments: "Basic development box"

@@ -226,12 +226,13 @@ class MachineTemplate(yaml.YAMLObject):
     _archs = []
     _guestInterfaces = []
     _version = None
+    _comments = ""
 
     # ##
     # Constructor
     # ##
-    @accepts(None, str, list, list, list, None)
-    def __init__(self, path, archs, osVersions , providers, provisioners, guestInterfaces):
+    @accepts(None, str, list, list, list,list, None,str)
+    def __init__(self, path, archs, osVersions , providers, provisioners, guestInterfaces,comments):
       # Checking the arguments
 
       if not os.path.exists(path):
@@ -260,7 +261,7 @@ class MachineTemplate(yaml.YAMLObject):
 
       if len(osVersions) == 0:
         raise InvalidMachineTemplateException("Invalid number of os versions")
-
+      
       fileName = os.path.basename(path)
       nameAndVersion = os.path.splitext(fileName)[0]
       versionIdx = nameAndVersion.find('.')
@@ -272,6 +273,9 @@ class MachineTemplate(yaml.YAMLObject):
       self._providers = providers
       self._provisioners = provisioners
       self._guestInterfaces = guestInterfaces
+      if type(comments) is str:
+        self._comments = comments
+
 
     # ##
     # Simple getters
@@ -299,6 +303,9 @@ class MachineTemplate(yaml.YAMLObject):
     
     def getName(self):
       return self._name
+    
+    def getComments(self):
+      return self._comments
 
     # ##
     # Function to dump the object into YAML
@@ -312,6 +319,7 @@ class MachineTemplate(yaml.YAMLObject):
                           "providers" : str(data.getProviders()),
                           "provisioners" : str(data.getProvisioners()),
                           "guest_interfaces" : data.getGuestInterfaces(),
+                          "comments" : data.getComments(),
                           }
       node = dumper.represent_mapping(data.yaml_tag, representation)
       return node
@@ -349,12 +357,17 @@ class MachineTemplate(yaml.YAMLObject):
       if "guest_interfaces" in representation.keys():
           guestInterfaces = representation["guest_interfaces"]
 
+      comments = ""
+      if "comments" in representation.keys():
+          comments = representation["comments"]
+
       return MachineTemplate(loader.stream.name,
                              archs,
                              osVersions,
                              providers,
                              provisioners,
-                             guestInterfaces)
+                             guestInterfaces,
+                             comments)
 
 # ##
 # Class representing a MachineInstance instance

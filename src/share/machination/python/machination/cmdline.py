@@ -76,7 +76,7 @@ class CmdLine:
         COMMANDLINELOGGER.debug("Templates loaded.")
         # Create an array containing a set of informations about the template.
         # This array will be used to display the information to the user
-        data = {'name': [], 'version': [], 'path': [], 'provisioners': [], 'providers': [], 'archs': []}
+        data = {'name': [], 'version': [], 'path': [], 'provisioners': [], 'providers': [], 'archs': [],'comments': []}
         for f in templates.values():
           data['name'].append(f.getName())
           data['version'].append(str(f.getVersion()))
@@ -84,6 +84,7 @@ class CmdLine:
           data['provisioners'].append(",".join(map(str, f.getProvisioners())))
           data['providers'].append(",".join(map(str, f.getProviders())))
           data['archs'].append(",".join(map(str, f.getArchs())))
+          data['comments'].append(f.getComments())
 
         # Each column width will be computed as the max length of its items
         name_col_width = 0
@@ -92,6 +93,7 @@ class CmdLine:
         provisioner_col_width = 0
         providers_col_width = 0
         archs_col_width = 0
+        comments_col_width = 0
 
         # Getting the max for each column
         if len(data['name']) != 0:
@@ -106,14 +108,30 @@ class CmdLine:
           providers_col_width = max(len(word) for word in data['providers']) + len("Providers") + 2
         if len(data['archs']) != 0:
           archs_col_width = max(len(word) for word in data['archs']) + len("Architectures") + 2
+        if len(data['comments']) != 0:
+          comments_col_width = max(len(word) for word in data['comments']) + len("Comments") + 2
+        
         
         # Display the array
         # Checking number of items in the column name to know if there is something to display or not
         if len(data['name']) != 0:
           # Display the array titles
-          COMMANDLINELOGGER.info("Name".ljust(name_col_width) + "Version".ljust(version_col_width) + "Path".ljust(path_col_width) + "Provisioners".ljust(provisioner_col_width) + "Providers".ljust(providers_col_width) + "Architectures".ljust(archs_col_width))
+          COMMANDLINELOGGER.info("Name".ljust(name_col_width) +
+                                  "Version".ljust(version_col_width) + 
+                                  "Path".ljust(path_col_width) + 
+                                  "Provisioners".ljust(provisioner_col_width) + 
+                                  "Providers".ljust(providers_col_width) + 
+                                  "Architectures".ljust(archs_col_width) + 
+                                  "Comments".ljust(comments_col_width))
+                                  
           for row in range(0, len(data['name'])):
-              COMMANDLINELOGGER.info(data['name'][row].ljust(name_col_width) + data['version'][row].ljust(version_col_width) + data['path'][row].ljust(path_col_width) + data['provisioners'][row].ljust(provisioner_col_width) + data['providers'][row].ljust(providers_col_width) + data['archs'][row].ljust(archs_col_width))
+              COMMANDLINELOGGER.info(data['name'][row].ljust(name_col_width) + 
+                                     data['version'][row].ljust(version_col_width) + 
+                                     data['path'][row].ljust(path_col_width) + 
+                                     data['provisioners'][row].ljust(provisioner_col_width) +
+                                     data['providers'][row].ljust(providers_col_width) + 
+                                     data['archs'][row].ljust(archs_col_width) +
+                                     data['comments'][row].ljust(comments_col_width))
         else:
           COMMANDLINELOGGER.info("No templates available")
       except Exception as e:

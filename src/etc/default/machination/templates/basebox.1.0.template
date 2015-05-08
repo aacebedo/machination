@@ -22,3 +22,5 @@ os_versions: ["trusty"]
 provisioners: ["ansible"]
 providers: ["docker"]
 guest_interfaces : 0
+comments: "Base for all devboxes"
+
