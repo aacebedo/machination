@@ -18,10 +18,10 @@
 ---
 !MachineTemplate
 archs: ["x64"]
-os_versions: ["trusty"]
+os_versions: ["trusty","vivid"]
 provisioners: ["ansible"]
-providers: ["docker"]
+providers: ["docker","vbox"]
 guest_interfaces : 0
-comments: "Base for all devboxes"
+comments: "Base for all boxes"
 roles:
   - base

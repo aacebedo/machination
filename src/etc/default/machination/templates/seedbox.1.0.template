@@ -18,7 +18,7 @@
 ---
 !MachineTemplate
 archs: ["x64"]
-os_versions: ["trusty"]
+os_versions: ["trusty","vivid"]
 provisioners: ["ansible"]
 providers: ["docker"]
 guest_interfaces : 0
