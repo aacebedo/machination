@@ -141,10 +141,11 @@ class CmdLine:
           COMMANDLINELOGGER.debug("Instances loaded.")
 
           # Create an array to display the available templates
-          data = {'name': [], 'path': []}
+          data = {'name': [], 'path': [], 'started': []}
           for i in instances.values():
             data['name'].append(i.getName())
             data['path'].append(i.getPath())
+           
 
           # Display the array of templates
           # Check if there is an item in the resulting array using the length of the column name
@@ -573,6 +574,9 @@ class CmdLine:
         # # Search for the requested instance in the registry
         instances = MACHINE_INSTANCE_REGISTRY.getInstances()
         if args.name in instances.keys():
+          if not instances[args.name].isStarted() :
+            COMMANDLINELOGGER.error("MachineInstance instance '{0}' is not started, starting it before connecting to it.".format(args.name))
+            instances[args.name].start()
           instances[args.name].ssh()
         else:
           COMMANDLINELOGGER.error("MachineInstance instance '{0}' does not exist.".format(args.name))
@@ -593,7 +597,7 @@ class CmdLine:
       
       # Create main parser
       parser = argparse.ArgumentParser(prog="Machination", description='Machination utility, all your appliances belong to us.')
-      rootSubparsers = parser.add_subparsers(help='Root parser')
+      rootSubparsers = parser.add_subparsers()
 
       # Parser for list command
       listParser = rootSubparsers.add_parser('list', help='List templates and instances')
