@@ -23,3 +23,6 @@ provisioners: ["ansible"]
 providers: ["docker"]
 guest_interfaces : 1
 comments: "Video streaming box"
+roles:
+  - nfsclient
+  - plex

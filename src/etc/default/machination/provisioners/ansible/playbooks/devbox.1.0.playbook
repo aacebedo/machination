@@ -1,5 +1,0 @@
----
-- hosts: all
-  roles:
-   - eclipse
-   - cpp-dev-tools

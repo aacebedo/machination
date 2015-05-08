@@ -23,3 +23,5 @@ provisioners: ["ansible"]
 providers: ["docker"]
 guest_interfaces : 0
 comments: "Development environment for Arduino"
+roles:
+  - arduino-dev-tools

@@ -8,7 +8,7 @@ from abc import abstractmethod
  
 class Provider(object):
     @abstractmethod
-    def generateFileFor(self,instance):
+    def generateFilesFor(self,instance):
       pass
     
     @staticmethod
@@ -33,7 +33,7 @@ class Provider(object):
     
 class DockerProvider(Provider):
     @abstractmethod
-    def generateFileFor(self,instance):
+    def generateFilesFor(self,instance):
       folders = {}
       for f in instance.getSharedFolders():
         folders[f.getHostDir()] = f.getGuestDir()
@@ -72,7 +72,7 @@ class DockerProvider(Provider):
       
 class VBoxProvider(Provider):
     @abstractmethod
-    def generateFileFor(self,instance):
+    def generateFilesFor(self,instance):
       folders = {}
       for f in instance.getSharedFolders():
         folders[f.getHostDir()] = f.getGuestDir()

@@ -23,3 +23,6 @@ provisioners: ["ansible"]
 providers: ["docker","vbox"]
 guest_interfaces : 0
 comments: "Basic development box"
+roles:
+ - eclipse
+ - cpp-dev-tools

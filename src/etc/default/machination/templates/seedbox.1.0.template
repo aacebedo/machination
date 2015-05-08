@@ -23,4 +23,9 @@ provisioners: ["ansible"]
 providers: ["docker"]
 guest_interfaces : 0
 comments: "Tvshows and movies seedbox"
-
+roles:
+  - nfsclient
+  - sickrage
+  - couchpotato
+  - nzbget
+  - transmission
