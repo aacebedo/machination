@@ -40,12 +40,14 @@ Start an instance:
 ```sh
 $ machination start <instance_name>
 ```
-Note this command must be ran as root as some commands about networking requires special rights.
 Stop an instance:
 ```sh
 $ machination stop <instance_name>
 ```
-Note this command must be ran as root as some commands about networking requires special rights.
+SSh to an instance:
+```sh
+$ machination ssh <instance_name>
+```
 
 When creating a machine, files are stored in the folder ~/.machination. Those files contains the description of the instance. Machine filesystem can also be
 stored in this folder depending on the chosen machine provider (Docker or Virtualbox).
