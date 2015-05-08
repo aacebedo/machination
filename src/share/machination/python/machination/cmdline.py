@@ -404,12 +404,7 @@ class CmdLine:
 
                   if args.sharedfolder != None:
                     for s in args.sharedfolder:
-                      regex = "^(.*)\|(.*)$"
-                      m = re.search(regex, s)
-                      if m != None:
-                        sharedFolders.append(SharedFolder(m.group(1), m.group(2)))
-                      else:
-                        raise InvalidCmdLineArgument("sharedfolder", s)
+                      sharedFolders.append(SharedFolder(s[0], s[1]))
                   try:
                     # Try to create the new machine
                     instance = MachineInstance(args.name, template, arch, osVersion, provider, provisioner, guestInterfaces, sharedFolders)
@@ -641,7 +636,7 @@ class CmdLine:
       createParser.add_argument('--provisioner', help='Provisioner to use for the new machine', type=str)
       createParser.add_argument('--osversion', help='OS Version of the new machine', type=str)
       createParser.add_argument('--guestinterface', help='Network interface to add to the new machine <hostinterface|ip_addr|mac_addr|hostname> | <hostinterface|ip_addr|mac_addr>', action='append', type=str)
-      createParser.add_argument('--sharedfolder', help='Shared folder to add to the new machine <host_folder|guest_folder>', action='append', type=str)
+      createParser.add_argument('--sharedfolder', nargs=2, help='Shared folder between the new machine and the host <host_folder guest_folder>', action='append', type=str)
       createParser.add_argument('--quiet', help='Do not request for interactive configuration of optional elements (interfaces,sharedfolders) of the instance', action='store_true')
       createParser.add_argument('--verbose', help='Verbose mode', action='store_true')
       createParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.createMachineInstance))
