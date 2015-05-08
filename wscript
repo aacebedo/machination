@@ -15,6 +15,7 @@ src = "src"
 
 def options(ctx):
 	ctx.add_option('--prefix', action='store', default="/usr/local", help='install prefix')
+	ctx.add_option('--templates', action='store', default="*", help='templates to install')
 
 def checkVersion(name,cmd,regex,requiredVersion,returnCode):
     res = False
@@ -76,6 +77,12 @@ def checkPythonModule(moduleName):
 
 def configure(ctx):
     ctx.env.PREFIX = ctx.options.prefix
+    
+    if ctx.options.templates == "":
+    	ctx.env.TEMPLATES = None
+    else:
+    	ctx.env.TEMPLATES = ctx.options.templates.split(",")
+    	
     if not checkVersion("Python","python --version","Python ([0-9\.]*)","2.7.0",0):
       ctx.fatal("Missing requirements. Installation will not continue.")
     if not checkVersion("Vagrant","vagrant -v","Vagrant ([0-9\.]*)","1.7.0",0):
@@ -96,6 +103,14 @@ def build(ctx):
   binPath = ctx.path.find_dir('src/bin/')
   etcPath = ctx.path.find_dir('src/etc/')
 
+  etcFiles = etcPath.ant_glob('**/*',excl="**/machination/templates/*")
+  templateFiles = []
+  
+  for t in ctx.env.TEMPLATES:
+  	templateFiles.extend(etcPath.ant_glob('**/machination/templates/'+t+'.*.template'))
+  print(templateFiles)
+  
   ctx.install_files(os.path.join(ctx.env.PREFIX,'share'), sharePath.ant_glob('**/*'), cwd=sharePath, relative_trick=True)
   ctx.install_files(os.path.join(ctx.env.PREFIX,'bin'), binPath.ant_glob('**/*'),  chmod=0555, cwd=binPath, relative_trick=True)
-  ctx.install_files(os.path.join(ctx.env.PREFIX,'etc'), etcPath.ant_glob('**/*'), cwd=binPath, relative_trick=True)
+  ctx.install_files(os.path.join(ctx.env.PREFIX,'etc'), etcFiles, cwd=etcPath, relative_trick=True)
+  ctx.install_files(os.path.join(ctx.env.PREFIX,'etc'), templateFiles, cwd=etcPath, relative_trick=True)
