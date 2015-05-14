@@ -554,7 +554,7 @@ class CmdLine:
         try:
           instances = MACHINE_INSTANCE_REGISTRY.getInstances()
           # # Search for the requested instnce
-          if args.name in instances.keys():
+          if name in instances.keys():
             COMMANDLINELOGGER.info(instances[name].getInfos())
           else:
             COMMANDLINELOGGER.error("MachineInstance instance '{0}' does not exist.".format(name))
@@ -583,7 +583,8 @@ class CmdLine:
           if not instances[args.name].isStarted() :
             COMMANDLINELOGGER.error("MachineInstance instance '{0}' is not started, starting it before connecting to it.".format(args.name))
             instances[args.name].start()
-          instances[args.name].ssh()
+
+          instances[args.name].ssh(args.command)
         else:
           COMMANDLINELOGGER.error("MachineInstance instance '{0}' does not exist.".format(args.name))
       except Exception as e:
@@ -609,7 +610,7 @@ class CmdLine:
     
       # Create main parser
       parser = argparse.ArgumentParser(prog="Machination", description='Machination utility, all your appliances belong to us.')
-      rootSubparsers = parser.add_subparsers(dest="command")
+      rootSubparsers = parser.add_subparsers(dest="function")
       
       # Parser for list command
       listParser = rootSubparsers.add_parser('list', help='List templates and instances')
@@ -657,14 +658,15 @@ class CmdLine:
       
       # Parser for ssh command
       sshParser = rootSubparsers.add_parser('ssh', help='SSH to the given machine')
-      sshParser.add_argument('name', help='Name of the machine to ssh in',choices=instances.keys())
-      sshParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
-
+      sshParser.add_argument('name', help='Name of the machine to ssh in',choices=instances.keys(),type=str)
+      sshParser.add_argument('--command',"-c", help='Command to execute in SSH',type=str)
+      sshParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true') 
+      
       # Parse the command
       argcomplete.autocomplete(parser)
       args = parser.parse_args()
       
-      commands = {
+      functions = {
                   "list":self.listElements,
                   "create":self.createMachineInstance,
                   "destroy":self.destroyMachineInstance,
@@ -681,8 +683,9 @@ class CmdLine:
         setGlobalLogLevel(logging.INFO)
       
       res = 0
-      if(args.command in commands.keys()):
-        res = commands[args.command](args)
+      if(args.function in functions.keys()):
+        res = functions[args.function](args)
+      
       return res
     
     #!/usr/bin/env python

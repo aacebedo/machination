@@ -545,7 +545,7 @@ class MachineInstance(yaml.YAMLObject):
 
     # ##
     # Function to destroy an instance
-    # ##
+    # ##  
     def destroy(self):
       # Destroy the vagrant machine
       p = subprocess.Popen("vagrant destroy -f", shell=True, stdout=subprocess.PIPE, cwd=self.getPath())
@@ -596,10 +596,14 @@ class MachineInstance(yaml.YAMLObject):
     # ##
     # Function to ssh to an instance
     # ##
-    def ssh(self):
+    def ssh(self,command = None):
       if(self.isStarted()):
         # Start vagrant ssh to ssh into the instance
-        val = subprocess.Popen("vagrant ssh", shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
+        if(command == None):
+          val = subprocess.Popen("vagrant ssh", shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
+        else:
+          print("vagrant ssh -c {0}".format(command))
+          val = subprocess.Popen("vagrant ssh -c \"{0}\"".format(command), shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
         # get the output of the machine
         while True:
             out = val.stderr.read(1)
