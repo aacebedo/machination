@@ -17,6 +17,9 @@
 ##########################################################################
 
 import os
+from distutils.version import StrictVersion
+
+MACHINATION_VERSION = StrictVersion("1.0.0")
 
 # Path of the program files
 MACHINATION_INSTALLDIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)),"..",'..','..','..'))
@@ -25,7 +28,6 @@ MACHINATION_DEFAULTPROVISIONERSDIR = os.path.abspath(os.path.join(MACHINATION_IN
 MACHINATION_DEFAULTANSIBLEPLAYBOOKSDIR = os.path.join(MACHINATION_DEFAULTPROVISIONERSDIR,"ansible","playbooks")
 MACHINATION_DEFAULTANSIBLEROLESDIR = os.path.join(MACHINATION_DEFAULTPROVISIONERSDIR,"ansible","roles")
 MACHINATION_DEFAULTPACKERDIR = os.path.join(MACHINATION_INSTALLDIR,"share","machination","packer")
-
 
 # User dir to store instances and templates
 MACHINATION_USERDIR = os.path.abspath(os.path.join(os.path.expanduser("~"),".machination"))

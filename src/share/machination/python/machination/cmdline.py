@@ -43,6 +43,7 @@ from machination.exceptions import InvalidHardwareSupport
 from machination.helpers import getAllNetInterfaces
 from machination.globals import MACHINE_INSTANCE_REGISTRY
 from machination.globals import MACHINE_TEMPLATE_REGISTRY
+from machination.constants import MACHINATION_VERSION
 
 # ##
 # Class used to handle the arguments passed by the command line
@@ -601,7 +602,10 @@ class CmdLine:
       except (KeyboardInterrupt, SystemExit):
         COMMANDLINELOGGER.debug(traceback.format_exc())
       return res
-        
+  
+    def displayVersion(self,args):
+      COMMANDLINELOGGER.info("Machination {0}".format(MACHINATION_VERSION))
+      
     # ##
     # Function to parse the command line arguments
     # ##
@@ -617,7 +621,7 @@ class CmdLine:
       parser = argparse.ArgumentParser(prog="Machination", description='Machination utility, all your appliances belong to us.')
       rootSubparsers = parser.add_subparsers(dest="function")
       
-      parser.add_argument('--version' , help='Display version', type=str)
+      versionParser = rootSubparsers.add_parser('version', help='Display version')      
       
       # Parser for list command
       listParser = rootSubparsers.add_parser('list', help='List templates and instances')
@@ -681,14 +685,15 @@ class CmdLine:
                   "stop":self.stopMachineInstance,
                   "restart":self.restartMachineInstance,
                   "infos":self.getMachineInstanceInfos,
-                  "ssh":self.sshIntoMachineInstance
+                  "ssh":self.sshIntoMachineInstance,
+                  "version":self.displayVersion
                   }
       
-      if(args.verbose):
+      if("verbose" in args and args. verbose):
         setGlobalLogLevel(logging.DEBUG)
       else:
         setGlobalLogLevel(logging.INFO)
-      print(args)
+      
       res = 0
       if(args.function in functions.keys()):
         res = functions[args.function](args)
