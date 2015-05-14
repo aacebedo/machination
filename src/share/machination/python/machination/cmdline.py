@@ -45,16 +45,6 @@ from machination.globals import MACHINE_INSTANCE_REGISTRY
 from machination.globals import MACHINE_TEMPLATE_REGISTRY
 
 # ##
-# Function called by the argument parsing objects
-# ##
-def make_action(functionToCall):
-  class customAction(argparse.Action):
-    def __call__(self, parser, args, values, option_string=None):
-      setattr(args, self.dest, values)
-      functionToCall(args)
-  return customAction
-
-# ##
 # Class used to handle the arguments passed by the command line
 # ##
 class CmdLine:
@@ -62,15 +52,29 @@ class CmdLine:
     # Function used to list available templates
     # Templates are searched in the install directory of machination but also in the user workdir (~/.machination)
     # ##
-    def listMachineTemplates(self, args):
-      if(args.verbose):
-        setGlobalLogLevel(logging.DEBUG)
+    def listElements(self, args):
+      listFunctions = {
+       "instances":self.listMachineTemplates,
+       "templates":self.listMachineInstances,
+      }
+      
+      if(args.type == None or args.type not in listFunctions.keys()):
+        self.listMachineTemplates(args)
+        self.listMachineInstances(args)
       else:
-        setGlobalLogLevel(logging.INFO)
-                  
+        listFunctions[args.type](args)
+      
+    
+    # ##
+    # Function used to list available templates
+    # Templates are searched in the install directory of machination but also in the user workdir (~/.machination)
+    # ##
+    def listMachineTemplates(self, args):
       res = 0
       # Create the template registry that will list all available template on the machine
- 
+      COMMANDLINELOGGER.info("Machine templates:")
+      COMMANDLINELOGGER.info("-------------------")
+      
       try:
         templates = MACHINE_TEMPLATE_REGISTRY.getTemplates();
         COMMANDLINELOGGER.debug("Templates loaded.")
@@ -143,6 +147,9 @@ class CmdLine:
       except (KeyboardInterrupt, SystemExit):
           COMMANDLINELOGGER.debug(traceback.format_exc())
           res = errno.EINVAL
+          
+      COMMANDLINELOGGER.info("")
+      
       return res
 
     # ##
@@ -150,11 +157,8 @@ class CmdLine:
     # The instances are searched in the user workdir (~/.machination)
     # ##
     def listMachineInstances(self, args):
-        if(args.verbose):
-          setGlobalLogLevel(logging.DEBUG)
-        else:
-          setGlobalLogLevel(logging.INFO)
-        
+        COMMANDLINELOGGER.info("Machine instances:")
+        COMMANDLINELOGGER.info("-------------------")
         res = 0
         try:
           instances = MACHINE_INSTANCE_REGISTRY.getInstances()
@@ -187,17 +191,13 @@ class CmdLine:
         except (KeyboardInterrupt, SystemExit):
           COMMANDLINELOGGER.debug(traceback.format_exc())
           res = errno.EINVAL
+        COMMANDLINELOGGER.info("")
         return res
 
     # ##
     # Function to create a new machine
     # ##
     def createMachineInstance(self, args):
-      if(args.verbose):
-        setGlobalLogLevel(logging.DEBUG)
-      else:
-        setGlobalLogLevel(logging.INFO)
-        
       res = 0
       COMMANDLINELOGGER.info("Creating a new machine instance named '{0}' using template '{1}'".format(args.name, args.template))
       # Creating the template and instances registries
@@ -445,42 +445,38 @@ class CmdLine:
     # Files related to the machine are deleted
     # ##
     def destroyMachineInstance(self, args):
-      if(args.verbose):
-        setGlobalLogLevel(logging.DEBUG)
-      else:
-        setGlobalLogLevel(logging.INFO)
-          
       res = 0
-      # Getting instances
-      instances = []
-      try:
-        instances = MACHINE_INSTANCE_REGISTRY.getInstances()
-        # Check if there is actually an instance named after the request of the user
-        if args.name in instances.keys():
-          # Ask the user if it's ok to delete the machine
-          v = args.force
-          if v == False:
-            v = BinaryQuestion("Are you sure you want to destroy the machine named {0}. Directory {1}) will be destroyed".format(instances[args.name].getName(),
-                                                                                                                                 instances[args.name].getPath()),
-                                                                                                                                 "Enter a Y or a N", COMMANDLINELOGGER, "Y").ask()
-          if v == True:
-            COMMANDLINELOGGER.info("Destroying machine instance '{0}'...".format(args.name))
-            instances[args.name].destroy()
-            COMMANDLINELOGGER.info("MachineInstance instance successfully destroyed")
+      
+      for name in args.names:
+        try:
+          # Getting instances
+          instances = MACHINE_INSTANCE_REGISTRY.getInstances()
+          # Check if there is actually an instance named after the request of the user
+          if name in instances.keys():
+            # Ask the user if it's ok to delete the machine
+            v = args.force
+            if v == False:
+              v = BinaryQuestion("Are you sure you want to destroy the machine named {0}. Directory {1}) will be destroyed".format(instances[name].getName(),
+                                                                                                                                   instances[name].getPath()),
+                                                                                                                                   "Enter a Y or a N", COMMANDLINELOGGER, "Y").ask()
+            if v == True:
+              COMMANDLINELOGGER.info("Destroying machine instance '{0}'...".format(name))
+              instances[name].destroy()
+              COMMANDLINELOGGER.info("MachineInstance instance successfully destroyed")
+            else:
+              COMMANDLINELOGGER.info("MachineInstance not destroyed")
           else:
-            COMMANDLINELOGGER.info("MachineInstance not destroyed")
-        else:
-          COMMANDLINELOGGER.error("MachineInstance instance '{0}' does not exist.".format(args.name))
+            COMMANDLINELOGGER.error("MachineInstance instance '{0}' does not exist.".format(name))
+            res = errno.EINVAL
+        except Exception as e:
+          COMMANDLINELOGGER.error("Unable to destroy machine '{0}': {1}".format(name,str(e)))
+          if (not args.verbose):
+            COMMANDLINELOGGER.info("Run with --verbose flag for more details")
+          COMMANDLINELOGGER.debug(traceback.format_exc())
           res = errno.EINVAL
-      except Exception as e:
-        COMMANDLINELOGGER.error("Unable to destroy machine '{0}': {1}".format(args.name,str(e)))
-        if (not args.verbose):
-          COMMANDLINELOGGER.info("Run with --verbose flag for more details")
-        COMMANDLINELOGGER.debug(traceback.format_exc())
-        res = errno.EINVAL
-      except (KeyboardInterrupt, SystemExit):
-        COMMANDLINELOGGER.debug(traceback.format_exc())
-        res = errno.EINVAL
+        except (KeyboardInterrupt, SystemExit):
+          COMMANDLINELOGGER.debug(traceback.format_exc())
+          res = errno.EINVAL
       return res
 
     # ##
@@ -488,32 +484,28 @@ class CmdLine:
     # The user must be root to call this function as some stuff related to networking needs to be executed as root
     # ##
     def startMachineInstance(self, args):
-      if(args.verbose):
-        setGlobalLogLevel(logging.DEBUG)
-      else:
-        setGlobalLogLevel(logging.INFO)
-          
       res = 0
-      COMMANDLINELOGGER.info("Starting machine {0}".format(args.name))
-      try:
-        # Getting the available instances
-        instances = MACHINE_INSTANCE_REGISTRY.getInstances()
-        # Check if the requested instance exists
-        if args.name in instances.keys():
-          instances[args.name].start()
-        else:
-          COMMANDLINELOGGER.error("MachineInstance instance '{0}' does not exist.".format(args.name))
+      for name in args.names:
+        COMMANDLINELOGGER.info("Starting machine {0}".format(name))
+        try:
+          # Getting the available instances
+          instances = MACHINE_INSTANCE_REGISTRY.getInstances()
+          # Check if the requested instance exists
+          if name in instances.keys():
+            instances[name].start()
+          else:
+            COMMANDLINELOGGER.error("MachineInstance instance '{0}' does not exist.".format(name))
+            res = errno.EINVAL
+          COMMANDLINELOGGER.info("MachineInstance instance '{0}' successfully started.".format(name))
+        except Exception as e:
+          COMMANDLINELOGGER.error("Unable to start machine instance '{0}': {1}.".format(name,str(e)))
+          COMMANDLINELOGGER.debug(traceback.format_exc())
+          if (not args.verbose):
+            COMMANDLINELOGGER.info("Run with --verbose flag for more details")
           res = errno.EINVAL
-        COMMANDLINELOGGER.info("MachineInstance instance '{0}' successfully started.".format(args.name))
-      except Exception as e:
-        COMMANDLINELOGGER.error("Unable to start machine instance '{0}': {1}.".format(args.name,str(e)))
-        COMMANDLINELOGGER.debug(traceback.format_exc())
-        if (not args.verbose):
-          COMMANDLINELOGGER.info("Run with --verbose flag for more details")
-        res = errno.EINVAL
-      except (KeyboardInterrupt, SystemExit):
-        COMMANDLINELOGGER.debug(traceback.format_exc())
-        res = errno.EINVAL
+        except (KeyboardInterrupt, SystemExit):
+          COMMANDLINELOGGER.debug(traceback.format_exc())
+          res = errno.EINVAL
       return res
 
     # ##
@@ -521,31 +513,27 @@ class CmdLine:
     # User must be root to call this function juste to be symetric with the start operation
     # ##
     def stopMachineInstance(self, args):
-      if(args.verbose):
-        setGlobalLogLevel(logging.DEBUG)
-      else:
-        setGlobalLogLevel(logging.INFO)
-          
       res = 0
-      COMMANDLINELOGGER.info("Stopping machine {0}".format(args.name))
-      try:
-        instances = MACHINE_INSTANCE_REGISTRY.getInstances()
-        # # Search for the requested instnce
-        if args.name in instances.keys():
-          instances[args.name].stop()
-        else:
-          COMMANDLINELOGGER.error("MachineInstance instance '{0}' does not exist.".format(args.name))
+      for name in args.names:
+        print(name)
+        COMMANDLINELOGGER.info("Stopping machine {0}".format(name))
+        try:
+          instances = MACHINE_INSTANCE_REGISTRY.getInstances()
+          # # Search for the requested instnce
+          if name in instances.keys():
+            instances[name].stop()
+          else:
+            COMMANDLINELOGGER.error("MachineInstance instance '{0}' does not exist.".format(name))
+          COMMANDLINELOGGER.info("MachineInstance instance '{0}' successfully stopped.".format(name))
+        except Exception as e:
+          COMMANDLINELOGGER.error("Unable to stop machine instance '{0}': {1}.".format(name,str(e)))
+          if (not args.verbose):
+            COMMANDLINELOGGER.info("Run with --verbose flag for more details")
+          COMMANDLINELOGGER.debug(traceback.format_exc())
           res = errno.EINVAL
-        COMMANDLINELOGGER.info("MachineInstance instance '{0}' successfully stopped.".format(args.name))
-      except Exception as e:
-        COMMANDLINELOGGER.error("Unable to stop machine instance '{0}': {1}.".format(args.name,str(e)))
-        if (not args.verbose):
-          COMMANDLINELOGGER.info("Run with --verbose flag for more details")
-        COMMANDLINELOGGER.debug(traceback.format_exc())
-        res = errno.EINVAL
-      except (KeyboardInterrupt, SystemExit):
-        COMMANDLINELOGGER.debug(traceback.format_exc())
-        res = errno.EINVAL
+        except (KeyboardInterrupt, SystemExit):
+          COMMANDLINELOGGER.debug(traceback.format_exc())
+          res = errno.EINVAL
       return res
 
     # ##
@@ -560,41 +548,32 @@ class CmdLine:
     # Function to get infos from a machine instance
     # ##
     def getMachineInstanceInfos(self, args):
-      if(args.verbose):
-        setGlobalLogLevel(logging.DEBUG)
-      else:
-        setGlobalLogLevel(logging.INFO)
-          
       res = 0
-      COMMANDLINELOGGER.info("Retrieving information for machine instance '{0}'".format(args.name))
-      try:
-        instances = MACHINE_INSTANCE_REGISTRY.getInstances()
-        # # Search for the requested instnce
-        if args.name in instances.keys():
-          COMMANDLINELOGGER.info(instances[args.name].getInfos())
-        else:
-          COMMANDLINELOGGER.error("MachineInstance instance '{0}' does not exist.".format(args.name))
+      for name in args.names:
+        COMMANDLINELOGGER.info("Retrieving information for machine instance '{0}'".format(name))
+        try:
+          instances = MACHINE_INSTANCE_REGISTRY.getInstances()
+          # # Search for the requested instnce
+          if args.name in instances.keys():
+            COMMANDLINELOGGER.info(instances[name].getInfos())
+          else:
+            COMMANDLINELOGGER.error("MachineInstance instance '{0}' does not exist.".format(name))
+            res = errno.EINVAL
+        except Exception as e:
+          COMMANDLINELOGGER.error("Unable to get informations for machine instance '{0}': '{1}'.".format(name, str(e)))
+          if (not args.verbose):
+            COMMANDLINELOGGER.info("Run with --verbose flag for more details")
+          COMMANDLINELOGGER.debug(traceback.format_exc())
           res = errno.EINVAL
-      except Exception as e:
-        COMMANDLINELOGGER.error("Unable to get informations for machine instance '{0}': '{1}'.".format(args.name, str(e)))
-        if (not args.verbose):
-          COMMANDLINELOGGER.info("Run with --verbose flag for more details")
-        COMMANDLINELOGGER.debug(traceback.format_exc())
-        res = errno.EINVAL
-      except (KeyboardInterrupt, SystemExit):
-        COMMANDLINELOGGER.debug(traceback.format_exc())
-        res = errno.EINVAL
+        except (KeyboardInterrupt, SystemExit):
+          COMMANDLINELOGGER.debug(traceback.format_exc())
+          res = errno.EINVAL
       return res
 
     # ##
     # Function to connect to the machine in SSH
     # ##
     def sshIntoMachineInstance(self, args):
-      if(args.verbose):
-        setGlobalLogLevel(logging.DEBUG)
-      else:
-        setGlobalLogLevel(logging.INFO)
-          
       res = 0
       COMMANDLINELOGGER.info("SSH into machine {0}".format(args.name))
       try:
@@ -630,20 +609,13 @@ class CmdLine:
     
       # Create main parser
       parser = argparse.ArgumentParser(prog="Machination", description='Machination utility, all your appliances belong to us.')
-      rootSubparsers = parser.add_subparsers()
+      rootSubparsers = parser.add_subparsers(dest="command")
       
       # Parser for list command
       listParser = rootSubparsers.add_parser('list', help='List templates and instances')
-      listSubparsers = listParser.add_subparsers(help='List templates and instances')
-
-      templateSubparser = listSubparsers.add_parser('templates', help='List machine templates')
-      templateSubparser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
-      templateSubparser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.listMachineTemplates))
-
-      instanceSubparser = listSubparsers.add_parser('instances', help='List instances')
-      instanceSubparser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
-      instanceSubparser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.listMachineInstances))
-      
+      listParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
+      listParser.add_argument('type', help='Type to list',nargs='?', type=str, choices = ["templates","instances"])
+            
       # Parser for create command
       createParser = rootSubparsers.add_parser('create', help='Create the given machine in the path')
       createParser.add_argument('template', help='Name of the template to create', type=str, choices = templates.keys())
@@ -656,50 +628,61 @@ class CmdLine:
       createParser.add_argument('--sharedfolder','-s', nargs=2, help='Shared folder between the new machine and the host <host_folder guest_folder>', action='append', type=str)
       createParser.add_argument('--quiet',"-q", help='Do not request for interactive configuration of optional elements (interfaces,sharedfolders) of the instance', action='store_true')
       createParser.add_argument('--verbose',"-v", help='Verbose mode', action='store_true')
-      createParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.createMachineInstance))
 
       # Parser for destroy command
       destroyParser = rootSubparsers.add_parser('destroy', help='Destroy the given machine in the path')
-      destroyParser.add_argument('name', help='Name of the machine to destroy',choices=instances.keys())
+      destroyParser.add_argument('names', help='Name of the machine to destroy',nargs="+",type=str, choices=instances.keys())
       destroyParser.add_argument('--force','-f', help='Do not ask for confirmation', action='store_true')
       destroyParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
-      destroyParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.destroyMachineInstance))
 
       # Parser for start command
       startParser = rootSubparsers.add_parser('start', help='Start the given machine instance')
-      startParser.add_argument('name', help='Name of the machine to start',choices=instances.keys())
+      startParser.add_argument('names', help='Name of the machine to start', nargs="+", type=str, choices=instances.keys())
       startParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
-      startParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.startMachineInstance))
 
       # Parser for stop command
       stopParser = rootSubparsers.add_parser('stop', help='Stop the given machine instance')
-      stopParser.add_argument('name', help='Name of the machine to stop',choices=instances.keys())
+      stopParser.add_argument('names', help='Name of the machine to stop', nargs="+", type=str, choices=instances.keys())
       stopParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
-      stopParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.stopMachineInstance))
-
+      
       # Parser for restart command
       restartParser = rootSubparsers.add_parser('restart', help='Restart the given machine instance')
-      restartParser.add_argument('name', help='Name of the machine to restart',choices=instances.keys())
+      restartParser.add_argument('names', help='Name of the machine to restart', nargs="+", type=str, choices=instances.keys())
       restartParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
-      restartParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.restartMachineInstance))
       
       # Parser for infos command
       infosParser = rootSubparsers.add_parser('infos', help='Get informations about a machine instance')
-      infosParser.add_argument('name', help='Name of the machine instance from which infos shall be retrieved',choices=instances.keys())
+      infosParser.add_argument('names', help='Name of the machine instance from which infos shall be retrieved', nargs="+", type=str, choices=instances.keys())
       infosParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
-      infosParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.getMachineInstanceInfos))
       
       # Parser for ssh command
       sshParser = rootSubparsers.add_parser('ssh', help='SSH to the given machine')
       sshParser.add_argument('name', help='Name of the machine to ssh in',choices=instances.keys())
       sshParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
-      sshParser.add_argument('dummy', nargs='?', help=argparse.SUPPRESS, action=make_action(self.sshIntoMachineInstance))
 
       # Parse the command
       argcomplete.autocomplete(parser)
-      parser.parse_args()
+      args = parser.parse_args()
       
-
+      commands = {
+                  "list":self.listElements,
+                  "create":self.createMachineInstance,
+                  "destroy":self.destroyMachineInstance,
+                  "start":self.startMachineInstance,
+                  "stop":self.stopMachineInstance,
+                  "restart":self.restartMachineInstance,
+                  "infos":self.getMachineInstanceInfos,
+                  "ssh":self.sshIntoMachineInstance
+                  }
+      
+      if(args.verbose):
+        setGlobalLogLevel(logging.DEBUG)
+      else:
+        setGlobalLogLevel(logging.INFO)
+          
+      if(args.command in commands.keys()):
+        commands[args.command](args)
+    
     #!/usr/bin/env python
 
 # import argcomplete, argparse, requests, pprint
