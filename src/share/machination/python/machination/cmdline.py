@@ -626,7 +626,7 @@ class CmdLine:
       createParser.add_argument('--osversion','-o', help='OS Version of the new machine', type=str)
       createParser.add_argument('--guestinterface','-i', help='Network interface to add to the new machine <hostinterface|ip_addr|mac_addr|hostname> | <hostinterface|ip_addr|mac_addr>', action='append', type=str)
       createParser.add_argument('--sharedfolder','-s', nargs=2, help='Shared folder between the new machine and the host <host_folder guest_folder>', action='append', type=str)
-      createParser.add_argument('--quiet',"-q", help='Do not request for interactive configuration of optional elements (interfaces,sharedfolders) of the instance', action='store_true')
+      createParser.add_argument('--no-interactive', help='Do not request for interactive configuration of optional elements (interfaces,sharedfolders) of the instance', action='store_true')
       createParser.add_argument('--verbose',"-v", help='Verbose mode', action='store_true')
 
       # Parser for destroy command
