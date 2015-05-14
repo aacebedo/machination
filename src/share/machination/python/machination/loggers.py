@@ -15,12 +15,12 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.
 ##########################################################################
-
+import sys
 import logging
 from logging import StreamHandler
 
 formatter = logging.Formatter('%(message)s')
-strHandler = StreamHandler()
+strHandler = StreamHandler(sys.stdout)
 strHandler.setLevel(logging.DEBUG)
 strHandler.setFormatter(formatter)
 
