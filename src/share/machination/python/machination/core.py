@@ -584,13 +584,19 @@ class MachineInstance(yaml.YAMLObject):
       if len(self.getGuestInterfaces()) != 0 :
         output +="  Network interfaces:\n"
         for intf in self.getGuestInterfaces():
-          output += "  - Name: eth{0}\n".format(i)
-          output += "    IPAddress: {0}\n".format(intf.getIPAddr())
-          output += "    MACAddress: {0}\n".format(intf.getMACAddr())
-          output += "    Host interface: {0}\n".format(intf.getHostInterface())
-          if intf.getHostname() != None:
-            output += "    Hostname: {0}\n".format(intf.getHostname())
+          output += "    - Name: eth{0}\n".format(i)
+          output += "      IPAddress: {0}\n".format(intf.getIPAddr())
+          output += "      MACAddress: {0}\n".format(intf.getMACAddr())
+          output += "      Host interface: {0}\n".format(intf.getHostInterface())
+          if intf.getHostname() != None and intf.getHostname() != "":
+            output += "      Hostname: {0}\n".format(intf.getHostname())
           i += 1
+      if len(self.getSharedFolders()) != 0 :
+        output +="  Shared folders:\n"
+        for f in self.getSharedFolders():
+          output += "    - Host folder: {0}\n".format(f.getHostDir())
+          output += "      Guest folder: {0}\n".format(f.getGuestDir())
+          
       return output
 
     # ##
