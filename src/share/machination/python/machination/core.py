@@ -571,18 +571,29 @@ class MachineInstance(yaml.YAMLObject):
       output += "  Architecture: {0}\n".format(self.getArch())
       output += "  Provisioner: {0}\n".format(self.getProvisioner())
       output += "  Provider: {0}\n".format(self.getProvider())
-      p = subprocess.Popen("vagrant ssh-config", shell=True,  stderr=subprocess.PIPE, stdout=subprocess.PIPE, cwd=self.getPath())
-      out = p.communicate()[0]
-      if p.returncode == 0:
-        ipAddrSearch = re.search("HostName (.*)",out)
-        if ipAddrSearch != None :
-          output += "  Primary IPAddress of the container: {0}\n".format(ipAddrSearch.group(1))
-      if(self.isStarted()):
+      isStarted = self.isStarted() 
+      if(isStarted):
           output += "  State: Running\n"
       else:
           output += "  State: Stopped\n"
+
+      output +="  Network interfaces:\n"
+      ipAddrSearchGroup = None
+      if(isStarted):
+        p = subprocess.Popen("vagrant ssh-config", shell=True,  stderr=subprocess.PIPE, stdout=subprocess.PIPE, cwd=self.getPath())
+        out = p.communicate()[0]   
+        if p.returncode == 0:
+          ipAddrSearchGroup = re.search("HostName (.*)",out)
+          
+      if ipAddrSearchGroup == None:
+        ipAddrSearch = "N/A"
+      else:
+        ipAddrSearch = ipAddrSearchGroup.group(1)
+        
+      output += "    - Name: eth{0}\n".format(i)
+      output += "      IPAddress: {0}\n".format(ipAddrSearch)
+      i += 1
       if len(self.getGuestInterfaces()) != 0 :
-        output +="  Network interfaces:\n"
         for intf in self.getGuestInterfaces():
           output += "    - Name: eth{0}\n".format(i)
           output += "      IPAddress: {0}\n".format(intf.getIPAddr())
@@ -596,7 +607,7 @@ class MachineInstance(yaml.YAMLObject):
         for f in self.getSharedFolders():
           output += "    - Host folder: {0}\n".format(f.getHostDir())
           output += "      Guest folder: {0}\n".format(f.getGuestDir())
-          
+            
       return output
 
     # ##
