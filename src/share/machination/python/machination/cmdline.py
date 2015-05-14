@@ -247,11 +247,15 @@ class CmdLine:
                         COMMANDLINELOGGER.debug("Given architecture is not supported by the template (shall be one of %s).".format(', '.join(templates.getArchs())))
                         raise InvalidCmdLineArgument("architecture", args.arch)
                     else:
-                      COMMANDLINELOGGER.debug("Request an architecture...")
-                      arch = Architecture.fromString(RegexedQuestion("Select an architecture [{0}]".format(",".join(map(str, template.getArchs()))),
+                      if args.no_interactive == False: 
+                        COMMANDLINELOGGER.debug("Request an architecture...")
+                        arch = Architecture.fromString(RegexedQuestion("Select an architecture [{0}]".format(",".join(map(str, template.getArchs()))),
                                                                        "Architecture must be from {0}".format(",".join(map(str, template.getArchs()))),
                                                                        COMMANDLINELOGGER,
                                                                        "^[{0}]$".format("\\b|\\b".join(map(str, template.getArchs()))), arch.name).ask())
+                      else:
+                        COMMANDLINELOGGER.debug("Missing architecture argument")
+                        raise InvalidCmdLineArgument("architecture", args.arch)
                   else:
                     COMMANDLINELOGGER.debug("Template has only one architecture. It will be used as the default value.")
                   
@@ -262,20 +266,26 @@ class CmdLine:
                       osVersion = args.osversion
                       COMMANDLINELOGGER.debug("An os version has been given by the user.")
                     else:
-                      COMMANDLINELOGGER.debug("Request an os version to the user.")
-                      osVersion = RegexedQuestion("Select an OS version [{0}]".format(",".join(map(str, template.getOsVersions()))),
+                      if args.no_interactive == False:
+                        COMMANDLINELOGGER.debug("Request an os version to the user.")
+                        osVersion = RegexedQuestion("Select an OS version [{0}]".format(",".join(map(str, template.getOsVersions()))),
                                                   "OS version must be from {0}".format(",".join(map(str, template.getOsVersions()))),
                                                   COMMANDLINELOGGER,
                                                     "[{0}]".format("\\b|\\b".join(map(str, template.getOsVersions()))), osVersion).ask()
+                      else:
+                        COMMANDLINELOGGER.debug("Missing os version argument")
+                        raise InvalidCmdLineArgument("osversion", args.osversion)
                   else:
                     COMMANDLINELOGGER.debug("Template has only one os version. It will be used as the default value")
 
                   # If there is more than one provisioner available for the template
-                  if len(template.getProvisioners()) > 1 :
+                  if len(template.getProvisioners()) == 1:
+                    COMMANDLINELOGGER.debug("Template has only one provisioner. It will be used as the default value")
+                  else:
                     if args.provisioner != None:
-                      COMMANDLINELOGGER.debug("An provisioner has been given by the user.")
+                      COMMANDLINELOGGER.debug("A provisioner has been given by the user.")
                       try:
-                        provisioner = Provisioner.fromString(args.provisioner)
+                        provisioner = Provisioner.fromString(args.provisioner)()
                       except:
                         COMMANDLINELOGGER.debug("Given provisioner is not supported by machination.")
                         raise InvalidCmdLineArgument("provisioner", args.provisioner)
@@ -283,35 +293,42 @@ class CmdLine:
                         COMMANDLINELOGGER.debug("Given provisioner is not supported by this template.")
                         raise InvalidCmdLineArgument("provisioner", args.provisioner)
                     else:
-                      COMMANDLINELOGGER.debug("Request a provisioner to the user.")
-                      provisioner = Provisioner.fromString(RegexedQuestion("Select an Provisioner [{0}]".format(",".join(map(str, template.getProvisioners()))),
+                      if args.no_interactive == False:
+                        COMMANDLINELOGGER.debug("Request a provisioner to the user.")
+                        provisioner = Provisioner.fromString(RegexedQuestion("Select an Provisioner [{0}]".format(",".join(map(str, template.getProvisioners()))),
                                                                            "Provisioner must be from {0}".format(",".join(map(str, template.getProvisioners()))),
                                                                            COMMANDLINELOGGER,
                                                                            "[{0}]".format("\\b|\\b".join(map(str, template.getProvisioners()))),
                                                                             provisioner.name).ask())()
-                  else:
-                    COMMANDLINELOGGER.debug("Template has only one provisioner. It will be used as the default value")
-
+                      else:
+                        COMMANDLINELOGGER.debug("Missing provisioner argument")
+                        raise InvalidCmdLineArgument("provisioner", args.provisioner)
+                 
                   # If there is more than one provider available for the template
-                  if len(template.getProviders()) > 1 :
+                  if len(template.getProviders()) == 1:
+                    COMMANDLINELOGGER.debug("Template has only one providers. It will be used as the default value")
+                  else:
                     if args.provider != None:
                       try:
-                        provider = Provider.fromString(args.provider)
+                        provider = Provider.fromString(args.provider)()
                       except:
                         raise InvalidCmdLineArgument("provider", args.provider)
-                      if provider not in template.getProviders():
-                        raise InvalidCmdLineArgument("provider", args.provider)
                     else:
-                      provider = Provider.fromString(RegexedQuestion("Select a Provider [{0}]".format(",".join(map(str, template.getProviders()))),
+                      if args.no_interactive == False:
+                        provider = Provider.fromString(RegexedQuestion("Select a Provider [{0}]".format(",".join(map(str, template.getProviders()))),
                                                                        "Provider must be from {0}".format(",".join(map(str, template.getProviders()))),
                                                                        COMMANDLINELOGGER,
                                                                        "[{0}]".format("\\b|\\b".join(map(str, template.getProviders()))), str(template.getProviders()[0])).ask())()
+                      else:
+                        COMMANDLINELOGGER.debug("Missing provider argument")
+                        raise InvalidCmdLineArgument("provider", args.provider)
+                  
                   # Ask for configuration of network interface of the template
                   itfCounter = 0
                   if args.guestinterface != None:
-                    if type(args.guestinterface) is list and len(args.guestinterface) >= len(template.getGuestInterfaces()):
+                    if type(args.guestinterface) is list:
                       for i in range(0,template.getGuestInterfaces()):
-                        m = re.search("^(.*)\|(.*)(\|(.*)){0,2}", args.guestinterface[itfCounter])
+                        m = re.search("^(.*),(.*)(,(.*)){0,2}", args.guestinterface[itfCounter])
                         if m != None:
                           hostInterface = m.group(1)
                           ipAddr = m.group(2)
@@ -325,7 +342,7 @@ class CmdLine:
                           raise InvalidCmdLineArgument("guestinterface", args.guestinterface[itfCounter])
 
                       for i in range(itfCounter, len(args.guestinterface)):
-                        m = re.search("^(.*)\|(.*)(\|(.*)){0,2}", args.guestinterface[itfCounter])
+                        m = re.search("^(.*),(.*)(,(.*)){0,2}", args.guestinterface[itfCounter])
                         if m != None:
                           hostInterface = m.group(1)
                           ipAddr = m.group(2)
@@ -369,7 +386,7 @@ class CmdLine:
                       counter += 1
 
                     # Ask for additional network interfaces
-                    if args.quiet == False:
+                    if args.no_interactive == False:
                       while BinaryQuestion("Do you want to add an additional network interface?", "Enter a Y or a N", COMMANDLINELOGGER, "N").ask():
                         hostname = RegexedQuestion("Enter an Hostname for the interface eth{0}".format(counter),
                                                    "Hostname must be a string",
@@ -392,7 +409,7 @@ class CmdLine:
                                                      "^{0}$".format("\\b|\\b".join(map(str, networkInterfaces))), networkInterfaces[0]).ask()
                         guestInterfaces.append(NetworkInterface(ipAddr, macAddr,hostInterface, hostname))
 
-                  if args.quiet == False:
+                  if args.no_interactive == False:
                     # Ask for adding a new shared folder
                     while BinaryQuestion("Do you want to add a shared folder ?",
                                        "Enter a Y or a N", COMMANDLINELOGGER, "N").ask():
@@ -620,56 +637,58 @@ class CmdLine:
       parser = argparse.ArgumentParser(prog="Machination", description='Machination utility, all your appliances belong to us.')
       rootSubparsers = parser.add_subparsers(dest="function")
       
+      parser.add_argument('--version' , help='Display version', type=str)
+      
       # Parser for list command
       listParser = rootSubparsers.add_parser('list', help='List templates and instances')
-      listParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
-      listParser.add_argument('type', help='Type to list',nargs='?', type=str, choices = ["templates","instances"])
-            
+      listParser.add_argument('type', help='Type to list',nargs='?', type=str, choices = ("templates","instances"))
+      listParser.add_argument('--verbose',"-v", help='Verbose mode', action='store_true')
+      
       # Parser for create command
       createParser = rootSubparsers.add_parser('create', help='Create the given machine in the path')
       createParser.add_argument('template', help='Name of the template to create', type=str, choices = templates.keys())
       createParser.add_argument('name', help='Name of the machine to create', type=str)
-      createParser.add_argument('--arch','-a', help='Architecture of new the machine', type=str)
-      createParser.add_argument('--provider','-p', help='Provider to use for the new machine', type=str)
-      createParser.add_argument('--provisioner','-n', help='Provisioner to use for the new machine', type=str)
-      createParser.add_argument('--osversion','-o', help='OS Version of the new machine', type=str)
-      createParser.add_argument('--guestinterface','-i', help='Network interface to add to the new machine <hostinterface|ip_addr|mac_addr|hostname> | <hostinterface|ip_addr|mac_addr>', action='append', type=str)
-      createParser.add_argument('--sharedfolder','-s', nargs=2, help='Shared folder between the new machine and the host <host_folder guest_folder>', action='append', type=str)
-      createParser.add_argument('--no-interactive', help='Do not request for interactive configuration of optional elements (interfaces,sharedfolders) of the instance', action='store_true')
+      createParser.add_argument('--arch','-a', help='Architecture to use', type=str)
+      createParser.add_argument('--provider','-p', help='Provider to use', type=str)
+      createParser.add_argument('--provisioner','-n', help='Provisioner to use', type=str)
+      createParser.add_argument('--osversion','-o', help='OS Version to use', type=str)
+      createParser.add_argument('--guestinterface','-i', help='Network interface to add', metavar="<host_interface>,<ip_addr>[,mac_addr,hostname]", action='append', type=str)
+      createParser.add_argument('--sharedfolder','-s', nargs=2, help='Shared folder between the new machine and the host', metavar=("<host folder>","<guest folder>"), action='append', type=str)
+      createParser.add_argument('--no-interactive', help='Do not request for interactive configuration of optional elements (interfaces,sharedfolders)', action='store_true')
       createParser.add_argument('--verbose',"-v", help='Verbose mode', action='store_true')
-
+      
+            
       # Parser for destroy command
       destroyParser = rootSubparsers.add_parser('destroy', help='Destroy the given machine in the path')
       destroyParser.add_argument('names', help='Name of the machine to destroy',nargs="+",type=str, choices=instances.keys())
       destroyParser.add_argument('--force','-f', help='Do not ask for confirmation', action='store_true')
-      destroyParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
+      destroyParser.add_argument('--verbose',"-v", help='Verbose mode', action='store_true')
 
       # Parser for start command
       startParser = rootSubparsers.add_parser('start', help='Start the given machine instance')
       startParser.add_argument('names', help='Name of the machine to start', nargs="+", type=str, choices=instances.keys())
-      startParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
+      startParser.add_argument('--verbose',"-v", help='Verbose mode', action='store_true')
 
       # Parser for stop command
       stopParser = rootSubparsers.add_parser('stop', help='Stop the given machine instance')
       stopParser.add_argument('names', help='Name of the machine to stop', nargs="+", type=str, choices=instances.keys())
-      stopParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
+      stopParser.add_argument('--verbose',"-v", help='Verbose mode', action='store_true')
       
       # Parser for restart command
       restartParser = rootSubparsers.add_parser('restart', help='Restart the given machine instance')
       restartParser.add_argument('names', help='Name of the machine to restart', nargs="+", type=str, choices=instances.keys())
-      restartParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
+      restartParser.add_argument('--verbose',"-v", help='Verbose mode', action='store_true')
       
       # Parser for infos command
       infosParser = rootSubparsers.add_parser('infos', help='Get informations about a machine instance')
       infosParser.add_argument('names', help='Name of the machine instance from which infos shall be retrieved', nargs="?", type=str, choices=instances.keys())
-      infosParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
+      infosParser.add_argument('--verbose',"-v", help='Verbose mode', action='store_true')
       
       # Parser for ssh command
       sshParser = rootSubparsers.add_parser('ssh', help='SSH to the given machine')
       sshParser.add_argument('name', help='Name of the machine to ssh in',choices=instances.keys(),type=str)
-      sshParser.add_argument('--command',"-c", help='Command to execute in SSH',type=str)
-      sshParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true') 
-      
+      sshParser.add_argument('--command',"-c", help='Command to execute in SSH',type=str) 
+      sshParser.add_argument('--verbose',"-v", help='Verbose mode', action='store_true')
       # Parse the command
       argcomplete.autocomplete(parser)
       args = parser.parse_args()
@@ -689,7 +708,7 @@ class CmdLine:
         setGlobalLogLevel(logging.DEBUG)
       else:
         setGlobalLogLevel(logging.INFO)
-      
+      print(args)
       res = 0
       if(args.function in functions.keys()):
         res = functions[args.function](args)
