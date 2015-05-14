@@ -567,7 +567,7 @@ class MachineInstance(yaml.YAMLObject):
     # ##
     def getInfos(self):
       i = 0
-      output =  "  Name: {0}\n".format(self.getName())
+      output =  "Machine '{0}':\n".format(self.getName())
       output += "  Architecture: {0}\n".format(self.getArch())
       output += "  Provisioner: {0}\n".format(self.getProvisioner())
       output += "  Provider: {0}\n".format(self.getProvider())

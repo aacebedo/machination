@@ -549,10 +549,18 @@ class CmdLine:
     # ##
     def getMachineInstanceInfos(self, args):
       res = 0
-      for name in args.names:
-        COMMANDLINELOGGER.info("Retrieving information for machine instance '{0}'".format(name))
+      toDisplay =  []
+      if(args.names):
+        toDisplay.append(args.names)
+      
+      instances = MACHINE_INSTANCE_REGISTRY.getInstances()
+      
+      if(len(toDisplay) == 0):
+        toDisplay = instances.keys()
+      
+      for name in toDisplay:
         try:
-          instances = MACHINE_INSTANCE_REGISTRY.getInstances()
+
           # # Search for the requested instnce
           if name in instances.keys():
             COMMANDLINELOGGER.info(instances[name].getInfos())
@@ -653,7 +661,7 @@ class CmdLine:
       
       # Parser for infos command
       infosParser = rootSubparsers.add_parser('infos', help='Get informations about a machine instance')
-      infosParser.add_argument('names', help='Name of the machine instance from which infos shall be retrieved', nargs="+", type=str, choices=instances.keys())
+      infosParser.add_argument('names', help='Name of the machine instance from which infos shall be retrieved', nargs="?", type=str, choices=instances.keys())
       infosParser.add_argument('--verbose','-v', help='Verbose mode', action='store_true')
       
       # Parser for ssh command
