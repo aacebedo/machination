@@ -679,9 +679,11 @@ class CmdLine:
         setGlobalLogLevel(logging.DEBUG)
       else:
         setGlobalLogLevel(logging.INFO)
-          
+      
+      res = 0
       if(args.command in commands.keys()):
-        commands[args.command](args)
+        res = commands[args.command](args)
+      return res
     
     #!/usr/bin/env python
 
