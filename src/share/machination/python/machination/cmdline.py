@@ -45,6 +45,234 @@ from machination.globals import MACHINE_INSTANCE_REGISTRY
 from machination.globals import MACHINE_TEMPLATE_REGISTRY
 from machination.constants import MACHINATION_VERSION
 
+class MachineInstanceCreationWizard:
+  def unpackInterface(self,strCmdLine):
+    pack = strCmdLine.split(',')
+    if   len(pack)==4:
+      (hostInterface,ipAddr,macAddr,hostname) = pack
+    elif len(pack)==3:
+      (hostInterface,ipAddr,macAddr,hostname) = pack + [None]
+    elif len(pack)==2:
+      (hostInterface,ipAddr,macAddr,hostname) = pack + [None,None]
+    else:
+        raise InvalidCmdLineArgument("guestinterface", strCmdLine )
+    if(macAddr == "auto" or macAddr == None):
+        macAddr = machination.helpers.randomMAC()
+    print((hostInterface,ipAddr,macAddr,hostname))
+    return (hostInterface,ipAddr,macAddr,hostname)
+  
+  
+  def requestGuestInterface(self,networkInterfaces):
+    hostnameRegex = "([0-9a-zA-Z]*)"
+    ipAddrRegex = "(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|dhcp"
+    macAddrRegex = "([0-9a-fA-F]{2}[\.:-]){5}([0-9a-fA-F]{2})"
+    counter = 0
+    hostname = RegexedQuestion("Enter an Hostname for the interface eth{0}".format(counter),
+                               "Hostname must be a string",
+                                COMMANDLINELOGGER,
+                                "^{0}$".format(hostnameRegex), "").ask()
+    ipAddr = RegexedQuestion("Enter an IP address for the interface",
+                             "IPAddress must be of form XXX.XXX.XXX.XXX",
+                             COMMANDLINELOGGER,
+                             "^{0}$".format(ipAddrRegex),"dhcp").ask()
+    macAddr = RegexedQuestion("Enter a MAC address for the interface",
+                              "MAC address must be of form XX:XX:XX:XX:XX",
+                              COMMANDLINELOGGER,
+                              "^{0}$".format(macAddrRegex), machination.helpers.randomMAC()).ask()
+      # Ask for the host interface to use
+    COMMANDLINELOGGER.debug("Request an host interface...")
+    hostInterface = RegexedQuestion("Enter the host interface [{0}]".format(",".join(map(str, networkInterfaces))),
+                                    "Host interfaces must be from {0}".format(",".join(map(str, networkInterfaces))),
+                                    COMMANDLINELOGGER,
+                                    "^{0}$".format("\\b|\\b".join(map(str, networkInterfaces))), networkInterfaces[0]).ask()
+    return (hostname,ipAddr,macAddr,hostInterface)
+  
+  def requestProvider(self,args,template):
+    provider = template.getProviders()[0]
+    # If there is more than one provider available for the template
+    if len(template.getProviders()) == 1:
+      COMMANDLINELOGGER.debug("Template has only one providers. It will be used as the default value")
+    else:
+      if args.provider != None:
+        try:
+          provider = Provider.fromString(args.provider)()
+        except:
+          raise InvalidCmdLineArgument("provider", args.provider)
+      else:
+        if args.no_interactive == False:
+          provider = Provider.fromString(RegexedQuestion("Select a Provider [{0}]".format(",".join(map(str, template.getProviders()))),
+                                                         "Provider must be from {0}".format(",".join(map(str, template.getProviders()))),
+                                                         COMMANDLINELOGGER,
+                                                         "[{0}]".format("\\b|\\b".join(map(str, template.getProviders()))), str(template.getProviders()[0])).ask())()
+        else:
+          COMMANDLINELOGGER.debug("Missing provider argument")
+          raise InvalidCmdLineArgument("provider", args.provider)
+    return provider
+
+  def requestProvisionner(self,args,template):
+    provisioner = template.getProvisioners()[0]
+    # If there is more than one provisioner available for the template
+    if len(template.getProvisioners()) == 1:
+      COMMANDLINELOGGER.debug("Template has only one provisioner. It will be used as the default value")
+    else:
+      if args.provisioner != None:
+        COMMANDLINELOGGER.debug("A provisioner has been given by the user.")
+        try:
+          provisioner = Provisioner.fromString(args.provisioner)()
+        except:
+          COMMANDLINELOGGER.debug("Given provisioner is not supported by machination.")
+          raise InvalidCmdLineArgument("provisioner", args.provisioner)
+        if provisioner not in template.getProvisioners():
+          COMMANDLINELOGGER.debug("Given provisioner is not supported by this template.")
+          raise InvalidCmdLineArgument("provisioner", args.provisioner)
+      else:
+        if args.no_interactive == False:
+          COMMANDLINELOGGER.debug("Request a provisioner to the user.")
+          provisioner = Provisioner.fromString(RegexedQuestion("Select an Provisioner [{0}]".format(",".join(map(str, template.getProvisioners()))),
+                                                             "Provisioner must be from {0}".format(",".join(map(str, template.getProvisioners()))),
+                                                             COMMANDLINELOGGER,
+                                                             "[{0}]".format("\\b|\\b".join(map(str, template.getProvisioners()))),
+                                                              provisioner.name).ask())()
+        else:
+          COMMANDLINELOGGER.debug("Missing provisioner argument")
+          raise InvalidCmdLineArgument("provisioner", args.provisioner)
+              
+    return provisioner
+
+  def requestOsVersion(self,args,template):
+    osVersion = template.getOsVersions()[0]
+    # If there is more than one OS version available for the template
+    # Ask the user to choose
+    if len(template.getOsVersions()) > 1 :
+      if args.osversion != None:
+        osVersion = args.osversion
+        COMMANDLINELOGGER.debug("An os version has been given by the user.")
+      else:
+        if args.no_interactive == False:
+          COMMANDLINELOGGER.debug("Request an os version to the user.")
+          osVersion = RegexedQuestion("Select an OS version [{0}]".format(",".join(map(str, template.getOsVersions()))),
+                                    "OS version must be from {0}".format(",".join(map(str, template.getOsVersions()))),
+                                    COMMANDLINELOGGER,
+                                      "[{0}]".format("\\b|\\b".join(map(str, template.getOsVersions()))), osVersion).ask()
+        else:
+          COMMANDLINELOGGER.debug("Missing os version argument")
+          raise InvalidCmdLineArgument("osversion", args.osversion)
+    else:
+      COMMANDLINELOGGER.debug("Template has only one os version. It will be used as the default value")
+
+    return osVersion
+              
+  def requestArchitecture(self,args,template):
+    arch = template.getArchs()[0]
+    # If there is more than one architecture available for the template
+    # Ask the user to choose
+    if len(template.getArchs()) > 1 :
+      if args.arch != None:
+        COMMANDLINELOGGER.debug("An architecture has been given in by the user.")
+        try:
+          arch = Architecture.fromString(self.args.arch)
+        except:                        
+          COMMANDLINELOGGER.debug("Given architecture is not supported by machination.")
+          raise InvalidCmdLineArgument("architecture", self.args.arch)
+        if arch not in self.template.getArchs():
+          COMMANDLINELOGGER.debug("Given architecture is not supported by the template (shall be one of %s).".format(', '.join(template.getArchs())))
+          raise InvalidCmdLineArgument("architecture", self.args.arch)
+      else:
+        if args.no_interactive == False: 
+          COMMANDLINELOGGER.debug("Request an architecture...")
+          arch = Architecture.fromString(RegexedQuestion("Select an architecture [{0}]".format(",".join(map(str, template.getArchs()))),
+                                                         "Architecture must be from {0}".format(",".join(map(str, template.getArchs()))),
+                                                         COMMANDLINELOGGER,
+                                                         "^[{0}]$".format("\\b|\\b".join(map(str, template.getArchs()))), arch.name).ask())
+        else:
+          COMMANDLINELOGGER.debug("Missing architecture argument")
+          raise InvalidCmdLineArgument("architecture", args.arch)
+    else:
+      COMMANDLINELOGGER.debug("Template has only one architecture. It will be used as the default value.")
+      
+    return arch
+      
+  def execute(self,args,templates):
+    # Check if the requested template exists
+    COMMANDLINELOGGER.debug("Instance '{0}' does not exist, proceeding to its creation.".format(args.name))
+    args.template = args.template.replace("\\",'')
+    
+    template = None
+    guestInterfaces = []
+    sharedFolders = []
+    hostInterface = None
+    networkInterfaces = getAllNetInterfaces();
+    arch = None
+    osversion = None
+    provisioner = None
+    provider = None
+      
+    if args.template in templates.keys():
+      template = templates[args.template]
+      guestInterfaces = []
+      sharedFolders = []
+      hostInterface = None
+      networkInterfaces = getAllNetInterfaces();
+      
+      if len(networkInterfaces) == 0:
+        COMMANDLINELOGGER.debug("No ethernet interfaces has been found on the host.")
+        raise InvalidHardwareSupport("Your host does not have any network interface. Machines cannot be executed")
+      else:
+        COMMANDLINELOGGER.debug("{0} interfaces has been found on the host: {1}.".format(len(networkInterfaces),', '.join(networkInterfaces)))
+      
+      arch = self.requestArchitecture(args,template)
+      osversion = self.requestOsVersion(args,template)
+      provisioner = self.requestProvisionner(args,template)
+      provider = self.requestProvider(args,template) 
+        
+      # Ask for configuration of network interface of the template
+      itfCounter = 0
+      if args.guestinterface != None:
+        for i in range(0,template.getGuestInterfaces()):
+          (hostInterface,ipAddr,macAddr,hostname) = self.unpackInterface(args.guestinterface[itfCounter] )
+          guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostInterface, hostname))
+        for i in range(itfCounter, len(args.guestinterface)):
+          (hostInterface,ipAddr,macAddr,hostname) = self.unpackInterface(args.guestinterface[itfCounter] )
+          guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostInterface, hostname))
+          itfCounter += 1
+      else:
+        for i in range(0,template.getGuestInterfaces()):
+          (hostInterface,ipAddr,macAddr,hostname) = self.requestInterface(networkInterfaces)
+          guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostInterface, hostname))
+
+      # Ask for additional network interfaces
+      if args.no_interactive == False:
+        for i in range(itfCounter,template.getGuestInterfaces()):
+          (hostInterface,ipAddr,macAddr,hostname) = self.requestInterface(networkInterfaces)
+          guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostInterface, hostname))
+      else:
+        if(len(args.guestinterface) < template.getGuestInterfaces()):
+          COMMANDLINELOGGER.error("Not enough guestinterfaces given to fill requirement of template")
+          raise InvalidCmdLineArgument("guestinterface", args.guestinterface)
+
+      if args.no_interactive == False:
+        # Ask for adding a new shared folder
+        while BinaryQuestion("Do you want to add a shared folder ?",
+                           "Enter a Y or a N", COMMANDLINELOGGER, "N").ask():
+          hostPathQues = PathQuestion("Enter a path to an existing folder on the host",
+                                    "Entered path is invalid, Please enter a valid path",
+                                    COMMANDLINELOGGER,
+                                    ".+", None, True).ask()
+          guestPathQues = PathQuestion("Enter the mount path on the guest directory: ",
+                                     "Entered path is invalid, Please enter a valid path",
+                                     COMMANDLINELOGGER,
+                                     "^/.+", None, False).ask()
+          sharedFolders.append(SharedFolder(hostPathQues, guestPathQues))
+
+        if args.sharedfolder != None:
+          for s in args.sharedfolder:
+            sharedFolders.append(SharedFolder(s[0], s[1]))
+        
+    else:
+      COMMANDLINELOGGER.error("Unable to create machine: MachineInstance template '{0}:{1}' does not exists".format(args.template,args.templateversion))
+
+      
+    return (template, arch, osversion, provider, provisioner, guestInterfaces, sharedFolders) 
 # ##
 # Class used to handle the arguments passed by the command line
 # ##
@@ -65,7 +293,6 @@ class CmdLine:
       else:
         listFunctions[args.type](args)
       
-    
     # ##
     # Function used to list available templates
     # Templates are searched in the install directory of machination but also in the user workdir (~/.machination)
@@ -194,48 +421,7 @@ class CmdLine:
           res = errno.EINVAL
         COMMANDLINELOGGER.info("")
         return res
-
-    def unpackInterface(self,strCmdLine):
-      pack = strCmdLine.split(',')
-      if   len(pack)==4:
-        (hostInterface,ipAddr,macAddr,hostname) = pack
-      elif len(pack)==3:
-        (hostInterface,ipAddr,macAddr,hostname) = pack + [None]
-      elif len(pack)==2:
-        (hostInterface,ipAddr,macAddr,hostname) = pack + [None,None]
-      else:
-          raise InvalidCmdLineArgument("guestinterface", strCmdLine )
-      if(macAddr == "auto" or macAddr == None):
-          macAddr = machination.helpers.randomMAC()
-      print((hostInterface,ipAddr,macAddr,hostname))
-      return (hostInterface,ipAddr,macAddr,hostname)
-    
-    
-    def requestInterface(self,networkInterfaces):
-      hostnameRegex = "([0-9a-zA-Z]*)"
-      ipAddrRegex = "(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|dhcp"
-      macAddrRegex = "([0-9a-fA-F]{2}[\.:-]){5}([0-9a-fA-F]{2})"
-      counter = 0
-      hostname = RegexedQuestion("Enter an Hostname for the interface eth{0}".format(counter),
-                                 "Hostname must be a string",
-                                  COMMANDLINELOGGER,
-                                  "^{0}$".format(hostnameRegex), "").ask()
-      ipAddr = RegexedQuestion("Enter an IP address for the interface",
-                               "IPAddress must be of form XXX.XXX.XXX.XXX",
-                               COMMANDLINELOGGER,
-                               "^{0}$".format(ipAddrRegex),"dhcp").ask()
-      macAddr = RegexedQuestion("Enter a MAC address for the interface",
-                                "MAC address must be of form XX:XX:XX:XX:XX",
-                                COMMANDLINELOGGER,
-                                "^{0}$".format(macAddrRegex), machination.helpers.randomMAC()).ask()
-        # Ask for the host interface to use
-      COMMANDLINELOGGER.debug("Request an host interface...")
-      hostInterface = RegexedQuestion("Enter the host interface [{0}]".format(",".join(map(str, networkInterfaces))),
-                                      "Host interfaces must be from {0}".format(",".join(map(str, networkInterfaces))),
-                                      COMMANDLINELOGGER,
-                                      "^{0}$".format("\\b|\\b".join(map(str, networkInterfaces))), networkInterfaces[0]).ask()
-      return (hostname,ipAddr,macAddr,hostInterface)
-    
+      
     # ##
     # Function to create a new machine
     # ##
@@ -243,199 +429,47 @@ class CmdLine:
       res = 0
       COMMANDLINELOGGER.info("Creating a new machine instance named '{0}' using template '{1}'".format(args.name, args.template))
       # Creating the template and instances registries
-      templates = []
-      instances = []
+
       try:
-          # Get templates
-          templates = MACHINE_TEMPLATE_REGISTRY.getTemplates()
-          COMMANDLINELOGGER.debug("Templates loaded.")
-          
-          # Get instances
-          instances = MACHINE_INSTANCE_REGISTRY.getInstances()
-          COMMANDLINELOGGER.debug("Instances loaded.")
-          
-          # Check if the instance is already in the registry
-          if args.name not in instances.keys():
-              # Check if the requested template exists
-              COMMANDLINELOGGER.debug("Instance '{0}' does not exist, proceeding to its creation.".format(args.name))
-              args.template = args.template.replace("\\",'')
-              if args.template in templates.keys():
-                template = templates[args.template]
-                guestInterfaces = []
-                arch = template.getArchs()[0]
-                provider = template.getProviders()[0]
-                provisioner = template.getProvisioners()[0]
-                osVersion = template.getOsVersions()[0]
-                sharedFolders = []
-                hostInterface = None
-                networkInterfaces = getAllNetInterfaces();
-                if len(networkInterfaces) == 0:
-                  COMMANDLINELOGGER.debug("No ethernet interfaces has been found on the host.")
-                  raise InvalidHardwareSupport("Your host does not have any network interface. Machines cannot be executed")
-                else:
-                  COMMANDLINELOGGER.debug("{0} interfaces has been found on the host: {1}.".format(len(networkInterfaces),', '.join(networkInterfaces)))
-                
-                  # If there is more than one architecture available for the template
-                  # Ask the user to choose
-                  if len(template.getArchs()) > 1 :
-                    if args.arch != None:
-                      COMMANDLINELOGGER.debug("An architecture has been given in by the user.")
-                      try:
-                        arch = Architecture.fromString(args.arch)
-                      except:                        
-                        COMMANDLINELOGGER.debug("Given architecture is not supported by machination.")
-                        raise InvalidCmdLineArgument("architecture", args.arch)
-                      if arch not in template.getArchs():
-                        COMMANDLINELOGGER.debug("Given architecture is not supported by the template (shall be one of %s).".format(', '.join(templates.getArchs())))
-                        raise InvalidCmdLineArgument("architecture", args.arch)
-                    else:
-                      if args.no_interactive == False: 
-                        COMMANDLINELOGGER.debug("Request an architecture...")
-                        arch = Architecture.fromString(RegexedQuestion("Select an architecture [{0}]".format(",".join(map(str, template.getArchs()))),
-                                                                       "Architecture must be from {0}".format(",".join(map(str, template.getArchs()))),
-                                                                       COMMANDLINELOGGER,
-                                                                       "^[{0}]$".format("\\b|\\b".join(map(str, template.getArchs()))), arch.name).ask())
-                      else:
-                        COMMANDLINELOGGER.debug("Missing architecture argument")
-                        raise InvalidCmdLineArgument("architecture", args.arch)
-                  else:
-                    COMMANDLINELOGGER.debug("Template has only one architecture. It will be used as the default value.")
-                  
-                  # If there is more than one OS version available for the template
-                  # Ask the user to choose
-                  if len(template.getOsVersions()) > 1 :
-                    if args.osversion != None:
-                      osVersion = args.osversion
-                      COMMANDLINELOGGER.debug("An os version has been given by the user.")
-                    else:
-                      if args.no_interactive == False:
-                        COMMANDLINELOGGER.debug("Request an os version to the user.")
-                        osVersion = RegexedQuestion("Select an OS version [{0}]".format(",".join(map(str, template.getOsVersions()))),
-                                                  "OS version must be from {0}".format(",".join(map(str, template.getOsVersions()))),
-                                                  COMMANDLINELOGGER,
-                                                    "[{0}]".format("\\b|\\b".join(map(str, template.getOsVersions()))), osVersion).ask()
-                      else:
-                        COMMANDLINELOGGER.debug("Missing os version argument")
-                        raise InvalidCmdLineArgument("osversion", args.osversion)
-                  else:
-                    COMMANDLINELOGGER.debug("Template has only one os version. It will be used as the default value")
-
-                  # If there is more than one provisioner available for the template
-                  if len(template.getProvisioners()) == 1:
-                    COMMANDLINELOGGER.debug("Template has only one provisioner. It will be used as the default value")
-                  else:
-                    if args.provisioner != None:
-                      COMMANDLINELOGGER.debug("A provisioner has been given by the user.")
-                      try:
-                        provisioner = Provisioner.fromString(args.provisioner)()
-                      except:
-                        COMMANDLINELOGGER.debug("Given provisioner is not supported by machination.")
-                        raise InvalidCmdLineArgument("provisioner", args.provisioner)
-                      if provisioner not in template.getProvisioners():
-                        COMMANDLINELOGGER.debug("Given provisioner is not supported by this template.")
-                        raise InvalidCmdLineArgument("provisioner", args.provisioner)
-                    else:
-                      if args.no_interactive == False:
-                        COMMANDLINELOGGER.debug("Request a provisioner to the user.")
-                        provisioner = Provisioner.fromString(RegexedQuestion("Select an Provisioner [{0}]".format(",".join(map(str, template.getProvisioners()))),
-                                                                           "Provisioner must be from {0}".format(",".join(map(str, template.getProvisioners()))),
-                                                                           COMMANDLINELOGGER,
-                                                                           "[{0}]".format("\\b|\\b".join(map(str, template.getProvisioners()))),
-                                                                            provisioner.name).ask())()
-                      else:
-                        COMMANDLINELOGGER.debug("Missing provisioner argument")
-                        raise InvalidCmdLineArgument("provisioner", args.provisioner)
-                 
-                  # If there is more than one provider available for the template
-                  if len(template.getProviders()) == 1:
-                    COMMANDLINELOGGER.debug("Template has only one providers. It will be used as the default value")
-                  else:
-                    if args.provider != None:
-                      try:
-                        provider = Provider.fromString(args.provider)()
-                      except:
-                        raise InvalidCmdLineArgument("provider", args.provider)
-                    else:
-                      if args.no_interactive == False:
-                        provider = Provider.fromString(RegexedQuestion("Select a Provider [{0}]".format(",".join(map(str, template.getProviders()))),
-                                                                       "Provider must be from {0}".format(",".join(map(str, template.getProviders()))),
-                                                                       COMMANDLINELOGGER,
-                                                                       "[{0}]".format("\\b|\\b".join(map(str, template.getProviders()))), str(template.getProviders()[0])).ask())()
-                      else:
-                        COMMANDLINELOGGER.debug("Missing provider argument")
-                        raise InvalidCmdLineArgument("provider", args.provider)
-                  
-                  # Ask for configuration of network interface of the template
-                  itfCounter = 0
-                  if args.guestinterface != None:
-                    for i in range(0,template.getGuestInterfaces()):
-                      (hostInterface,ipAddr,macAddr,hostname) = self.unpackInterface(args.guestinterface[itfCounter] )
-                      guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostInterface, hostname))
-                    for i in range(itfCounter, len(args.guestinterface)):
-                      (hostInterface,ipAddr,macAddr,hostname) = self.unpackInterface(args.guestinterface[itfCounter] )
-                      guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostInterface, hostname))
-                      itfCounter += 1
-                  else:
-                    for i in range(0,template.getGuestInterfaces()):
-                      (hostInterface,ipAddr,macAddr,hostname) = self.requestInterface(networkInterfaces)
-                      guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostInterface, hostname))
-
-                  # Ask for additional network interfaces
-                  if args.no_interactive == False:
-                    for i in range(itfCounter,template.getGuestInterfaces()):
-                      (hostInterface,ipAddr,macAddr,hostname) = self.requestInterface(networkInterfaces)
-                      guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostInterface, hostname))
-                  else:
-                    if(len(args.guestinterface) < template.getGuestInterfaces()):
-                      COMMANDLINELOGGER.error("Not enough guestinterfaces given to fill requirement of template")
-                      raise InvalidCmdLineArgument("guestinterface", args.guestinterface)
-
-                  if args.no_interactive == False:
-                    # Ask for adding a new shared folder
-                    while BinaryQuestion("Do you want to add a shared folder ?",
-                                       "Enter a Y or a N", COMMANDLINELOGGER, "N").ask():
-                      hostPathQues = PathQuestion("Enter a path to an existing folder on the host",
-                                                "Entered path is invalid, Please enter a valid path",
-                                                COMMANDLINELOGGER,
-                                                ".+", None, True).ask()
-                      guestPathQues = PathQuestion("Enter the mount path on the guest directory: ",
-                                                 "Entered path is invalid, Please enter a valid path",
-                                                 COMMANDLINELOGGER,
-                                                 "^/.+", None, False).ask()
-                      sharedFolders.append(SharedFolder(hostPathQues, guestPathQues))
-
-                  if args.sharedfolder != None:
-                    for s in args.sharedfolder:
-                      sharedFolders.append(SharedFolder(s[0], s[1]))
-                  try:
-                    # Try to create the new machine
-                    instance = MachineInstance(args.name, template, arch, osVersion, provider, provisioner, guestInterfaces, sharedFolders)
-                    instance.create()
-                    COMMANDLINELOGGER.info("MachineInstance successfully created:")
-                    instances = MACHINE_INSTANCE_REGISTRY.getInstances()
-                    COMMANDLINELOGGER.info(instances[args.name].getInfos())
-                  except Exception as e:
-                    COMMANDLINELOGGER.error("Unable to create machine instance {0}: {1}.".format(args.name,str(e)))
-                    COMMANDLINELOGGER.debug(traceback.format_exc())
-                    res = errno.EINVAL
-                  except (KeyboardInterrupt, SystemExit):
-                    COMMANDLINELOGGER.debug(traceback.format_exc())
-                    res = errno.EINVAL
-              else:
-                COMMANDLINELOGGER.error("Unable to create machine: MachineInstance template '{0}:{1}' does not exists".format(args.template,args.templateversion))
-                return errno.EINVAL
-          else:
+        templates = []
+        instances = []
+        # Get templates
+        templates = MACHINE_TEMPLATE_REGISTRY.getTemplates()
+        COMMANDLINELOGGER.debug("Templates loaded.")
+        
+        # Get instances
+        instances = MACHINE_INSTANCE_REGISTRY.getInstances()
+        COMMANDLINELOGGER.debug("Instances loaded.")
+        w = MachineInstanceCreationWizard()
+        # Check if the instance is already in the registry
+        if args.force :
+          if args.name in instances.keys():
+            COMMANDLINELOGGER.error("Machine instance named '{0}' already exists but creation was forced so firstly machination will delete it.".format(args.name))
+            instances[args.name].destroy()
+      
+        if args.force == False and args.name in instances.keys():
             COMMANDLINELOGGER.error("Unable to create machine: MachineInstance named '{0}' already exists. Change the name of your new machine or delete the existing one.".format(args.name))
-            return errno.EALREADY
+            res = errno.EALREADY
+        else:
+          (template, arch, osversion, provider, provisioner, guestInterfaces, sharedFolders) = w.execute(args,templates)
+          # Try to create the new machine
+          instance = MachineInstance(args.name, template, arch, osversion, provider, provisioner, guestInterfaces, sharedFolders)
+          instance.create()
+          COMMANDLINELOGGER.info("MachineInstance successfully created:")
+          instances = MACHINE_INSTANCE_REGISTRY.getInstances()
+          COMMANDLINELOGGER.info(instances[args.name].getInfos())
+
+      
+      except (KeyboardInterrupt, SystemExit):
+        COMMANDLINELOGGER.debug(traceback.format_exc())
+        res = errno.EINVAL          
       except Exception as e:
         COMMANDLINELOGGER.error("Unable to create machine instance '{0}': {1}.".format(args.name,str(e)))
         if (not args.verbose):
           COMMANDLINELOGGER.info("Run with --verbose flag for more details")
         COMMANDLINELOGGER.debug(traceback.format_exc())
         res = errno.EINVAL
-      else:
-        COMMANDLINELOGGER.debug(traceback.format_exc())
-        res = errno.EINVAL
+        
       return res
 
     # ##
@@ -640,6 +674,7 @@ class CmdLine:
       createParser.add_argument('--sharedfolder','-s', nargs=2, help='Shared folder between the new machine and the host', metavar=("<host folder>","<guest folder>"), action='append', type=str)
       createParser.add_argument('--no-interactive', help='Do not request for interactive configuration of optional elements (interfaces,sharedfolders)', action='store_true')
       createParser.add_argument('--verbose',"-v", help='Verbose mode', action='store_true')
+      createParser.add_argument('--force',"-f", help='Force creation by deleting an instance with same name', action='store_true')
       
             
       # Parser for destroy command
@@ -699,20 +734,4 @@ class CmdLine:
         res = functions[args.function](args)
       
       return res
-    
-    #!/usr/bin/env python
 
-# import argcomplete, argparse, requests, pprint
-# 
-# def github_org_members(prefix, parsed_args, **kwargs):
-#     resource = "https://api.github.com/orgs/{org}/members".format(org=parsed_args.organization)
-#     return (member['login'] for member in requests.get(resource).json() if member['login'].startswith(prefix))
-# 
-# parser = argparse.ArgumentParser()
-# parser.add_argument("--organization", help="GitHub organization")
-# parser.add_argument("--member", help="GitHub member").completer = github_org_members
-
-# argcomplete.autocomplete(parser)
-# args = parser.parse_args()
-
-# pprint.pprint(requests.get("https://api.github.com/users/{m}".format(m=args.member)).json())

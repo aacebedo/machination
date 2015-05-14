@@ -319,7 +319,7 @@ class MachineTemplate(yaml.YAMLObject):
       return self._roles
     
     def __str__(self):
-      return self.getName()+":"+self.getVersion()
+      return self.getName()+":"+str(self.getVersion())
 
     # ##
     # Function to dump the object into YAML
