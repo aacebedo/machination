@@ -283,8 +283,8 @@ class CmdLine:
     # ##
     def listElements(self, args):
       listFunctions = {
-       "instances":self.listMachineTemplates,
-       "templates":self.listMachineInstances,
+       "templates":self.listMachineTemplates,
+       "instances":self.listMachineInstances,
       }
       
       if(args.type == None or args.type not in listFunctions.keys()):
