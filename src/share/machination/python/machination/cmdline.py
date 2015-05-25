@@ -20,9 +20,9 @@ import argparse, argcomplete
 import os
 import errno
 import traceback
-import re
-import logging
 
+import logging
+from distutils.version import StrictVersion
 import machination.helpers
 from machination.core import MachineInstance, NetworkInterface
 from machination.core import SharedFolder
@@ -43,7 +43,8 @@ from machination.exceptions import InvalidHardwareSupport
 from machination.helpers import getAllNetInterfaces
 from machination.globals import MACHINE_INSTANCE_REGISTRY
 from machination.globals import MACHINE_TEMPLATE_REGISTRY
-from machination.constants import MACHINATION_VERSION
+from machination.constants import MACHINATION_VERSIONFILE
+
 
 class MachineInstanceCreationWizard:
   def unpackInterface(self,strCmdLine):
@@ -638,7 +639,14 @@ class CmdLine:
       return res
   
     def displayVersion(self,args):
-      COMMANDLINELOGGER.info("Machination {0}".format(MACHINATION_VERSION))
+      version = "Unknown version"
+      
+      try:
+        version_file = open(MACHINATION_VERSIONFILE,'r')
+        version = StrictVersion(version_file.read())
+      except:
+        pass
+      COMMANDLINELOGGER.info("Machination {0}".format(str(version)))
       
     # ##
     # Function to parse the command line arguments
