@@ -238,7 +238,6 @@ class MachineTemplate(yaml.YAMLObject):
 
       if not os.path.exists(path):
         raise InvalidArgumentValue("Template path",path)
-
       if len(archs) == 0:
         raise InvalidMachineTemplateException("Invalid number of architectures")
       else:
@@ -349,7 +348,8 @@ class MachineTemplate(yaml.YAMLObject):
       # Check if architectures are present in the template
       if "archs" in representation.keys() and type(representation["archs"]) is list:
           for p in representation["archs"]:
-              archs.append(Architecture.fromString(p))
+              arch = Architecture.fromString(p);
+              archs.append(arch)
 
       providers = []
       # Check if providers are present in the template

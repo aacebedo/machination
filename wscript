@@ -69,7 +69,7 @@ def checkPythonModule(moduleName):
     except ImportError:
       res = False
     if not res:
-       Logs.pprint('RED','{0} python module is not available. Cannot continue')
+       Logs.pprint('RED','{0} python module is not available. Cannot continue'.format(moduleName))
     else :
       Logs.pprint('GREEN',"ok")
       res = True
@@ -93,9 +93,9 @@ def configure(ctx):
       ctx.fatal("Missing requirements. Installation will not continue.")
     if not checkBinary("Udhcpc","udhcpc"):
       ctx.fatal("Missing requirements. Installation will not continue.")
-    if not checkVersion("packer","packer --version","(.*)([0-9\.]*)(.*)","0.7.5",1):
+    if not checkVersion("packer","packer --version","(.*)([0-9\.]*)(.*)","0.8.1",1):
       ctx.fatal("Missing requirements. Installation will not continue.")
-    if not checkPythonModule("enum"):
+    if not checkPythonModule("enum34"):
       ctx.fatal("Missing requirements. Installation will not continue.")
     if not checkPythonModule("argcomplete"):
       ctx.fatal("Missing requirements. Installation will not continue.")
