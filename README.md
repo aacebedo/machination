@@ -7,12 +7,13 @@ Currently, only Docker is supported to execute the machines. Adding Virtualbox i
 Installation of software in the machine is handled by Ansible. Again support for additionnal install utilities will be added.
 
 ### Requirements
-- Vagrant 1.7.2
-- Ansible 1.7.2
+- Vagrant 1.7.0 (www.vagrantup.com)
+- Ansible 1.7.2 (www.ansible.com)
 - Python 2.7.8
 - Docker 1.4.1
+- Packer 0.8.1 (www.packer.io)
 - Udhcpc (dhcp client) 
-- Enum for Python 2.7
+- Enum34 for Python 2.7
 - Argcomplete for Python 2.7 (allows tab autocomplete)
 - Host-side-provisioner for vagrant (https://github.com/phinze/vagrant-host-shell)
 - Docker's pipework (https://github.com/jpetazzo/pipework)
