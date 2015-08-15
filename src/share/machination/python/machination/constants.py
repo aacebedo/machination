@@ -28,7 +28,8 @@ MACHINATION_DEFAULTPROVISIONERSDIR = os.path.abspath(os.path.join(MACHINATION_IN
 MACHINATION_DEFAULTANSIBLEPLAYBOOKSDIR = os.path.join(MACHINATION_DEFAULTPROVISIONERSDIR,"ansible","playbooks")
 MACHINATION_DEFAULTANSIBLEROLESDIR = os.path.join(MACHINATION_DEFAULTPROVISIONERSDIR,"ansible","roles")
 MACHINATION_DEFAULTPACKERDIR = os.path.join(MACHINATION_INSTALLDIR,"share","machination","packer")
-MACHINATION_MACHINATIONPYTHONDIR = os.path.join(MACHINATION_INSTALLDIR,"share","machination","python")
+MACHINATION_PYTHONDIR = os.path.join(MACHINATION_INSTALLDIR,"share","machination","python")
+MACHINATION_VBOXDIR = os.path.join(MACHINATION_INSTALLDIR,"share","machination","virtualbox")
 MACHINATION_VERSIONFILE = os.path.join(MACHINATION_INSTALLDIR,"share","machination","version")
 
 # User dir to store instances and templates
