@@ -81,12 +81,30 @@ class AnsibleProvisioner(Provisioner):
           AnsibleProvisioner.copyRole(ansibleFilesDest,r)
       instance.getPackerFile()["variables"]["provisioner"] = self.__str__().lower()
       instance.getPackerFile()["variables"]["ansible_staging_directory"] = "/tmp/packer-provisioner-ansible-local"
+
+      provisioner = {}
+      provisioner["type"] = "shell"
+      provisioner["inline"] = ["passwd -d vagrant"]
+      provisioner["execute_command"] = "echo 'vagrant' | sudo -E -S sh '{{ .Path }}'"
+      instance.getPackerFile()["provisioners"].append(provisioner)
       
       provisioner = {}
       provisioner["type"] = "shell"
-      provisioner["inline"] = ["apt-get install -y ansible python-apt"]
+      provisioner["inline"] = ["apt-get install -y python-apt python-software-properties software-properties-common", 
+                                "add-apt-repository ppa:ansible/ansible -y",
+                                "apt-get update",
+                                "apt-get install -y ansible"]
+      provisioner["execute_command"] = "sudo -E -S sh '{{ .Path }}'"
       instance.getPackerFile()["provisioners"].append(provisioner)
-      
+
+      provisioner = {}
+      provisioner["type"] = "shell"
+      provisioner["inline"] = ["mkdir /home/vagrant/.ssh",
+                               "wget --no-check-certificate -O /home/vagrant/.ssh/authorized_keys https://raw.githubusercontent.com/mitchellh/vagrant/master/keys/vagrant.pub",
+                               "chown -R vagrant /home/vagrant/.ssh",
+                               "chmod -R go-rwsx /home/vagrant/.ssh"]
+      instance.getPackerFile()["provisioners"].append(provisioner)
+
       provisioner = {}
       provisioner["type"] = "shell"
       provisioner["inline"] = ["mkdir -p {{ user `ansible_staging_directory` }}"]
@@ -101,6 +119,8 @@ class AnsibleProvisioner(Provisioner):
       provisioner = {}
       provisioner["type"] = "ansible-local"
       provisioner["playbook_file"] = "provisioners/ansible/machine.playbook"
+      provisioner["command"] = "sudo -E -S ansible-playbook"
+
       instance.getPackerFile()["provisioners"].append(provisioner)
       
       provisioner = {}
@@ -111,6 +131,7 @@ class AnsibleProvisioner(Provisioner):
       provisioner = {}
       provisioner["type"] = "shell"
       provisioner["inline"] = ["apt-get remove -y ansible && apt-get autoremove -y"]
+      provisioner["execute_command"] = "sudo -E -S sh '{{ .Path }}'"
       instance.getPackerFile()["provisioners"].append(provisioner)
       
        
