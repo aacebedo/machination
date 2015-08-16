@@ -32,7 +32,7 @@ class Provider(object):
       pass
     
     @abstractmethod
-    def needsProvision(self,instance):
+    def needsProvisioning(self,instance):
       pass
     
 class DockerProvider(Provider):
@@ -61,12 +61,12 @@ class DockerProvider(Provider):
       return "docker"
     
     @abstractmethod
-    def needsProvision(self,instance):
+    def needsProvisioning(self,instance):
       imageName = "machination-{0}-{1}-{2}-{3}".format(instance.getTemplate().getName().lower(),
-                                                           str(instance.getArch()).lower(),
+                                                           str(instance.getArchitecture()).lower(),
                                                            instance.getOsVersion().lower(),
                                                            str(instance.getProvisioner()).lower())
-      regex = ("(.*){0}( *){1}(.*)".format(imageName,str(instance.getTemplate().getVersion())))
+      regex = "(.*){0}( *){1}(.*)".format(imageName,str(instance.getTemplate().getVersion()))
       p = subprocess.Popen("docker images -a", shell=True, stderr=subprocess.PIPE,stdout=subprocess.PIPE)
       out = p.communicate()[0]
       if p.returncode == 0:
@@ -96,12 +96,12 @@ class VBoxProvider(Provider):
       instance.getPackerFile()["variables"]["provider"] = self.__str__().lower()
       builder = {}
       builder["type"] = "virtualbox-iso"
-      builder["guest_os_type"] = "Ubuntu_64"
-      builder["iso_url"] = "http://releases.ubuntu.com/trusty/ubuntu-14.04.2-server-amd64.iso"
+      builder["guest_os_type"] = "Linux_64"
+      builder["iso_url"] = "http://releases.ubuntu.com/{0}/{1}".format(instance.getOsVersion(),splittedVersionLine[1])
       builder["iso_checksum_type"] = "md5"
       builder["iso_checksum"] = splittedVersionLine[0].rstrip(" ")
       builder["http_directory"] = "./"
-      builder["iso_checksum_type"] = "none"
+      builder["http_port_min"] = "9000"
       builder["http_port_max"] = "9500"
       builder["ssh_username"] = "vagrant"
       builder["ssh_password"] = "vagrant"
@@ -109,13 +109,13 @@ class VBoxProvider(Provider):
       builder["headless"] = "true"
       builder["guest_additions_mode"] = "disable"
       builder["shutdown_command"] = "sudo -S shutdown -P now"
-      builder["boot_command"] = [ "<esc><esc><enter><wait>",
+      builder["boot_command"] = ["<esc><esc><enter><wait>",
                                   "/install/vmlinuz noapic ",
                                   "preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg ",
                                   "debian-installer=en_US auto locale=en_US kbd-chooser/method=us ",
                                   "hostname={{user `hostname`}} ",
                                   "fb=false debconf/frontend=noninteractive ",
-                                  "keyboard-configuration/modelcode=SKIP keyboard-configuration/layout=USA ",
+                                  "keyboard-configuration/modelcode=SKIP keyboard-configuration/layout=FR ",
                                   "keyboard-configuration/variant=USA console-setup/ask_detect=false ",
                                   "initrd=/install/initrd.gz -- <enter>"
       ]        
@@ -137,7 +137,7 @@ class VBoxProvider(Provider):
       return "vbox"
     
     @abstractmethod
-    def needsProvision(self,instance):
+    def needsProvisioning(self,instance):
       # Vbox always needs provisioning
       imageName = "machination-{0}-{1}-{2}-{3}".format(instance.getTemplate().getName().lower(),
                                                            str(instance.getArchitecture()).lower(),
