@@ -55,13 +55,12 @@ class NetworkInterface(yaml.YAMLObject):
     _ipAddr = None
     _macAddr = None
     _hostname = None
-    _hostInterface = None
 
     # ##
     # Constructor
     # ##
     @accepts(None, str, str, str, None)
-    def __init__(self, ipAddr, macAddr, hostInterface, hostname="None"):
+    def __init__(self, ipAddr, macAddr, hostname="None"):
       # Check each given argument
       # IP Address can be also dhcp
       if re.match("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|dhcp$", ipAddr):
@@ -77,12 +76,6 @@ class NetworkInterface(yaml.YAMLObject):
         self._hostname = hostname
       else:
         raise InvalidArgumentValue("hostname",hostname)
-        
-      if hostInterface == None or (type(hostInterface) is str):
-        self._hostInterface = hostInterface
-      else:
-        raise InvalidArgumentValue("hostInterface",hostInterface)
-
 
     # ##
     # Simple getters
@@ -92,10 +85,7 @@ class NetworkInterface(yaml.YAMLObject):
 
     def getMACAddr(self):
       return self._macAddr
-      
-    def getHostInterface(self):
-      return self._hostInterface
-
+    
     def getHostname(self):
       if self._hostname == None:
         return ""
@@ -109,7 +99,7 @@ class NetworkInterface(yaml.YAMLObject):
       res = ""
       if self._hostname != None :
           res = self._hostname + "|"
-      return res + self.getIPAddr() + "|" + self.getMACAddr() + "|" + self.getHostInterface()
+      return res + self.getIPAddr() + "|" + self.getMACAddr()
 
     # ##
     # Function to dump a network interface to yaml
@@ -119,7 +109,6 @@ class NetworkInterface(yaml.YAMLObject):
       representation = {
                          "ip_addr" : data.getIPAddr(),
                          "mac_addr" : data.getMACAddr(),
-                         "host_interface" : data.getHostInterface()
                          }
       # Only dump the hostname if it has been set
       if data.getHostname() != None:
@@ -139,14 +128,11 @@ class NetworkInterface(yaml.YAMLObject):
       if not "mac_addr" in representation.keys():
         raise InvalidYAMLException("Invalid Network Interface: Missing MAC address")
       
-      if not "host_interface" in representation.keys():
-        raise InvalidYAMLException("Invalid Network Interface: Missing Host interface")
-
       hostname = None
       if "hostname" in representation.keys():
         hostname = representation["hostname"]
 
-      return NetworkInterface(representation["ip_addr"],  representation["mac_addr"], representation["host_interface"], hostname)
+      return NetworkInterface(representation["ip_addr"],  representation["mac_addr"], hostname)
     
 # ##
 # Class representing a sync folder between host and guest
@@ -400,6 +386,7 @@ class MachineInstance(yaml.YAMLObject):
     _provider = None
     _osVersion = None
     _guestInterfaces = None
+    _hostInterface = None
     _arch = None
     _sharedFolders = None
     _packerFile = None
@@ -407,8 +394,8 @@ class MachineInstance(yaml.YAMLObject):
     # ##
     # Constructor
     # ##
-    @accepts(None, str, MachineTemplate, Architecture, str, Provider, Provisioner, list, list)
-    def __init__(self, name, template, arch, osVersion, provider, provisioner, guestInterfaces, sharedFolders):
+    @accepts(None, str, MachineTemplate, Architecture, str, Provider, Provisioner, list, str, list)
+    def __init__(self, name, template, arch, osVersion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders):
       # Check the arguments
       if len(osVersion) == 0:
         raise InvalidArgumentValue("osVersion",osVersion)
@@ -432,6 +419,7 @@ class MachineInstance(yaml.YAMLObject):
       self._provisioner = provisioner
       self._guestInterfaces = guestInterfaces
       self._sharedFolders = sharedFolders
+      self._hostInterface = hostInterface
       self._packerFile = {}
 
     # ##
@@ -461,9 +449,11 @@ class MachineInstance(yaml.YAMLObject):
           # Generate the file related to the provisioner and the provider
           variables = {}
           variables["os_version"] = self.getOsVersion()
-          variables["architecture"] = str(self.getArch())
+          variables["architecture"] = str(self.getArchitecture())
           variables["template_name"] = self.getTemplate().getName()
           variables["template_version"] = str(self.getTemplate().getVersion())
+          variables["hostname"] = str(self.getName())
+          variables["host_interface"] = self.getHostInterface()
           self.getPackerFile()["variables"] = variables
           self.getPackerFile()["builders"] = []
           self.getPackerFile()["provisioners"] = []
@@ -489,7 +479,7 @@ class MachineInstance(yaml.YAMLObject):
     def pack(self):
       # If the machine does not exist yet
       if os.path.exists(self.getPath()):
-        if self.getProvider().needsProvision(self):
+        if self.getProvider().needsProvisioning(self):
           CORELOGGER.debug("Image needs provisioning, starting packer...")
           cmd = "packer build ./{0}".format(MACHINATION_PACKERFILE_NAME)
           
@@ -507,7 +497,7 @@ class MachineInstance(yaml.YAMLObject):
     def getName(self):
       return self._name
 
-    def getArch(self):
+    def getArchitecture(self):
       return self._arch
 
     def getProvisioner(self):
@@ -527,6 +517,9 @@ class MachineInstance(yaml.YAMLObject):
 
     def getOsVersion(self):
       return self._osVersion
+    
+    def getHostInterface(self):
+      return self._hostInterface
 
     def __str__(self):
       return self.getName()
@@ -568,7 +561,7 @@ class MachineInstance(yaml.YAMLObject):
     def getInfos(self):
       i = 0
       output =  "Machine '{0}':\n".format(self.getName())
-      output += "  Architecture: {0}\n".format(self.getArch())
+      output += "  Architecture: {0}\n".format(self.getArchitecture())
       output += "  Provisioner: {0}\n".format(self.getProvisioner())
       output += "  Provider: {0}\n".format(self.getProvider())
       isStarted = self.isStarted() 
@@ -576,7 +569,7 @@ class MachineInstance(yaml.YAMLObject):
           output += "  State: Running\n"
       else:
           output += "  State: Stopped\n"
-
+      output +="  Host interface: {0}\n".format(self.getHostInterface())
       output +="  Network interfaces:\n"
       ipAddrSearchGroup = None
       if(isStarted):
@@ -649,11 +642,12 @@ class MachineInstance(yaml.YAMLObject):
     def to_yaml(cls, dumper, data):
         representation = {
                                "template" : "{0}:{1}".format(data.getTemplate().getName(),data.getTemplate().getVersion()),
-                               "arch" : str(data.getArch()),
+                               "arch" : str(data.getArchitecture()),
                                "os_version" : str(data.getOsVersion()),
                                "provider" : str(data.getProvider()),
                                "provisioner" : str(data.getProvisioner()),
                                "guest_interfaces" : data.getGuestInterfaces(),
+                               "host_interface" : data.getHostInterface(),
                                "shared_folders" :  data.getSharedFolders(),
                                }
         node = dumper.represent_mapping(data.yaml_tag, representation)
@@ -696,6 +690,10 @@ class MachineInstance(yaml.YAMLObject):
         sharedFolders = []
         if "shared_folders" in representation.keys():
             sharedFolders = representation["shared_folders"]
+            
+        hostInterface = None
+        if "host_interface" in representation.keys():
+            hostInterface = representation["host_interface"]
         
         return MachineInstance(name,
                                    template,
@@ -704,4 +702,5 @@ class MachineInstance(yaml.YAMLObject):
                                    provider,
                                    provisioner,
                                    guestInterfaces,
+                                   hostInterface,
                                    sharedFolders)

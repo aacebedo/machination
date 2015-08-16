@@ -49,18 +49,16 @@ from machination.constants import MACHINATION_VERSIONFILE
 class MachineInstanceCreationWizard:
   def unpackInterface(self,strCmdLine):
     pack = strCmdLine.split(',')
-    if   len(pack)==4:
-      (hostInterface,ipAddr,macAddr,hostname) = pack
-    elif len(pack)==3:
-      (hostInterface,ipAddr,macAddr,hostname) = pack + [None]
+    if len(pack)==3:
+      (ipAddr,macAddr,hostname) = pack
     elif len(pack)==2:
-      (hostInterface,ipAddr,macAddr,hostname) = pack + [None,None]
+      (ipAddr,macAddr,hostname) = pack + [None]
     else:
         raise InvalidCmdLineArgument("guestinterface", strCmdLine )
     if(macAddr == "auto" or macAddr == None):
         macAddr = machination.helpers.randomMAC()
-    print((hostInterface,ipAddr,macAddr,hostname))
-    return (hostInterface,ipAddr,macAddr,hostname)
+    print((ipAddr,macAddr,hostname))
+    return (ipAddr,macAddr,hostname)
   
   
   def requestGuestInterface(self,networkInterfaces):
@@ -80,13 +78,7 @@ class MachineInstanceCreationWizard:
                               "MAC address must be of form XX:XX:XX:XX:XX",
                               COMMANDLINELOGGER,
                               "^{0}$".format(macAddrRegex), machination.helpers.randomMAC()).ask()
-      # Ask for the host interface to use
-    COMMANDLINELOGGER.debug("Request an host interface...")
-    hostInterface = RegexedQuestion("Enter the host interface [{0}]".format(",".join(map(str, networkInterfaces))),
-                                    "Host interfaces must be from {0}".format(",".join(map(str, networkInterfaces))),
-                                    COMMANDLINELOGGER,
-                                    "^{0}$".format("\\b|\\b".join(map(str, networkInterfaces))), networkInterfaces[0]).ask()
-    return (hostname,ipAddr,macAddr,hostInterface)
+    return (hostname,ipAddr,macAddr)
   
   def requestProvider(self,args,template):
     provider = template.getProviders()[0]
@@ -215,12 +207,17 @@ class MachineInstanceCreationWizard:
       hostInterface = None
       networkInterfaces = getAllNetInterfaces();
       
+      hostInterface = None
       if len(networkInterfaces) == 0:
         COMMANDLINELOGGER.debug("No ethernet interfaces has been found on the host.")
         raise InvalidHardwareSupport("Your host does not have any network interface. Machines cannot be executed")
       else:
         COMMANDLINELOGGER.debug("{0} interfaces has been found on the host: {1}.".format(len(networkInterfaces),', '.join(networkInterfaces)))
-      
+        hostInterface = RegexedQuestion("Enter the host interface on which the guest interfaces will be bridged [{0}]".format(",".join(map(str, networkInterfaces))),
+                                    "Host interfaces must be from {0}".format(",".join(map(str, networkInterfaces))),
+                                    COMMANDLINELOGGER,
+                                    "^{0}$".format("\\b|\\b".join(map(str, networkInterfaces))), networkInterfaces[0]).ask()
+    
       arch = self.requestArchitecture(args,template)
       osversion = self.requestOsVersion(args,template)
       provisioner = self.requestProvisionner(args,template)
@@ -230,22 +227,22 @@ class MachineInstanceCreationWizard:
       itfCounter = 0
       if args.guestinterface != None:
         for i in range(0,template.getGuestInterfaces()):
-          (hostInterface,ipAddr,macAddr,hostname) = self.unpackInterface(args.guestinterface[itfCounter] )
-          guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostInterface, hostname))
+          (ipAddr,macAddr,hostname) = self.unpackInterface(args.guestinterface[itfCounter] )
+          guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostname))
         for i in range(itfCounter, len(args.guestinterface)):
-          (hostInterface,ipAddr,macAddr,hostname) = self.unpackInterface(args.guestinterface[itfCounter] )
-          guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostInterface, hostname))
+          (ipAddr,macAddr,hostname) = self.unpackInterface(args.guestinterface[itfCounter] )
+          guestInterfaces.append(NetworkInterface(ipAddr, macAddr,hostname))
           itfCounter += 1
       else:
         for i in range(0,template.getGuestInterfaces()):
-          (hostInterface,ipAddr,macAddr,hostname) = self.requestInterface(networkInterfaces)
-          guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostInterface, hostname))
+          (ipAddr,macAddr,hostname) = self.requestInterface(networkInterfaces)
+          guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostname))
 
       # Ask for additional network interfaces
       if args.no_interactive == False:
         for i in range(itfCounter,template.getGuestInterfaces()):
-          (hostInterface,ipAddr,macAddr,hostname) = self.requestInterface(networkInterfaces)
-          guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostInterface, hostname))
+          (ipAddr,macAddr,hostname) = self.requestInterface(networkInterfaces)
+          guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostname))
       else:
         if(len(args.guestinterface) < template.getGuestInterfaces()):
           COMMANDLINELOGGER.error("Not enough guestinterfaces given to fill requirement of template")
@@ -273,7 +270,7 @@ class MachineInstanceCreationWizard:
       COMMANDLINELOGGER.error("Unable to create machine: MachineInstance template '{0}:{1}' does not exists".format(args.template,args.templateversion))
 
       
-    return (template, arch, osversion, provider, provisioner, guestInterfaces, sharedFolders) 
+    return (template, arch, osversion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders) 
 # ##
 # Class used to handle the arguments passed by the command line
 # ##
@@ -441,7 +438,6 @@ class CmdLine:
         # Get instances
         instances = MACHINE_INSTANCE_REGISTRY.getInstances()
         COMMANDLINELOGGER.debug("Instances loaded.")
-        w = MachineInstanceCreationWizard()
         # Check if the instance is already in the registry
         if args.force :
           if args.name in instances.keys():
@@ -452,9 +448,9 @@ class CmdLine:
             COMMANDLINELOGGER.error("Unable to create machine: MachineInstance named '{0}' already exists. Change the name of your new machine or delete the existing one.".format(args.name))
             res = errno.EALREADY
         else:
-          (template, arch, osversion, provider, provisioner, guestInterfaces, sharedFolders) = w.execute(args,templates)
+          (template, arch, osversion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders) =  MachineInstanceCreationWizard().execute(args,templates)
           # Try to create the new machine
-          instance = MachineInstance(args.name, template, arch, osversion, provider, provisioner, guestInterfaces, sharedFolders)
+          instance = MachineInstance(args.name, template, arch, osversion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders)
           instance.create()
           COMMANDLINELOGGER.info("MachineInstance successfully created:")
           instances = MACHINE_INSTANCE_REGISTRY.getInstances()
