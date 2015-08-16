@@ -25,9 +25,11 @@ import sys
 import pwd
 import shutil
 import traceback
+import hashlib
 from distutils.version import LooseVersion
 
-from machination.constants import MACHINATION_INSTALLDIR
+from machination.constants import MACHINATION_INSTALLDIR,\
+  MACHINATION_POSTPROCESSORFILE_NAME
 from machination.constants import MACHINATION_USERINSTANCESDIR
 from machination.constants import MACHINATION_CONFIGFILE_NAME
 from machination.constants import MACHINATION_PACKERFILE_NAME
@@ -45,6 +47,8 @@ from machination.exceptions import InvalidYAMLException
 from machination.exceptions import InvalidMachineTemplateException
 
 from machination.helpers import accepts
+from machination.helpers import generateHashOfDir
+from machination.helpers import generateHashOfFile
 from machination.loggers import CORELOGGER
 
 # #
@@ -211,7 +215,6 @@ class MachineTemplate(yaml.YAMLObject):
     _osVersions = []
     _archs = []
     _guestInterfaces = []
-    _version = None
     _comments = ""
     _roles = []
 
@@ -256,10 +259,8 @@ class MachineTemplate(yaml.YAMLObject):
             raise InvalidMachineTemplateException("Invalid role")
       
       fileName = os.path.basename(path)
-      nameAndVersion = os.path.splitext(fileName)[0]
-      versionIdx = nameAndVersion.find('.')
-      self._name = nameAndVersion[0:versionIdx]
-      self._version = LooseVersion(nameAndVersion[versionIdx+1:])
+      self._name = os.path.splitext(fileName)[0]
+
       self._path = path
       self._archs = archs
       self._osVersions = osVersions
@@ -291,9 +292,6 @@ class MachineTemplate(yaml.YAMLObject):
     def getGuestInterfaces(self):
       return self._guestInterfaces
 
-    def getVersion(self):
-      return self._version
-    
     def getName(self):
       return self._name
     
@@ -304,7 +302,7 @@ class MachineTemplate(yaml.YAMLObject):
       return self._roles
     
     def __str__(self):
-      return self.getName()+":"+str(self.getVersion())
+      return self.getName()
 
     # ##
     # Function to dump the object into YAML
@@ -505,7 +503,6 @@ class MachineInstance(yaml.YAMLObject):
           self.generateFiles()
           self.generateHash()
           #self.pack()
-
         except Exception as e:
           #shutil.rmtree(self.getPath())
           CORELOGGER.debug(traceback.format_exc())
@@ -680,7 +677,7 @@ class MachineInstance(yaml.YAMLObject):
     @classmethod
     def to_yaml(cls, dumper, data):
         representation = {
-                               "template" : "{0}:{1}".format(data.getTemplate().getName(),data.getTemplate().getVersion()),
+                               "template" : "{0}".format(data.getTemplate().getName()),
                                "arch" : str(data.getArchitecture()),
                                "os_version" : str(data.getOsVersion()),
                                "provider" : str(data.getProvider()),

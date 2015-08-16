@@ -84,7 +84,7 @@ class MachineTemplateRegistry():
             try:
               openedFile = open(os.path.join(f), "r")
               template = yaml.load(openedFile)
-              machineTemplates["{0}:{1}".format(template.getName(),template.getVersion())] = template
+              machineTemplates["{0}".format(template.getName())] = template
               REGISTRYLOGGER.debug("Template stored in '{0}' loaded".format(f))
             except Exception as e:
               REGISTRYLOGGER.warning("Unable to load template stored in '{0}: {1}".format(f,str(e)))

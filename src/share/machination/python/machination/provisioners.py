@@ -3,6 +3,7 @@ import yaml
 import os
 
 from machination.helpers import accepts
+from machination.helpers import generateHashOfDir
 from machination.exceptions import InvalidArgumentValue
 from machination.exceptions import PathNotExistError
 from machination.exceptions import InvalidMachineTemplateException
@@ -21,6 +22,9 @@ from abc import abstractmethod
 class Provisioner(object):
     @abstractmethod
     def generateFilesFor(self,instance):
+      pass
+    @abstractmethod
+    def generateHashFor(self,instance):
       pass
     
     @staticmethod
@@ -65,9 +69,13 @@ class AnsibleProvisioner(Provisioner):
         raise InvalidMachineTemplateException("Unable to find ansible role '{0}'.".format(role))
 
     @abstractmethod
+    def generateHashFor(self,instance,hashValue):
+      generateHashOfDir(os.path.join(instance.getPath(),"provisioners","ansible"),hashValue)
+    
+    @abstractmethod
     def generateFilesFor(self,instance):
       if not os.path.exists(instance.getPath()):
-          raise PathNotExistError(instance.getPath())
+        raise PathNotExistError(instance.getPath())
       ansibleFilesDest = os.path.join(instance.getPath(),"provisioners","ansible")
       mkdir_p(os.path.join(ansibleFilesDest))
       playbookPath = os.path.join(instance.getPath(),"provisioners","ansible","machine.playbook")
