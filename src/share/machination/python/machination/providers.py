@@ -45,16 +45,29 @@ class DockerProvider(Provider):
       builder = {}
       builder["type"] = "docker"
       builder["image"] = "aacebedo/ubuntu-{{user `os_version`}}-vagrant-{{user `architecture`}}"
+<<<<<<< Updated upstream
       builder["export_path"] = "machination-{{user `template_name`}}-{{user `architecture`}}-{{user `os_version`}}-{{user `provisioner`}}.tar"
       builder["run_command"] = ["-d","-i","-t", "--privileged","{{.Image}}","/sbin/init"]
+=======
+      builder["export_path"] = "./machine.box"
+      builder["run_command"] = ["-d", "-i", "-t", "--privileged", "{{.Image}}", "/sbin/init"]
+>>>>>>> Stashed changes
       builder["volumes"] = folders
       instance.getPackerFile()["builders"].append(builder)
        
       postproc = {}
+<<<<<<< Updated upstream
       postproc["type"] = "docker-import"
       postproc["repository"] = "machination-{{user `template_name`}}-{{user `architecture`}}-{{user `os_version`}}-{{user `provisioner`}}"
       postproc["tag"] = str(instance.getTemplate().getVersion())
       instance.getPackerFile()["post-processors"].append(postproc)
+=======
+      postproc["type"] = "compress"
+      postproc["output"] = "machine.box"
+      postproc["compression"] = 9
+      instance.getPackerFile()["post-processors"].append(postproc)      
+  
+>>>>>>> Stashed changes
       PROVIDERSLOGGER.debug("Files generated for docker provider.")
 
     def __str__(self):
@@ -123,14 +136,10 @@ class VBoxProvider(Provider):
       
       postproc = {}   
       postproc["type"] = "vagrant"
-      postproc["output"] = "machination-{0}-{1}-{2}-{3}.box".format(instance.getTemplate().getName().lower(),
-                                                                    str(instance.getArchitecture()).lower(),
-                                                                    instance.getOsVersion().lower(),
-                                                                    str(instance.getProvisioner()).lower())
-      postproc["compression_level"] = 0
-      
+      postproc["output"] = "machine.box"
+      postproc["compression_level"] = 0      
       instance.getPackerFile()["post-processors"].append(postproc)
-    
+          
       PROVIDERSLOGGER.debug("Files generated for Vbox provider.")
 
     def __str__(self):
