@@ -20,7 +20,7 @@
 architectures: ["amd64"]
 os_versions: ["trusty","vivid"]
 provisioners: ["ansible"]
-providers: ["docker","vbox"]
+providers: ["docker","virtualbox"]
 guest_interfaces : 0
 comments: "Basic development box"
 roles:

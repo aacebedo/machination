@@ -548,7 +548,7 @@ class MachineInstance(yaml.YAMLObject):
     def start(self):
       # Fire up the vagrant machine
       self.pack()
-      p = subprocess.Popen("vagrant up", shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
+      p = subprocess.Popen("vagrant up --provider={0}".format(str(self.getProvider())), shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
       p.communicate()[0]
       if p.returncode != 0:
         raise RuntimeError("Error while starting machine instance: '{0}'".format(self.getName()));
@@ -629,7 +629,6 @@ class MachineInstance(yaml.YAMLObject):
         if(command == None):
           val = subprocess.Popen("vagrant ssh", shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
         else:
-          print("vagrant ssh -c {0}".format(command))
           val = subprocess.Popen("vagrant ssh -c \"{0}\"".format(command), shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
         # get the output of the machine
         while True:
