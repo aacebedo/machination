@@ -156,34 +156,34 @@ class MachineInstanceCreationWizard:
     return osVersion
               
   def requestArchitecture(self,args,template):
-    arch = template.getArchs()[0]
+    architecture = template.getArchitectures()[0]
     # If there is more than one architecture available for the template
     # Ask the user to choose
-    if len(template.getArchs()) > 1 :
-      if args.arch != None:
+    if len(template.getArchitectures()) > 1 :
+      if args.architecture != None:
         COMMANDLINELOGGER.debug("An architecture has been given in by the user.")
         try:
-          arch = Architecture.fromString(self.args.arch)
+          architecture = Architecture.fromString(self.args.architecture)
         except:                        
           COMMANDLINELOGGER.debug("Given architecture is not supported by machination.")
-          raise InvalidCmdLineArgument("architecture", self.args.arch)
-        if arch not in self.template.getArchs():
-          COMMANDLINELOGGER.debug("Given architecture is not supported by the template (shall be one of %s).".format(', '.join(template.getArchs())))
-          raise InvalidCmdLineArgument("architecture", self.args.arch)
+          raise InvalidCmdLineArgument("architecture", self.args.architecture)
+        if architecture not in self.template.getArchitectures():
+          COMMANDLINELOGGER.debug("Given architecture is not supported by the template (shall be one of %s).".format(', '.join(template.getArchitectures())))
+          raise InvalidCmdLineArgument("architecture", self.args.architecture)
       else:
         if args.no_interactive == False: 
           COMMANDLINELOGGER.debug("Request an architecture...")
-          arch = Architecture.fromString(RegexedQuestion("Select an architecture [{0}]".format(",".join(map(str, template.getArchs()))),
-                                                         "Architecture must be from {0}".format(",".join(map(str, template.getArchs()))),
+          architecture = Architecture.fromString(RegexedQuestion("Select an architecture [{0}]".format(",".join(map(str, template.getArchitectures()))),
+                                                         "Architecture must be from {0}".format(",".join(map(str, template.getArchitectures()))),
                                                          COMMANDLINELOGGER,
-                                                         "^[{0}]$".format("\\b|\\b".join(map(str, template.getArchs()))), arch.name).ask())
+                                                         "^[{0}]$".format("\\b|\\b".join(map(str, template.getArchitectures()))), architecture.name).ask())
         else:
           COMMANDLINELOGGER.debug("Missing architecture argument")
-          raise InvalidCmdLineArgument("architecture", args.arch)
+          raise InvalidCmdLineArgument("architecture", args.architecture)
     else:
       COMMANDLINELOGGER.debug("Template has only one architecture. It will be used as the default value.")
       
-    return arch
+    return architecture
       
   def execute(self,args,templates):
     # Check if the requested template exists
@@ -195,7 +195,7 @@ class MachineInstanceCreationWizard:
     sharedFolders = []
     hostInterface = None
     networkInterfaces = getAllNetInterfaces();
-    arch = None
+    architecture = None
     osversion = None
     provisioner = None
     provider = None
@@ -218,7 +218,7 @@ class MachineInstanceCreationWizard:
                                     COMMANDLINELOGGER,
                                     "^{0}$".format("\\b|\\b".join(map(str, networkInterfaces))), networkInterfaces[0]).ask()
     
-      arch = self.requestArchitecture(args,template)
+      architecture = self.requestArchitecture(args,template)
       osversion = self.requestOsVersion(args,template)
       provisioner = self.requestProvisionner(args,template)
       provider = self.requestProvider(args,template) 
@@ -270,7 +270,7 @@ class MachineInstanceCreationWizard:
       COMMANDLINELOGGER.error("Unable to create machine: MachineInstance template '{0}:{1}' does not exists".format(args.template,args.templateversion))
 
       
-    return (template, arch, osversion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders) 
+    return (template, architecture, osversion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders) 
 # ##
 # Class used to handle the arguments passed by the command line
 # ##
@@ -312,7 +312,7 @@ class CmdLine:
           data['path'].append(os.path.abspath(f.getPath()))
           data['provisioners'].append(",".join(map(str, f.getProvisioners())))
           data['providers'].append(",".join(map(str, f.getProviders())))
-          data['archs'].append(",".join(map(str, f.getArchs())))
+          data['archs'].append(",".join(map(str, f.getArchitectures())))
           data['comments'].append(f.getComments())
 
         # Each column width will be computed as the max length of its items
@@ -442,9 +442,9 @@ class CmdLine:
             COMMANDLINELOGGER.error("Unable to create machine: MachineInstance named '{0}' already exists. Change the name of your new machine or delete the existing one.".format(args.name))
             res = errno.EALREADY
         else:
-          (template, arch, osversion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders) =  MachineInstanceCreationWizard().execute(args,templates)
+          (template, architecture, osversion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders) =  MachineInstanceCreationWizard().execute(args,templates)
           # Try to create the new machine
-          instance = MachineInstance(args.name, template, arch, osversion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders)
+          instance = MachineInstance(args.name, template, architecture, osversion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders)
           instance.create()
           COMMANDLINELOGGER.info("MachineInstance successfully created:")
           instances = MACHINE_INSTANCE_REGISTRY.getInstances()
@@ -664,7 +664,7 @@ class CmdLine:
       createParser = rootSubparsers.add_parser('create', help='Create the given machine in the path')
       createParser.add_argument('template', help='Name of the template to create', type=str, choices = templates.keys())
       createParser.add_argument('name', help='Name of the machine to create', type=str)
-      createParser.add_argument('--arch','-a', help='Architecture to use', type=str)
+      createParser.add_argument('--architecture','-a', help='Architecture to use', type=str)
       createParser.add_argument('--provider','-p', help='Provider to use', type=str)
       createParser.add_argument('--provisioner','-n', help='Provisioner to use', type=str)
       createParser.add_argument('--osversion','-o', help='OS Version to use', type=str)

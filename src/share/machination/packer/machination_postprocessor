@@ -51,12 +51,12 @@ def __main__():
     else:
       raise RuntimeError("Invalid provider type")
       
-    if("arch" in configFile and 
+    if("architecture" in configFile and 
        "os_version" in configFile and 
        "provisioner" in configFile and 
        "template" in configFile):
       name = "machination-{0}-{1}-{2}-{3}".format(configFile["template"].lower(),
-                                                    configFile["arch"].lower(),
+                                                    configFile["architecture"].lower(),
                                                     configFile["os_version"].lower(),
                                                     configFile["provisioner"].lower())
       

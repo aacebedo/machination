@@ -222,16 +222,16 @@ class MachineTemplate(yaml.YAMLObject):
     # Constructor
     # ##
     @accepts(None, str, list, list, list,list, None,str,list)
-    def __init__(self, path, archs, osVersions , providers, provisioners, guestInterfaces,comments,roles):
+    def __init__(self, path, architectures, osVersions , providers, provisioners, guestInterfaces,comments,roles):
       # Checking the arguments
 
       if not os.path.exists(path):
         raise InvalidArgumentValue("Template path",path)
-      if len(archs) == 0:
+      if len(architectures) == 0:
         raise InvalidMachineTemplateException("Invalid number of architectures")
       else:
-        for arch in archs:
-          if type(arch) is not Architecture:
+        for architecture in architectures:
+          if type(architecture) is not Architecture:
             raise InvalidMachineTemplateException("Invalid architecture")
 
       if len(providers) == 0:
@@ -262,7 +262,7 @@ class MachineTemplate(yaml.YAMLObject):
       self._name = os.path.splitext(fileName)[0]
 
       self._path = path
-      self._archs = archs
+      self._archs = architectures
       self._osVersions = osVersions
       self._providers = providers
       self._provisioners = provisioners
@@ -277,7 +277,7 @@ class MachineTemplate(yaml.YAMLObject):
     def getPath(self):
       return self._path
 
-    def getArchs(self):
+    def getArchitectures(self):
       return self._archs
 
     def getProviders(self):
@@ -311,7 +311,7 @@ class MachineTemplate(yaml.YAMLObject):
     def to_yaml(cls, dumper, data):
       representation = {
                           "path" : data.getPath(),
-                          "archs" : data.getArchs(),
+                          "archs" : data.getArchitectures(),
                           "os_versions" : str(data.getOsVersions()),
                           "providers" : str(data.getProviders()),
                           "provisioners" : str(data.getProvisioners()),
@@ -332,8 +332,8 @@ class MachineTemplate(yaml.YAMLObject):
       # Check if architectures are present in the template
       if "archs" in representation.keys() and type(representation["archs"]) is list:
           for p in representation["archs"]:
-              arch = Architecture.fromString(p);
-              archs.append(arch)
+              architecture = Architecture.fromString(p);
+              archs.append(architecture)
 
       providers = []
       # Check if providers are present in the template
@@ -385,7 +385,7 @@ class MachineInstance(yaml.YAMLObject):
     _osVersion = None
     _guestInterfaces = None
     _hostInterface = None
-    _arch = None
+    _architecture = None
     _sharedFolders = None
     _packerFile = None
 
@@ -393,7 +393,7 @@ class MachineInstance(yaml.YAMLObject):
     # Constructor
     # ##
     @accepts(None, str, MachineTemplate, Architecture, str, Provider, Provisioner, list, str, list)
-    def __init__(self, name, template, arch, osVersion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders):
+    def __init__(self, name, template, architecture, osVersion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders):
       # Check the arguments
       if len(osVersion) == 0:
         raise InvalidArgumentValue("osVersion",osVersion)
@@ -411,7 +411,7 @@ class MachineInstance(yaml.YAMLObject):
           raise InvalidArgumentValue("shared_folder",f)
       self._name = name
       self._template = template
-      self._arch = arch
+      self._architecture = architecture
       self._osVersion = osVersion
       self._provider = provider
       self._provisioner = provisioner
@@ -515,7 +515,7 @@ class MachineInstance(yaml.YAMLObject):
       return self._name
 
     def getArchitecture(self):
-      return self._arch
+      return self._architecture
 
     def getProvisioner(self):
       return self._provisioner
@@ -659,7 +659,7 @@ class MachineInstance(yaml.YAMLObject):
     def to_yaml(cls, dumper, data):
         representation = {
                                "template" : "{0}".format(data.getTemplate().getName()),
-                               "arch" : str(data.getArchitecture()),
+                               "architecture" : str(data.getArchitecture()),
                                "os_version" : str(data.getOsVersion()),
                                "provider" : str(data.getProvider()),
                                "provisioner" : str(data.getProvisioner()),
@@ -678,9 +678,9 @@ class MachineInstance(yaml.YAMLObject):
         representation = loader.construct_mapping(node, deep=True)
 
         # Retrieve the elements to create an instance
-        arch = None
-        if "arch" in representation.keys():
-            arch = Architecture.fromString(representation["arch"])
+        architecture = None
+        if "architecture" in representation.keys():
+            architecture = Architecture.fromString(representation["architecture"])
 
         provider = None
         if "provider" in representation.keys():
@@ -714,7 +714,7 @@ class MachineInstance(yaml.YAMLObject):
         
         return MachineInstance(name,
                                    template,
-                                   arch,
+                                   architecture,
                                    osVersion,
                                    provider,
                                    provisioner,

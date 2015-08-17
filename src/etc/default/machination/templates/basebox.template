@@ -17,7 +17,7 @@
 ##########################################################################
 ---
 !MachineTemplate
-archs: ["amd64"]
+architectures: ["amd64"]
 os_versions: ["trusty","vivid"]
 provisioners: ["ansible"]
 providers: ["docker","vbox"]
