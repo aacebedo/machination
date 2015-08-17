@@ -8,7 +8,7 @@ import subprocess
 from yaml.loader import BaseLoader
 def parseArgs(rawArgs):
   parser = argparse.ArgumentParser(prog="machination_postprocessor", description='Post processing script for machination instances.')
-  parser.add_argument('--type', '-t', help="Type of machine to postprocess", type=str, choices=["vbox", "docker"])
+  parser.add_argument('--type', '-t', help="Type of machine to postprocess", type=str, choices=["virtualbox", "docker"])
   parser.add_argument('--box', '-b', default="./machine.box", help="Machine's box path", type=str)
   parser.add_argument('--name', '-n', help="Machine's name", type=str)
   parser.add_argument('--hash', '-m', default="./hash", help="Machine's hash", type=str)
@@ -70,7 +70,7 @@ def __main__():
       
     if(type == "docker"):
       postProcessDocker("./machine.box", name, hashFile.read())
-    if(type == "vbox"):
+    if(type == "virtualbox"):
       postProcessVbox("./machine.box", name, hashFile.read())
   
     sys.exit()

@@ -25,7 +25,7 @@ class Provider(object):
     def fromString(val):
       vals = {
                 "docker" : DockerProvider,
-                "vbox" : VBoxProvider,
+                "virtualbox" : VBoxProvider,
                 }
       if val in vals:
         return vals[val]
@@ -129,14 +129,14 @@ class VBoxProvider(Provider):
 
       shutil.copy(os.path.join(MACHINATION_INSTALLDIR, "share", "machination", "vagrant", "Vagrantfile_vbox"), os.path.join(instance.getPath(), "Vagrantfile"))
           
-      PROVIDERSLOGGER.debug("Files generated for Vbox provider.")
+      PROVIDERSLOGGER.debug("Files generated for virtualbox provider.")
 
     def __str__(self):
-      return "vbox"
+      return "virtualbox"
     
     @abstractmethod
     def needsProvisioning(self, instance):
-      # Vbox always needs provisioning
+      # virtualbox always needs provisioning
       imageName = "machination-{0}-{1}-{2}-{3}".format(instance.getTemplate().getName().lower(),
                                                            str(instance.getArchitecture()).lower(),
                                                            instance.getOsVersion().lower(),

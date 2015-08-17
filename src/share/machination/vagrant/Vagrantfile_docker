@@ -18,8 +18,6 @@
 
 require 'yaml'
 
-ENV['VAGRANT_DEFAULT_PROVIDER'] = "docker"
-
 cwd = File.dirname(File.expand_path(__FILE__))
 machine_config = YAML.load_file("#{cwd}/machine.config")
 hash = File.read("#{cwd}/hash")
