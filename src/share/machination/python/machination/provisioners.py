@@ -87,14 +87,6 @@ class AnsibleProvisioner(Provisioner):
     
       for r in playbook[0]["roles"]:
           AnsibleProvisioner.copyRole(ansibleFilesDest,r)
-      instance.getPackerFile()["variables"]["provisioner"] = self.__str__().lower()
-      instance.getPackerFile()["variables"]["ansible_staging_directory"] = "/tmp/packer-provisioner-ansible-local"
-
-      provisioner = {}
-      provisioner["type"] = "shell"
-      provisioner["inline"] = ["passwd -d vagrant"]
-      provisioner["execute_command"] = "echo 'vagrant' | sudo -E -S sh '{{ .Path }}'"
-      instance.getPackerFile()["provisioners"].append(provisioner)
       
       provisioner = {}
       provisioner["type"] = "shell"
@@ -102,46 +94,37 @@ class AnsibleProvisioner(Provisioner):
                                 "add-apt-repository ppa:ansible/ansible -y",
                                 "apt-get update",
                                 "apt-get install -y ansible"]
-      provisioner["execute_command"] = "sudo -E -S sh '{{ .Path }}'"
+      provisioner["execute_command"] = "echo 'vagrant' | sudo -E -S sh '{{ .Path }}'"
       instance.getPackerFile()["provisioners"].append(provisioner)
 
       provisioner = {}
       provisioner["type"] = "shell"
-      provisioner["inline"] = ["mkdir /home/vagrant/.ssh",
-                               "wget --no-check-certificate -O /home/vagrant/.ssh/authorized_keys https://raw.githubusercontent.com/mitchellh/vagrant/master/keys/vagrant.pub",
-                               "chown -R vagrant /home/vagrant/.ssh",
-                               "chmod -R go-rwsx /home/vagrant/.ssh"]
-      instance.getPackerFile()["provisioners"].append(provisioner)
-
-      provisioner = {}
-      provisioner["type"] = "shell"
-      provisioner["inline"] = ["mkdir -p {{ user `ansible_staging_directory` }}"]
+      provisioner["inline"] = ["mkdir -p /tmp/packer-provisioner-ansible-local"]
       instance.getPackerFile()["provisioners"].append(provisioner)
       
       provisioner = {}
       provisioner["type"] = "file"
       provisioner["source"] = "provisioners/ansible/roles"
-      provisioner["destination"] = "{{ user `ansible_staging_directory` }}"
+      provisioner["destination"] = "/tmp/packer-provisioner-ansible-local"
       instance.getPackerFile()["provisioners"].append(provisioner)
       
       provisioner = {}
       provisioner["type"] = "ansible-local"
       provisioner["playbook_file"] = "provisioners/ansible/machine.playbook"
-      provisioner["command"] = "sudo -E -S ansible-playbook"
+      provisioner["command"] = "echo 'vagrant' | sudo -E -S ansible-playbook"
 
       instance.getPackerFile()["provisioners"].append(provisioner)
       
       provisioner = {}
       provisioner["type"] = "shell"
-      provisioner["inline"] =  [ "rm -rf  {{ user `ansible_staging_directory` }}"]
+      provisioner["inline"] =  [ "rm -rf /tmp/packer-provisioner-ansible-local"]
       instance.getPackerFile()["provisioners"].append(provisioner)
       
       provisioner = {}
       provisioner["type"] = "shell"
       provisioner["inline"] = ["apt-get remove -y ansible && apt-get autoremove -y"]
-      provisioner["execute_command"] = "sudo -E -S sh '{{ .Path }}'"
+      provisioner["execute_command"] = "echo 'vagrant' | sudo -E -S sh '{{ .Path }}'"
       instance.getPackerFile()["provisioners"].append(provisioner)
       
-       
     def __str__(self):
       return "ansible"

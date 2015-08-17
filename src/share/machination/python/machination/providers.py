@@ -52,23 +52,17 @@ class DockerProvider(Provider):
       builder["type"] = "docker"
       builder["image"] = "aacebedo/ubuntu-{{user `os_version`}}-vagrant-{{user `architecture`}}"
       builder["export_path"] = "./machine.box"
-      builder["run_command"] = ["-d","-i","-t", "--privileged","{{.Image}}","/sbin/init"]
+      builder["run_command"] = ["-d", "-i", "-t", "--privileged", "{{.Image}}", "/sbin/init"]
       builder["volumes"] = folders
       instance.getPackerFile()["builders"].append(builder)
        
-      postproc = {}
-      postproc["type"] = "compress"
-      postproc["output"] = "machine.box"
-      postproc["compression"] = 9
-      instance.getPackerFile()["post-processors"].append(postproc)      
-
       PROVIDERSLOGGER.debug("Files generated for docker provider.")
 
     def __str__(self):
       return "docker"
     
     @abstractmethod
-    def generateHashFor(self, instance, hash):
+    def generateHashFor(self, instance, hashValue):
       pass
     
     @abstractmethod
@@ -161,7 +155,7 @@ class VBoxProvider(Provider):
         raise RuntimeError("Internal error when processing provider of instance '{0}'".format(instance.getName()));
 
     @abstractmethod
-    def generateHashFor(self, instance, hash):
-      generateHashOfFile(os.path.join(instance.getPath(), "preseed.cfg"))
+    def generateHashFor(self, instance, hashValue):
+      generateHashOfFile(os.path.join(instance.getPath(), "preseed.cfg"),hashValue)
       
       
