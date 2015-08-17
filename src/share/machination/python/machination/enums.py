@@ -31,11 +31,11 @@ class Architecture(StringifiedEnum):
     @staticmethod
     @accepts(str)
     def fromString(val):
-        vals = {
-                "i386" : Architecture.i386,
-                "amd64" : Architecture.amd64
-                }
-        if val in vals:
-            return vals[val]
-        else:
-            raise InvalidArgumentValue("Unknown architecture")
+      vals = {
+              "i386" : Architecture.i386,
+              "amd64" : Architecture.amd64
+              }
+      if val in vals:
+        return vals[val]
+      else:
+        raise InvalidArgumentValue("Unknown architecture")

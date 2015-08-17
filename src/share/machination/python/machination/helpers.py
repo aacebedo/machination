@@ -24,7 +24,7 @@ import socket
 import fcntl
 import struct
 import array
- 
+import hashlib, os
 
 from machination.exceptions import InvalidArgumentNumberError
 from machination.exceptions import ArgumentValidationError
@@ -102,6 +102,21 @@ def demote(user_uid, user_gid):
         os.setuid(user_uid)
     return result
   
+def generateHashOfDir(directory,hashValue):
+  if os.path.exists (directory):
+    for root, dirs, files in os.walk(directory):
+      for names in files:
+        filepath = os.path.join(root,names)
+        generateHashOfFile(filepath, hashValue)
+    
+def generateHashOfFile(filePath,hashValue):
+  if os.path.exists (filePath):
+    f = open(filePath, 'rb')
+    while 1:
+      buf = f.read(4096)
+      if not buf : break
+      hashValue.update(hashlib.sha1(buf).hexdigest())
+    f.close()
 
 def getAllNetInterfaces():
     max_possible = 128  # arbitrary. raise if needed.

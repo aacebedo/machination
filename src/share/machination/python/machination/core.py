@@ -25,9 +25,11 @@ import sys
 import pwd
 import shutil
 import traceback
+import hashlib
 from distutils.version import LooseVersion
 
-from machination.constants import MACHINATION_INSTALLDIR
+from machination.constants import MACHINATION_INSTALLDIR,\
+  MACHINATION_POSTPROCESSORFILE_NAME, MACHINATION_HASHFILE_NAME
 from machination.constants import MACHINATION_USERINSTANCESDIR
 from machination.constants import MACHINATION_CONFIGFILE_NAME
 from machination.constants import MACHINATION_PACKERFILE_NAME
@@ -45,6 +47,8 @@ from machination.exceptions import InvalidYAMLException
 from machination.exceptions import InvalidMachineTemplateException
 
 from machination.helpers import accepts
+from machination.helpers import generateHashOfDir
+from machination.helpers import generateHashOfFile
 from machination.loggers import CORELOGGER
 
 # #
@@ -211,7 +215,6 @@ class MachineTemplate(yaml.YAMLObject):
     _osVersions = []
     _archs = []
     _guestInterfaces = []
-    _version = None
     _comments = ""
     _roles = []
 
@@ -256,10 +259,8 @@ class MachineTemplate(yaml.YAMLObject):
             raise InvalidMachineTemplateException("Invalid role")
       
       fileName = os.path.basename(path)
-      nameAndVersion = os.path.splitext(fileName)[0]
-      versionIdx = nameAndVersion.find('.')
-      self._name = nameAndVersion[0:versionIdx]
-      self._version = LooseVersion(nameAndVersion[versionIdx+1:])
+      self._name = os.path.splitext(fileName)[0]
+
       self._path = path
       self._archs = archs
       self._osVersions = osVersions
@@ -291,9 +292,6 @@ class MachineTemplate(yaml.YAMLObject):
     def getGuestInterfaces(self):
       return self._guestInterfaces
 
-    def getVersion(self):
-      return self._version
-    
     def getName(self):
       return self._name
     
@@ -304,7 +302,7 @@ class MachineTemplate(yaml.YAMLObject):
       return self._roles
     
     def __str__(self):
-      return self.getName()+":"+str(self.getVersion())
+      return self.getName()
 
     # ##
     # Function to dump the object into YAML
@@ -433,54 +431,29 @@ class MachineInstance(yaml.YAMLObject):
     
     def generateFiles(self):
       os.makedirs(self.getPath())
-      shutil.copy(os.path.join(MACHINATION_INSTALLDIR, "share", "machination", "vagrant", "Vagrantfile"), os.path.join(self.getPath(), "Vagrantfile"))
-      shutil.copy(os.path.join(MACHINATION_INSTALLDIR, "share", "machination", "packer", "machination_postprocessor"), os.path.join(self.getPath(), "machination_postprocessor"))
+
+      shutil.copy(os.path.join(MACHINATION_INSTALLDIR, "share", "machination", "packer", MACHINATION_POSTPROCESSORFILE_NAME), os.path.join(self.getPath(), MACHINATION_POSTPROCESSORFILE_NAME))
       # Create the machine config file
       configFile = yaml.dump(self)
       openedFile = open(os.path.join(self.getPath(), MACHINATION_CONFIGFILE_NAME), "w+")
       openedFile.write(configFile)
       openedFile.close()
       # Generate the file related to the provisioner and the provider
-      variables = {}
-      variables["os_version"] = self.getOsVersion()
-      variables["architecture"] = str(self.getArchitecture())
-      variables["template"] = self.getTemplate().getName()
-      variables["hostname"] = str(self.getName())
-      variables["host_interface"] = self.getHostInterface()
-      variables["provisioner"] = str(self.getProvisioner()).lower()
-      variables["provider"] = str(self.getProvider()).lower()
-      
-      self.getPackerFile()["variables"] = variables
       self.getPackerFile()["builders"] = []
       self.getPackerFile()["provisioners"] = []
       self.getPackerFile()["post-processors"] = []
-
-      provisioner = {}
-      provisioner["type"] = "shell"
-      provisioner["inline"] = ["mkdir -p /home/vagrant/.ssh",
-                               "wget --no-check-certificate -O /home/vagrant/.ssh/authorized_keys https://raw.githubusercontent.com/mitchellh/vagrant/master/keys/vagrant.pub",
-                               "chown -R vagrant /home/vagrant/.ssh",
-                               "chmod -R go-rwsx /home/vagrant/.ssh"]
-      self.getPackerFile()["provisioners"].append(provisioner)
       
       self.getProvider().generateFilesFor(self)
-      self.getProvisioner().generateFilesFor(self)
-      
-      machineName = "machination-{0}-{1}-{2}".format(self.getTemplate().getName(),
-                                                     str(self.getArchitecture()),
-                                                     self.getOsVersion(),
-                                                     str(self.getProvisioner()))      
+      self.getProvisioner().generateFilesFor(self)   
       
       postproc = {}   
       postproc["type"] = "shell"
-      postproc["scripts"] = [MACHINATION_POSTPROCESSORFILE_NAME]
+      postproc["scripts"] = [os.path.join("./",MACHINATION_POSTPROCESSORFILE_NAME)]
       self.getPackerFile()["post-processors"].append(postproc)
       
       outfile = open(os.path.join(self.getPath(),MACHINATION_PACKERFILE_NAME),"w")
       json.dump(self.getPackerFile(),outfile,indent=2)
       outfile.close()
-  
-    def generateHash(self):
       hashValue = hashlib.sha1()
       self.getProvisioner().generateHashFor(self,hashValue)
       self.getProvisioner().generateHashFor(self,hashValue)
@@ -490,11 +463,11 @@ class MachineInstance(yaml.YAMLObject):
       md5.close()
       
     def getHash(self):
-      md5FilePath = os.path.join(self.getPath(),"md5")
-      if(os.path.exists(md5FilePath)):
-        return  open(md5FilePath,'r').read()
+      hashFilePath = os.path.join(self.getPath(),MACHINATION_HASHFILE_NAME)
+      if(os.path.exists(hashFilePath)):
+        return  open(hashFilePath,'r').read()
       else:
-        raise RuntimeError("Unable to find md5 hash of instance")
+        raise RuntimeError("Unable to find hash of instance")
     # ##
     # Function to generate the file attached to the instance
     # ##
@@ -504,8 +477,7 @@ class MachineInstance(yaml.YAMLObject):
         try:
           self.generateFiles()
           self.generateHash()
-          #self.pack()
-
+          self.pack()
         except Exception as e:
           #shutil.rmtree(self.getPath())
           CORELOGGER.debug(traceback.format_exc())
@@ -520,7 +492,7 @@ class MachineInstance(yaml.YAMLObject):
       if os.path.exists(self.getPath()):
         if self.getProvider().needsProvisioning(self):
           CORELOGGER.debug("Image needs provisioning, starting packer...")
-          cmd = "packer build  -var-file={0}./{1}".format(MACHINATION_CONFIGFILE_NAME,MACHINATION_PACKERFILE_NAME)
+          cmd = "packer build  {0}".format(os.path.join(".",MACHINATION_PACKERFILE_NAME))
           
           # Fire up the vagrant machine
           p = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
@@ -680,7 +652,7 @@ class MachineInstance(yaml.YAMLObject):
     @classmethod
     def to_yaml(cls, dumper, data):
         representation = {
-                               "template" : "{0}:{1}".format(data.getTemplate().getName(),data.getTemplate().getVersion()),
+                               "template" : "{0}".format(data.getTemplate().getName()),
                                "arch" : str(data.getArchitecture()),
                                "os_version" : str(data.getOsVersion()),
                                "provider" : str(data.getProvider()),

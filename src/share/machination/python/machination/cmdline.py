@@ -309,7 +309,6 @@ class CmdLine:
         data = {'name': [], 'version': [], 'path': [], 'provisioners': [], 'providers': [], 'archs': [],'comments': []}
         for f in templates.values():
           data['name'].append(f.getName())
-          data['version'].append(str(f.getVersion()))
           data['path'].append(os.path.abspath(f.getPath()))
           data['provisioners'].append(",".join(map(str, f.getProvisioners())))
           data['providers'].append(",".join(map(str, f.getProviders())))
@@ -318,7 +317,6 @@ class CmdLine:
 
         # Each column width will be computed as the max length of its items
         name_col_width = 0
-        version_col_width = 0
         path_col_width = 0
         provisioner_col_width = 0
         providers_col_width = 0
@@ -328,8 +326,6 @@ class CmdLine:
         # Getting the max for each column
         if len(data['name']) != 0:
           name_col_width = max(len(word) for word in data['name']) + len("Name") + 2
-        if len(data['version']) != 0:
-          version_col_width = max(len(word) for word in data['version']) + len("Version") + 2
         if len(data['path']) != 0:
           path_col_width = max(len(word) for word in data['path']) + len("Path") + 2
         if len(data['provisioners']) != 0:
@@ -346,8 +342,7 @@ class CmdLine:
         # Checking number of items in the column name to know if there is something to display or not
         if len(data['name']) != 0:
           # Display the array titles
-          COMMANDLINELOGGER.info("Name".ljust(name_col_width) +
-                                  "Version".ljust(version_col_width) + 
+          COMMANDLINELOGGER.info("Name".ljust(name_col_width) + 
                                   "Path".ljust(path_col_width) + 
                                   "Provisioners".ljust(provisioner_col_width) + 
                                   "Providers".ljust(providers_col_width) + 
@@ -355,8 +350,7 @@ class CmdLine:
                                   "Comments".ljust(comments_col_width))
                                   
           for row in range(0, len(data['name'])):
-              COMMANDLINELOGGER.info(data['name'][row].ljust(name_col_width) + 
-                                     data['version'][row].ljust(version_col_width) + 
+              COMMANDLINELOGGER.info(data['name'][row].ljust(name_col_width) +  
                                      data['path'][row].ljust(path_col_width) + 
                                      data['provisioners'][row].ljust(provisioner_col_width) +
                                      data['providers'][row].ljust(providers_col_width) + 
