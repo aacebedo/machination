@@ -18,7 +18,7 @@
 
 require 'yaml'
 
-ENV['VAGRANT_DEFAULT_PROVIDER'] = "virtualbox"
+ENV['VAGRANT_DEFAULT_PROVIDER'] = "docker"
 
 cwd = File.dirname(File.expand_path(__FILE__))
 machine_config = YAML.load_file("#{cwd}/machine.config")
@@ -56,7 +56,42 @@ Vagrant.configure("2") do |config|
       end
 	  end
   end
-	config.vm.network "public_network", bridge: machine_config["host_interface"]
-	config.vm.define name do |a|
-	config.vm.box = imageName
+ 
+  config.vm.network "public_network"
+  config.vm.provider :docker do |d|
+    d.image = imageName+":"+hash
+    d.name = name
+    d.remains_running = true
+    d.create_args = ["-t","-i"]
+    d.privileged = true
+    d.cmd = ["/sbin/init"]
+    d.has_ssh = true
+  end
+  config.vm.provision :host_shell,run: "always" do |host_shell|
+    command = ""
+    counter=0
+    if ARGV[0] == "up"
+      if machine_config["guest_interfaces"] != 0
+       puts("Additionnal network interfaces require root access.")
+      for i in machine_config["guest_interfaces"]
+        counter+=1
+        if i["ip_addr"] and i["mac_addr"]
+          if i["ip_addr"] == "dhcp"
+            if i["hostname"]
+             	command += "sudo pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + name + " dhcp " + i["mac_addr"] + " " + i["hostname"] + ";"
+            else
+            	command += "sudo pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + name + " dhcp " + i["mac_addr"] + ";"
+            end
+          else
+            command += "sudo pipework " + machine_config["host_interface"] + " -i eth" + counter.to_s + " " + name + " " + i["ip_addr"] + "/24 " + i["mac_addr"] + ";"
+          end
+        else
+          puts("An interface description is malformed. Check the machine_instance_config file.")
+        end
+      end
+    end
+    end
+    host_shell.inline = command
+  end
+
 end

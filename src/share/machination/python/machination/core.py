@@ -446,6 +446,12 @@ class MachineInstance(yaml.YAMLObject):
       self.getProvider().generateFilesFor(self)
       self.getProvisioner().generateFilesFor(self)   
       
+      postproc = {}
+      postproc["type"] = "compress"
+      postproc["output"] = "machine.box"
+      postproc["compression"] = 9
+      self.getPackerFile()["post-processors"].append(postproc)      
+      
       postproc = {}   
       postproc["type"] = "shell"
       postproc["scripts"] = [os.path.join("./",MACHINATION_POSTPROCESSORFILE_NAME)]

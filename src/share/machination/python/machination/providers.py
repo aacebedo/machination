@@ -5,11 +5,10 @@ import StringIO
 import shutil
 import os
 from machination.helpers import generateHashOfFile
-from machination.helpers import generateHashOfDir
 from machination.helpers import accepts
 from machination.exceptions import InvalidArgumentValue
 from machination.loggers import PROVIDERSLOGGER
-from machination.constants import MACHINATION_VBOXDIR
+from machination.constants import MACHINATION_VBOXDIR, MACHINATION_INSTALLDIR
 from abc import abstractmethod
  
 class Provider(object):
@@ -50,18 +49,13 @@ class DockerProvider(Provider):
 
       builder = {}
       builder["type"] = "docker"
-      builder["image"] = "aacebedo/ubuntu-{{user `os_version`}}-vagrant-{{user `architecture`}}"
+      builder["image"] = "aacebedo/ubuntu-{0}-vagrant-{1}".format(instance.getOsVersion(),str(instance.getArchitecture()).lower())
       builder["export_path"] = "./machine.box"
       builder["run_command"] = ["-d", "-i", "-t", "--privileged", "{{.Image}}", "/sbin/init"]
       builder["volumes"] = folders
       instance.getPackerFile()["builders"].append(builder)
-       
-      postproc = {}
-      postproc["type"] = "compress"
-      postproc["output"] = "machine.box"
-      postproc["compression"] = 9
-      instance.getPackerFile()["post-processors"].append(postproc)      
 
+      shutil.copy(os.path.join(MACHINATION_INSTALLDIR, "share", "machination", "vagrant", "Vagrantfile_docker"), os.path.join(instance.getPath(), "Vagrantfile"))
       PROVIDERSLOGGER.debug("Files generated for docker provider.")
 
     def __str__(self):
@@ -100,8 +94,7 @@ class VBoxProvider(Provider):
       if (len(splittedVersionLine) != 2):
         raise RuntimeError("Unable to find OS version {0} in checksum file of ubuntu".format(instance.getOsVersion()))
       
-      shutil.copy2(os.path.join(MACHINATION_VBOXDIR, "preseed.cfg"), os.path.join(instance.getPath(), "preseed.cfg"))        
-      shutil.copy2(os.path.join(MACHINATION_VBOXDIR, "virtualbox_postprocessor"), os.path.join(instance.getPath(), "virtualbox_postprocessor"))        
+      shutil.copy2(os.path.join(MACHINATION_VBOXDIR, "preseed.cfg"), os.path.join(instance.getPath(), "preseed.cfg"))                
       
       folders = {}
       for f in instance.getSharedFolders():
@@ -119,26 +112,22 @@ class VBoxProvider(Provider):
       builder["ssh_username"] = "vagrant"
       builder["ssh_password"] = "vagrant"
       builder["ssh_wait_timeout"] = "20m"
-      builder["headless"] = "true"
+      #builder["headless"] = "true"
       builder["guest_additions_mode"] = "disable"
-      builder["shutdown_command"] = "sudo -S shutdown -P now"
+      builder["shutdown_command"] = "echo 'vagrant' | sudo -E -S shutdown -P now"
       builder["boot_command"] = ["<esc><esc><enter><wait>",
                                   "/install/vmlinuz noapic ",
                                   "preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg ",
                                   "debian-installer=en_US auto locale=en_US kbd-chooser/method=us ",
-                                  "hostname={{user `hostname`}} ",
+                                  "hostname={0} ".format(instance.getName()),
                                   "fb=false debconf/frontend=noninteractive ",
                                   "keyboard-configuration/modelcode=SKIP keyboard-configuration/layout=FR ",
                                   "keyboard-configuration/variant=USA console-setup/ask_detect=false ",
                                   "initrd=/install/initrd.gz -- <enter>"
       ]        
-      instance.getPackerFile()["builders"].append(builder)
-      
-      postproc = {}   
-      postproc["type"] = "vagrant"
-      postproc["output"] = "machine.box"
-      postproc["compression_level"] = 0      
-      instance.getPackerFile()["post-processors"].append(postproc)
+      instance.getPackerFile()["builders"].append(builder)    
+
+      shutil.copy(os.path.join(MACHINATION_INSTALLDIR, "share", "machination", "vagrant", "Vagrantfile_vbox"), os.path.join(instance.getPath(), "Vagrantfile"))
           
       PROVIDERSLOGGER.debug("Files generated for Vbox provider.")
 
