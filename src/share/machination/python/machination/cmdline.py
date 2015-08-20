@@ -444,7 +444,7 @@ class CmdLine:
         else:
           (template, architecture, osversion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders) =  MachineInstanceCreationWizard().execute(args,templates)
           # Try to create the new machine
-          instance = MachineInstance(args.name, template, architecture, osversion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders)
+          instance = MachineInstance(args.name, template, architecture, osversion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders,None)
           instance.create()
           COMMANDLINELOGGER.info("MachineInstance successfully created:")
           instances = MACHINE_INSTANCE_REGISTRY.getInstances()

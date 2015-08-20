@@ -26,10 +26,7 @@ import pwd
 import shutil
 import traceback
 import hashlib
-from distutils.version import LooseVersion
 
-from machination.constants import MACHINATION_INSTALLDIR,\
-  MACHINATION_POSTPROCESSORFILE_NAME, MACHINATION_HASHFILE_NAME
 from machination.constants import MACHINATION_USERINSTANCESDIR
 from machination.constants import MACHINATION_CONFIGFILE_NAME
 from machination.constants import MACHINATION_PACKERFILE_NAME
@@ -47,9 +44,8 @@ from machination.exceptions import InvalidYAMLException
 from machination.exceptions import InvalidMachineTemplateException
 
 from machination.helpers import accepts
-from machination.helpers import generateHashOfDir
-from machination.helpers import generateHashOfFile
 from machination.loggers import CORELOGGER
+from machination.helpers import generateHashOfFile
 
 # #
 # Class representing a network interface
@@ -388,12 +384,13 @@ class MachineInstance(yaml.YAMLObject):
     _architecture = None
     _sharedFolders = None
     _packerFile = None
+    _hash = None
 
     # ##
     # Constructor
     # ##
-    @accepts(None, str, MachineTemplate, Architecture, str, Provider, Provisioner, list, str, list)
-    def __init__(self, name, template, architecture, osVersion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders):
+    @accepts(None, str, MachineTemplate, Architecture, str, Provider, Provisioner, list, str, list,None)
+    def __init__(self, name, template, architecture, osVersion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders,hashValue):
       # Check the arguments
       if len(osVersion) == 0:
         raise InvalidArgumentValue("osVersion",osVersion)
@@ -419,6 +416,7 @@ class MachineInstance(yaml.YAMLObject):
       self._sharedFolders = sharedFolders
       self._hostInterface = hostInterface
       self._packerFile = {}
+      self._hash = hashValue 
 
     # ##
     # Simple getters
@@ -432,7 +430,6 @@ class MachineInstance(yaml.YAMLObject):
     def generateFiles(self):
       os.makedirs(self.getPath())
 
-      shutil.copy(os.path.join(MACHINATION_INSTALLDIR, "share", "machination", "packer", MACHINATION_POSTPROCESSORFILE_NAME), os.path.join(self.getPath(), MACHINATION_POSTPROCESSORFILE_NAME))
       # Create the machine config file
       configFile = yaml.dump(self)
       openedFile = open(os.path.join(self.getPath(), MACHINATION_CONFIGFILE_NAME), "w+")
@@ -446,17 +443,6 @@ class MachineInstance(yaml.YAMLObject):
       self.getProvider().generateFilesFor(self)
       self.getProvisioner().generateFilesFor(self)   
       
-      postproc = {}
-      postproc["type"] = "compress"
-      postproc["output"] = "machine.box"
-      postproc["compression"] = 9
-      self.getPackerFile()["post-processors"].append(postproc)      
-      
-      postproc = {}   
-      postproc["type"] = "shell"
-      postproc["scripts"] = [os.path.join("./",MACHINATION_POSTPROCESSORFILE_NAME)]
-      self.getPackerFile()["post-processors"].append(postproc)
-      
       outfile = open(os.path.join(self.getPath(),MACHINATION_PACKERFILE_NAME),"w")
       json.dump(self.getPackerFile(),outfile,indent=2)
       outfile.close()
@@ -464,16 +450,11 @@ class MachineInstance(yaml.YAMLObject):
       self.getProvisioner().generateHashFor(self,hashValue)
       self.getProvisioner().generateHashFor(self,hashValue)
       generateHashOfFile(os.path.join(self.getPath(), "Vagrantfile"),hashValue)
-      md5 = open(os.path.join(self.getPath(),"md5"),"w+")
-      md5.write(hashValue.hexdigest())
-      md5.close()
-      
+      self._hash = hashValue.hexdigest() 
+        
     def getHash(self):
-      hashFilePath = os.path.join(self.getPath(),MACHINATION_HASHFILE_NAME)
-      if(os.path.exists(hashFilePath)):
-        return  open(hashFilePath,'r').read()
-      else:
-        raise RuntimeError("Unable to find hash of instance")
+      return self._hash
+    
     # ##
     # Function to generate the file attached to the instance
     # ##
@@ -482,7 +463,6 @@ class MachineInstance(yaml.YAMLObject):
       if not os.path.exists(self.getPath()):
         try:
           self.generateFiles()
-          self.generateHash()
           self.pack()
         except Exception as e:
           #shutil.rmtree(self.getPath())
@@ -498,9 +478,14 @@ class MachineInstance(yaml.YAMLObject):
       if os.path.exists(self.getPath()):
         if self.getProvider().needsProvisioning(self):
           CORELOGGER.debug("Image needs provisioning, starting packer...")
-          cmd = "packer build  {0}".format(os.path.join(".",MACHINATION_PACKERFILE_NAME))
           
           # Fire up the vagrant machine
+          cmd = "packer build -var 'provisioner={0}' -var 'provider={1}' -var 'architecture={2}' -var 'osversion={3}' -var 'hash={4}' {5}".format(
+                                                                               str(self.getProvisioner()).lower(),
+                                                                               str(self.getProvider()).lower(),
+                                                                               str(self.getArchitecture()).lower(),
+                                                                               self.getOsVersion().lower(),
+                                                                              self.getHash(),os.path.join(".",MACHINATION_PACKERFILE_NAME))
           p = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
           p.communicate()[0]
           returnCode = p.returncode
@@ -537,6 +522,12 @@ class MachineInstance(yaml.YAMLObject):
     
     def getHostInterface(self):
       return self._hostInterface
+
+    def getImageName(self):
+      return "machination-{0}-{1}-{2}-{3}".format(self.getTemplate().getName().lower(),
+                                                           str(self.getArchitecture()).lower(),
+                                                           self.getOsVersion().lower(),
+                                                           str(self.getProvisioner()).lower())
 
     def __str__(self):
       return self.getName()
@@ -665,6 +656,7 @@ class MachineInstance(yaml.YAMLObject):
                                "guest_interfaces" : data.getGuestInterfaces(),
                                "host_interface" : data.getHostInterface(),
                                "shared_folders" :  data.getSharedFolders(),
+                               "hash": data.getHash()
                                }
         node = dumper.represent_mapping(data.yaml_tag, representation)
         return node
@@ -710,6 +702,11 @@ class MachineInstance(yaml.YAMLObject):
         hostInterface = None
         if "host_interface" in representation.keys():
             hostInterface = representation["host_interface"]
+            
+        hashValue = None
+        if "hash" in representation.keys():
+            hashValue = representation["hashValue"]
+                
         
         return MachineInstance(name,
                                    template,
@@ -719,4 +716,5 @@ class MachineInstance(yaml.YAMLObject):
                                    provisioner,
                                    guestInterfaces,
                                    hostInterface,
-                                   sharedFolders)
+                                   sharedFolders,
+                                   hashValue)
