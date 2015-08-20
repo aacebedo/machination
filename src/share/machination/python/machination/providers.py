@@ -46,15 +46,21 @@ class DockerProvider(Provider):
       folders = {}
       for f in instance.getSharedFolders():
         folders[f.getHostDir()] = f.getGuestDir()
-
+      
       builder = {}
       builder["type"] = "docker"
-      builder["image"] = "aacebedo/ubuntu-{0}-vagrant-{1}".format(instance.getOsVersion(),str(instance.getArchitecture()).lower())
+      builder["image"] = "aacebedo/ubuntu-{{user `osversion`}}-vagrant-{{user `architecture`}}"
       builder["export_path"] = "./machine.box"
       builder["run_command"] = ["-d", "-i", "-t", "--privileged", "{{.Image}}", "/sbin/init"]
       builder["volumes"] = folders
-      instance.getPackerFile()["builders"].append(builder)
-
+      instance.getPackerFile()["builders"].append(builder) 
+      
+      postproc = {}
+      postproc["type"] = "docker-import"
+      postproc["repository"] = instance.getImageName()
+      postproc["tag"] = "{{user `hash`}}"
+      instance.getPackerFile()["post-processors"].append(postproc)
+      
       shutil.copy(os.path.join(MACHINATION_INSTALLDIR, "share", "machination", "vagrant", "Vagrantfile_docker"), os.path.join(instance.getPath(), "Vagrantfile"))
       PROVIDERSLOGGER.debug("Files generated for docker provider.")
 
@@ -67,11 +73,8 @@ class DockerProvider(Provider):
     
     @abstractmethod
     def needsProvisioning(self, instance):
-      imageName = "machination-{0}-{1}-{2}-{3}".format(instance.getTemplate().getName().lower(),
-                                                           str(instance.getArchitecture()).lower(),
-                                                           instance.getOsVersion().lower(),
-                                                           str(instance.getProvisioner()).lower())
-      regex = "(.*){0}( *){1}(.*)".format(imageName, str(instance.getHash()))
+      regex = "(.*){0}( *){1}(.*)".format(instance.getImageName(), str(instance.getHash()))
+      print(regex)
       p = subprocess.Popen("docker images -a", shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
       out = p.communicate()[0]
       if p.returncode == 0:
@@ -112,7 +115,7 @@ class VBoxProvider(Provider):
       builder["ssh_username"] = "vagrant"
       builder["ssh_password"] = "vagrant"
       builder["ssh_wait_timeout"] = "20m"
-      #builder["headless"] = "true"
+      builder["headless"] = "true"
       builder["guest_additions_mode"] = "disable"
       builder["shutdown_command"] = "echo 'vagrant' | sudo -E -S shutdown -P now"
       builder["boot_command"] = ["<esc><esc><enter><wait>",
@@ -125,9 +128,20 @@ class VBoxProvider(Provider):
                                   "keyboard-configuration/variant=USA console-setup/ask_detect=false ",
                                   "initrd=/install/initrd.gz -- <enter>"
       ]        
-      instance.getPackerFile()["builders"].append(builder)    
+      instance.getPackerFile()["builders"].append(builder)
+      
+      postproc = {}
+      postproc["type"] = "vagrant"
+      postproc["output"] = "machine.box"
+      instance.getPackerFile()["post-processors"].append(postproc)
+      
+      postproc = {}
+      postproc["type"] = "vagrant-import"
+      postproc["box_file"] = "machine.box"
+      postproc["import_name"] = instance.getImageName()
+      instance.getPackerFile()["post-processors"].append(postproc)
 
-      shutil.copy(os.path.join(MACHINATION_INSTALLDIR, "share", "machination", "vagrant", "Vagrantfile_vbox"), os.path.join(instance.getPath(), "Vagrantfile"))
+      shutil.copy(os.path.join(MACHINATION_INSTALLDIR, "share", "machination", "vagrant", "Vagrantfile_virtualbox"), os.path.join(instance.getPath(), "Vagrantfile"))
           
       PROVIDERSLOGGER.debug("Files generated for virtualbox provider.")
 
@@ -137,11 +151,7 @@ class VBoxProvider(Provider):
     @abstractmethod
     def needsProvisioning(self, instance):
       # virtualbox always needs provisioning
-      imageName = "machination-{0}-{1}-{2}-{3}".format(instance.getTemplate().getName().lower(),
-                                                           str(instance.getArchitecture()).lower(),
-                                                           instance.getOsVersion().lower(),
-                                                           str(instance.getProvisioner()).lower())
-      regex = "(.*){0}(.*)".format(imageName)
+      regex = "(.*){0}(.*)".format(instance.getImageName())
       p = subprocess.Popen("vagrant box list", shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
       out = p.communicate()[0]
       if p.returncode == 0:
