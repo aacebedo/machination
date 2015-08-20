@@ -110,8 +110,7 @@ def build(ctx):
   templateFiles = []
   
   for t in ctx.env.TEMPLATES:
-  	templateFiles.extend(etcPath.ant_glob('**/machination/templates/'+t+'.*.template'))  
-  
+  	templateFiles.extend(etcPath.ant_glob('**/machination/templates/'+t+'.template'))  
   
   ctx.install_files(os.path.join(ctx.env.PREFIX,'share'), sharePath.ant_glob('**/*'), cwd=sharePath, relative_trick=True)
   ctx.install_files(os.path.join(ctx.env.PREFIX,'bin'), binPath.ant_glob('**/*'),  chmod=0555, cwd=binPath, relative_trick=True)
