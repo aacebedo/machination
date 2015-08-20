@@ -38,4 +38,4 @@ class Architecture(StringifiedEnum):
       if val in vals:
         return vals[val]
       else:
-        raise InvalidArgumentValue("Unknown architecture")
+        raise InvalidArgumentValue("Unknown architecture",val)
