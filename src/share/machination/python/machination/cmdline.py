@@ -151,7 +151,6 @@ class MachineInstanceCreationWizard:
           raise InvalidCmdLineArgument("osversion", args.osversion)
     else:
       COMMANDLINELOGGER.debug("Template has only one os version. It will be used as the default value")
-
     return osVersion
               
   def requestArchitecture(self,args,template):
@@ -246,7 +245,6 @@ class MachineInstanceCreationWizard:
         if(len(args.guestinterface) < template.getGuestInterfaces()):
           COMMANDLINELOGGER.error("Not enough guestinterfaces given to fill requirement of template")
           raise InvalidCmdLineArgument("guestinterface", args.guestinterface)
-
       if args.no_interactive == False:
         # Ask for adding a new shared folder
         while BinaryQuestion("Do you want to add a shared folder ?",
@@ -447,11 +445,10 @@ class CmdLine:
           COMMANDLINELOGGER.info("Instance '{0}' successfully created:".forma(args.name))
           instances = MACHINE_INSTANCE_REGISTRY.getInstances()
           COMMANDLINELOGGER.info(instances[args.name].getInfos())
-
-      
       except (KeyboardInterrupt, SystemExit):
-        COMMANDLINELOGGER.debug(traceback.format_exc())
-        res = errno.EINVAL          
+        if (not args.verbose):
+          COMMANDLINELOGGER.debug(traceback.format_exc())
+        res = errno.EINVAL
       except Exception as e:
         COMMANDLINELOGGER.error("Unable to create instance '{0}': {1}.".format(args.name,str(e)))
         if (not args.verbose):
@@ -560,7 +557,7 @@ class CmdLine:
           COMMANDLINELOGGER.debug(traceback.format_exc())
           res = errno.EINVAL
       return res
-
+    
     # ##
     # Function to stop a machine
     # User must be root to call this function juste to be symetric with the start operation
@@ -683,7 +680,7 @@ class CmdLine:
       parser = argparse.ArgumentParser(prog="Machination", description='Machination utility, all your appliances belong to us.')
       rootSubparsers = parser.add_subparsers(dest="function")
       
-      versionParser = rootSubparsers.add_parser('version', help='Display version')      
+      rootSubparsers.add_parser('version', help='Display version')
       
       # Parser for list command
       listParser = rootSubparsers.add_parser('list', help='List templates and instances')
