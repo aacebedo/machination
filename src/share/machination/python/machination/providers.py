@@ -97,7 +97,7 @@ class VBoxProvider(Provider):
       if (len(splittedVersionLine) != 2):
         raise RuntimeError("Unable to find OS version {0} in checksum file of ubuntu".format(instance.getOsVersion()))
       
-      shutil.copy2(os.path.join(MACHINATION_VBOXDIR, "preseed.cfg"), os.path.join(instance.getPath(), "preseed.cfg"))                
+      shutil.copy2(os.path.join(MACHINATION_VBOXDIR, "preseed.cfg"), os.path.join(instance.getPath(), "preseed.cfg"))
       
       folders = {}
       for f in instance.getSharedFolders():
@@ -131,13 +131,7 @@ class VBoxProvider(Provider):
       instance.getPackerFile()["builders"].append(builder)
       
       postproc = {}
-      postproc["type"] = "vagrant"
-      postproc["output"] = "machine.box"
-      instance.getPackerFile()["post-processors"].append(postproc)
-      
-      postproc = {}
       postproc["type"] = "vagrant-import"
-      postproc["box_file"] = "machine.box"
       postproc["import_name"] = instance.getImageName()+"-{{user `template_hash`}}"
       instance.getPackerFile()["post-processors"].append(postproc)
 
@@ -162,5 +156,4 @@ class VBoxProvider(Provider):
     @abstractmethod
     def generateHashFor(self, instance, hashValue):
       generateHashOfFile(os.path.join(instance.getPath(), "preseed.cfg"),hashValue)
-      
       
