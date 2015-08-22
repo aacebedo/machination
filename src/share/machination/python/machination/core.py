@@ -384,13 +384,13 @@ class MachineInstance(yaml.YAMLObject):
     _architecture = None
     _sharedFolders = None
     _packerFile = None
-    _hash = None
+    _templateHash = None
 
     # ##
     # Constructor
     # ##
     @accepts(None, str, MachineTemplate, Architecture, str, Provider, Provisioner, list, str, list,None)
-    def __init__(self, name, template, architecture, osVersion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders,hashValue):
+    def __init__(self, name, template, architecture, osVersion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders,templateHash):
       # Check the arguments
       if len(osVersion) == 0:
         raise InvalidArgumentValue("osVersion",osVersion)
@@ -416,7 +416,7 @@ class MachineInstance(yaml.YAMLObject):
       self._sharedFolders = sharedFolders
       self._hostInterface = hostInterface
       self._packerFile = {}
-      self._hash = hashValue 
+      self._templateHash = templateHash 
 
     # ##
     # Simple getters
@@ -430,11 +430,6 @@ class MachineInstance(yaml.YAMLObject):
     def generateFiles(self):
       os.makedirs(self.getPath())
 
-      # Create the machine config file
-      configFile = yaml.dump(self)
-      openedFile = open(os.path.join(self.getPath(), MACHINATION_CONFIGFILE_NAME), "w+")
-      openedFile.write(configFile)
-      openedFile.close()
       # Generate the file related to the provisioner and the provider
       self.getPackerFile()["builders"] = []
       self.getPackerFile()["provisioners"] = []
@@ -446,15 +441,17 @@ class MachineInstance(yaml.YAMLObject):
       outfile = open(os.path.join(self.getPath(),MACHINATION_PACKERFILE_NAME),"w")
       json.dump(self.getPackerFile(),outfile,indent=2)
       outfile.close()
-      hashValue = hashlib.sha1()
-      self.getProvisioner().generateHashFor(self,hashValue)
-      self.getProvisioner().generateHashFor(self,hashValue)
-      generateHashOfFile(os.path.join(self.getPath(), "Vagrantfile"),hashValue)
-      self._hash = hashValue.hexdigest() 
-        
-    def getHash(self):
-      return self._hash
-    
+      templateHash = hashlib.sha1()
+      self.getProvisioner().generateHashFor(self,templateHash)
+      self.getProvisioner().generateHashFor(self,templateHash)
+      generateHashOfFile(os.path.join(self.getPath(), "Vagrantfile"),templateHash)
+      self._templateHash = templateHash.hexdigest()
+      # Create the machine config file
+      configFile = yaml.dump(self)
+      openedFile = open(os.path.join(self.getPath(), MACHINATION_CONFIGFILE_NAME), "w+")
+      openedFile.write(configFile)
+      openedFile.close()
+          
     # ##
     # Function to generate the file attached to the instance
     # ##
@@ -485,7 +482,8 @@ class MachineInstance(yaml.YAMLObject):
                                                                                str(self.getProvider()).lower(),
                                                                                str(self.getArchitecture()).lower(),
                                                                                self.getOsVersion().lower(),
-                                                                              self.getHash(),os.path.join(".",MACHINATION_PACKERFILE_NAME))
+                                                                              self.getTemplateHash(),os.path.join(".",MACHINATION_PACKERFILE_NAME))
+          CORELOGGER.info("executed command {0}".format(cmd))
           p = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
           p.communicate()[0]
           returnCode = p.returncode
@@ -498,6 +496,9 @@ class MachineInstance(yaml.YAMLObject):
     # ##
     def getName(self):
       return self._name
+
+    def getTemplateHash(self):
+      return self._templateHash
 
     def getArchitecture(self):
       return self._architecture
@@ -656,7 +657,7 @@ class MachineInstance(yaml.YAMLObject):
                                "guest_interfaces" : data.getGuestInterfaces(),
                                "host_interface" : data.getHostInterface(),
                                "shared_folders" :  data.getSharedFolders(),
-                               "hash": data.getHash()
+                               "template_hash": data.getTemplateHash()
                                }
         node = dumper.represent_mapping(data.yaml_tag, representation)
         return node
@@ -703,9 +704,9 @@ class MachineInstance(yaml.YAMLObject):
         if "host_interface" in representation.keys():
             hostInterface = representation["host_interface"]
             
-        hashValue = None
-        if "hash" in representation.keys():
-            hashValue = representation["hashValue"]
+        templateHash = None
+        if "template_hash" in representation.keys():
+            templateHash = representation["template_hash"]
                 
         
         return MachineInstance(name,
@@ -717,4 +718,4 @@ class MachineInstance(yaml.YAMLObject):
                                    guestInterfaces,
                                    hostInterface,
                                    sharedFolders,
-                                   hashValue)
+                                   templateHash)

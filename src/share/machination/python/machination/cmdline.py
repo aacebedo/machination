@@ -437,13 +437,13 @@ class CmdLine:
           if args.name in instances.keys():
             COMMANDLINELOGGER.error("Machine instance named '{0}' already exists but creation was forced so firstly machination will delete it.".format(args.name))
             instances[args.name].destroy()
-      
+        
         if args.force == False and args.name in instances.keys():
             COMMANDLINELOGGER.error("Unable to create machine: MachineInstance named '{0}' already exists. Change the name of your new machine or delete the existing one.".format(args.name))
             res = errno.EALREADY
         else:
           (template, architecture, osversion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders) =  MachineInstanceCreationWizard().execute(args,templates)
-          # Try to create the new machine
+          # Try to create the new machine 
           instance = MachineInstance(args.name, template, architecture, osversion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders,None)
           instance.create()
           COMMANDLINELOGGER.info("MachineInstance successfully created:")

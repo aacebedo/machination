@@ -20,7 +20,6 @@ require 'yaml'
 
 cwd = File.dirname(File.expand_path(__FILE__))
 machine_config = YAML.load_file("#{cwd}/machine.config")
-hash = File.read("#{cwd}/hash")
 
 name = "machination-"+cwd.split('/').last
 
@@ -40,7 +39,7 @@ if not machine_config["guest_interfaces"]
   abort("Guest interfaces are missing from the configuration file. Check the machine_instance_config file.")
 end
 
-imageName = "machination-"+machine_config["template"]+"-"+machine_config["architecture"]+"-"+machine_config["os_version"]+"-"+machine_config["provisioner"]-machine_config["hash"]
+imageName = "machination-"+machine_config["template"]+"-"+machine_config["architecture"]+"-"+machine_config["os_version"]+"-"+machine_config["provisioner"]+"-"+machine_config["template_hash"]
 imageName = imageName.downcase
     
 Vagrant.configure("2") do |config|

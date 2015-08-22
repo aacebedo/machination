@@ -17,7 +17,7 @@ class Provider(object):
       pass
 
     @abstractmethod
-    def generateHashFor(self, instance, hash):
+    def generateHashFor(self, instance, hashValue):
       pass
     
     @staticmethod
@@ -58,7 +58,7 @@ class DockerProvider(Provider):
       postproc = {}
       postproc["type"] = "docker-import"
       postproc["repository"] = instance.getImageName()
-      postproc["tag"] = "{{user `hash`}}"
+      postproc["tag"] = "{{user `template_hash`}}"
       instance.getPackerFile()["post-processors"].append(postproc)
       
       shutil.copy(os.path.join(MACHINATION_INSTALLDIR, "share", "machination", "vagrant", "Vagrantfile_docker"), os.path.join(instance.getPath(), "Vagrantfile"))
@@ -73,7 +73,7 @@ class DockerProvider(Provider):
     
     @abstractmethod
     def needsProvisioning(self, instance):
-      regex = "(.*){0}( *){1}(.*)".format(instance.getImageName(), str(instance.getHash()))
+      regex = "(.*){0}( *){1}(.*)".format(instance.getImageName(), str(instance.getTemplateHash()))
       print(regex)
       p = subprocess.Popen("docker images -a", shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
       out = p.communicate()[0]
@@ -138,7 +138,7 @@ class VBoxProvider(Provider):
       postproc = {}
       postproc["type"] = "vagrant-import"
       postproc["box_file"] = "machine.box"
-      postproc["import_name"] = instance.getImageName()
+      postproc["import_name"] = instance.getImageName()+"-{{user `template_hash`}}"
       instance.getPackerFile()["post-processors"].append(postproc)
 
       shutil.copy(os.path.join(MACHINATION_INSTALLDIR, "share", "machination", "vagrant", "Vagrantfile_virtualbox"), os.path.join(instance.getPath(), "Vagrantfile"))
@@ -151,7 +151,7 @@ class VBoxProvider(Provider):
     @abstractmethod
     def needsProvisioning(self, instance):
       # virtualbox always needs provisioning
-      regex = "(.*){0}(.*)".format(instance.getImageName())
+      regex = "{0}-{1}(.*)".format(instance.getImageName(),instance.getTemplateHash())
       p = subprocess.Popen("vagrant box list", shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
       out = p.communicate()[0]
       if p.returncode == 0:
