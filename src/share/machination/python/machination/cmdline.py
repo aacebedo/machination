@@ -221,7 +221,7 @@ class CmdLine:
           # Try to create the new machine 
           instance = MachineInstance(args.name, template, architecture, osversion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders,None)
           instance.create()
-          COMMANDLINELOGGER.info("Instance '{0}' successfully created:".forma(args.name))
+          COMMANDLINELOGGER.info("Instance '{0}' successfully created:".format(args.name))
           instances = MACHINE_INSTANCE_REGISTRY.getInstances()
           COMMANDLINELOGGER.info(instances[args.name].getInfos())
       except (KeyboardInterrupt, SystemExit):
