@@ -10,10 +10,6 @@ from machination.exceptions import InvalidMachineTemplateException
  
 from machination.constants import MACHINATION_DEFAULTANSIBLEROLESDIR
 from machination.constants import MACHINATION_USERANSIBLEROLESDIR
-from machination.constants import MACHINATION_DEFAULTANSIBLEPLAYBOOKSDIR
-from machination.constants import MACHINATION_USERANSIBLEPLAYBOOKSDIR
-
-from machination.loggers import FILEGENERATORLOGGER
 
 from machination.helpers import mkdir_p
 

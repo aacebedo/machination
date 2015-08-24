@@ -24,10 +24,13 @@ import socket
 import fcntl
 import struct
 import array
-import hashlib, os
+import hashlib
+import sys
 
 from machination.exceptions import InvalidArgumentNumberError
 from machination.exceptions import ArgumentValidationError
+from abc import abstractmethod
+import thread
 
 def ordinal(num):
     '''
@@ -104,7 +107,7 @@ def demote(user_uid, user_gid):
   
 def generateHashOfDir(directory,hashValue):
   if os.path.exists (directory):
-    for root, dirs, files in os.walk(directory):
+    for root, _, files in os.walk(directory):
       for names in files:
         filepath = os.path.join(root,names)
         generateHashOfFile(filepath, hashValue)
@@ -136,3 +139,45 @@ def getAllNetInterfaces():
           lst.append(name)
     return lst
  
+class ProgressingTask:
+  
+  lines = {}
+  progressBar = None
+  
+  lines = None
+  progressBar = None
+  running = False
+  widgets = None
+    
+  def run(self):
+    while self.running:
+      self.progressBar.update()
+      
+  def start(self):
+    self.running = True
+    self.progressBar.start()
+    thread.start_new_thread(ProgressingTask.run, (self,))
+
+  def stop(self):
+    self.running = False
+    self.progressBar.finish()
+    self.lines.clear()
+
+  def __init__(self):
+    self.widgets = ['', Percentage(), ' ', RotatingMarker(), ' ', Bar(), ' ', Timer(), ' ', ETA()]
+    self.progressBar = ProgressBar(widgets=self.widgets, maxval=100)
+    self.stream = sys.stdout
+    
+  def appendLines(self,lines):
+    self.lines.update(lines)
+  
+  @abstractmethod
+  def getProgress(self):
+    pass
+  
+  def update(self, line):
+    if line in self.lines:
+      if self.lines[line][1]:
+        self.widgets[0] = line
+      self.progressBar.update(self.lines[line][0])
+  

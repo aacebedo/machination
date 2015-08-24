@@ -22,7 +22,6 @@ import yaml
 import json
 import subprocess
 import sys
-import pwd
 import shutil
 import traceback
 import hashlib
@@ -46,6 +45,7 @@ from machination.exceptions import InvalidMachineTemplateException
 from machination.helpers import accepts
 from machination.loggers import CORELOGGER
 from machination.helpers import generateHashOfFile
+
 
 # #
 # Class representing a network interface
@@ -427,7 +427,7 @@ class MachineInstance(yaml.YAMLObject):
     def getPackerFile(self):
       return self._packerFile
     
-    def generateFiles(self):
+    def generateFiles(self, progressBar=None):
       os.makedirs(self.getPath())
 
       # Generate the file related to the provisioner and the provider
@@ -451,26 +451,29 @@ class MachineInstance(yaml.YAMLObject):
       openedFile = open(os.path.join(self.getPath(), MACHINATION_CONFIGFILE_NAME), "w+")
       openedFile.write(configFile)
       openedFile.close()
+      if progressBar != None:
+        progressBar.update(progressBar.percentage() + 10)
+          
           
     # ##
     # Function to generate the file attached to the instance
     # ##
-    def create(self):
+    def create(self, progressBar=None):
       # If the machine does not exist yet
       if not os.path.exists(self.getPath()):
         try:
-          self.generateFiles()
-          self.pack()
+          self.generateFiles(progressBar)
+          self.pack(progressBar)
         except Exception as e:
-          #shutil.rmtree(self.getPath())
+          # shutil.rmtree(self.getPath())
           CORELOGGER.debug(traceback.format_exc())
           raise e
       else:
-        #shutil.rmtree(self.getPath())
+        # shutil.rmtree(self.getPath())
         # Raise an error about the fact the machine already exists
         raise RuntimeError("MachineInstance instance '{0}' already exists".format(self.getPath()))
 
-    def pack(self):
+    def pack(self, progressBar=None):
       # If the machine does not exist yet
       if os.path.exists(self.getPath()):
         if self.getProvider().needsProvisioning(self):
@@ -482,15 +485,19 @@ class MachineInstance(yaml.YAMLObject):
                                                                                str(self.getProvider()).lower(),
                                                                                str(self.getArchitecture()).lower(),
                                                                                self.getOsVersion().lower(),
-                                                                              self.getTemplateHash(),os.path.join(".",MACHINATION_PACKERFILE_NAME))
+                                                                              self.getTemplateHash(), os.path.join(".", MACHINATION_PACKERFILE_NAME))
           CORELOGGER.info("executed command {0}".format(cmd))
-          p = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
-          p.communicate()[0]
-          returnCode = p.returncode
-          if returnCode != 0:
+          p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.getPath())
+          while True:
+            line = p.stdout.readline()
+            if line == '' and p.poll() is not None:
+              break
+            else:
+              CORELOGGER.debug(line.strip())
+          if p.poll() != 0:
             raise RuntimeError("Error while creating packing '{0}'".format(self.getName()));
       else:
-            raise RuntimeError("Error while packing machine '{0}'".format(self.getName()));
+        raise RuntimeError("Error while packing machine '{0}'".format(self.getName()));
     # ##
     # Simple getters
     # ##
@@ -541,18 +548,31 @@ class MachineInstance(yaml.YAMLObject):
       # Fire up the vagrant machine
       self.pack()
       p = subprocess.Popen("vagrant up --provider={0}".format(str(self.getProvider())), shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
-      p.communicate()[0]
-      if p.returncode != 0:
+      while True:
+        line = p.stdout.readline()
+        if line == '' and p.poll() is not None:
+          break
+        else:
+          CORELOGGER.debug(line.strip())
+      if p.poll() != 0:
         raise RuntimeError("Error while starting machine instance: '{0}'".format(self.getName()));
 
     # ##
     # Function to destroy an instance
     # ##  
-    def destroy(self):
+    def destroy(self, progressBar = None):
       # Destroy the vagrant machine
+      CORELOGGER.info("Deletings instance: ")
       p = subprocess.Popen("vagrant destroy -f", shell=True, stdout=subprocess.PIPE, cwd=self.getPath())
-      p.wait()
-      if p.returncode != 0:
+      while True:
+        line = p.stdout.readline()
+        if line == '' and p.poll() is not None:
+          break
+        else:
+          if progressBar != None:
+            progressBar.update(line.strip())
+          CORELOGGER.debug(line.strip())
+      if p.poll() != 0:
         raise RuntimeError("Error while destroying machine instance '{0}'".format(self.getName()));
       shutil.rmtree(self.getPath())
 
@@ -561,7 +581,12 @@ class MachineInstance(yaml.YAMLObject):
     # ##
     def stop(self):
       p = subprocess.Popen("vagrant halt", shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
-      p.communicate()[0]
+      while True:
+        line = p.stdout.readline()
+        if line != '':
+          CORELOGGER.debug(line.rstrip("\r\n"))
+        else:
+          break
       if p.returncode != 0:
         raise RuntimeError("Error while stopping machine instance: '{0}'".format(self.getName()));
 

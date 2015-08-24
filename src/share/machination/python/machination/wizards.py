@@ -193,21 +193,21 @@ class MachineInstanceCreationWizard:
       # Ask for configuration of network interface of the template
       itfCounter = 0
       if args.guestinterface != None:
-        for i in range(0,template.getGuestInterfaces()):
+        for _ in range(0,template.getGuestInterfaces()):
           (ipAddr,macAddr,hostname) = self.unpackInterface(args.guestinterface[itfCounter] )
           guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostname))
-        for i in range(itfCounter, len(args.guestinterface)):
+        for _ in range(itfCounter, len(args.guestinterface)):
           (ipAddr,macAddr,hostname) = self.unpackInterface(args.guestinterface[itfCounter] )
           guestInterfaces.append(NetworkInterface(ipAddr, macAddr,hostname))
           itfCounter += 1
       else:
-        for i in range(0,template.getGuestInterfaces()):
+        for _ in range(0,template.getGuestInterfaces()):
           (ipAddr,macAddr,hostname) = self.requestInterface(networkInterfaces)
           guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostname))
 
       # Ask for additional network interfaces
       if args.no_interactive == False:
-        for i in range(itfCounter,template.getGuestInterfaces()):
+        for _ in range(itfCounter,template.getGuestInterfaces()):
           (ipAddr,macAddr,hostname) = self.requestInterface(networkInterfaces)
           guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostname))
       else:
