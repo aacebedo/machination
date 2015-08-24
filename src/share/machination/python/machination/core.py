@@ -66,16 +66,16 @@ class NetworkInterface(yaml.YAMLObject):
       if re.match("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|dhcp$", ipAddr):
         self._ipAddr = ipAddr
       else:
-        raise InvalidArgumentValue("ipAddr",ipAddr)
+        raise InvalidArgumentValue("ipAddr", ipAddr)
       if re.match("^([0-9a-fA-F]{2}[\.:-]){5}([0-9a-fA-F]{2})$", macAddr):
         self._macAddr = macAddr
       else:
-        raise InvalidArgumentValue("macAddr",macAddr)
+        raise InvalidArgumentValue("macAddr", macAddr)
 
       if hostname == None or (type(hostname) is str and re.match("^([0-9a-zA-Z]*)$", hostname)):
         self._hostname = hostname
       else:
-        raise InvalidArgumentValue("hostname",hostname)
+        raise InvalidArgumentValue("hostname", hostname)
 
     # ##
     # Simple getters
@@ -132,7 +132,7 @@ class NetworkInterface(yaml.YAMLObject):
       if "hostname" in representation.keys():
         hostname = representation["hostname"]
 
-      return NetworkInterface(representation["ip_addr"],  representation["mac_addr"], hostname)
+      return NetworkInterface(representation["ip_addr"], representation["mac_addr"], hostname)
     
 # ##
 # Class representing a sync folder between host and guest
@@ -152,10 +152,10 @@ class SharedFolder(yaml.YAMLObject):
         self._hostDir = host_dir
       else:
         raise PathNotExistError(host_dir)
-      if re.match("^(\/.*)$",guest_dir):
+      if re.match("^(\/.*)$", guest_dir):
         self._guestDir = guest_dir
       else:
-        raise InvalidArgumentValue("guest_dir",guest_dir)
+        raise InvalidArgumentValue("guest_dir", guest_dir)
 
     # ##
     # Simple getters
@@ -217,12 +217,12 @@ class MachineTemplate(yaml.YAMLObject):
     # ##
     # Constructor
     # ##
-    @accepts(None, str, list, list, list,list, None,str,list)
-    def __init__(self, path, architectures, osVersions , providers, provisioners, guestInterfaces,comments,roles):
+    @accepts(None, str, list, list, list, list, None, str, list)
+    def __init__(self, path, architectures, osVersions , providers, provisioners, guestInterfaces, comments, roles):
       # Checking the arguments
 
       if not os.path.exists(path):
-        raise InvalidArgumentValue("Template path",path)
+        raise InvalidArgumentValue("Template path", path)
       if len(architectures) == 0:
         raise InvalidMachineTemplateException("Invalid number of architectures")
       else:
@@ -234,14 +234,14 @@ class MachineTemplate(yaml.YAMLObject):
         raise InvalidMachineTemplateException("Invalid number of providers")
       else:
         for p in providers:
-          if not isinstance(p,Provider):
+          if not isinstance(p, Provider):
             raise InvalidMachineTemplateException("Invalid provider")
 
       if len(provisioners) == 0:
         raise InvalidMachineTemplateException("Invalid number of provisioners")
       else:
         for p in provisioners:
-          if not isinstance(p,Provisioner):
+          if not isinstance(p, Provisioner):
             raise InvalidMachineTemplateException("Invalid provisioner")
 
       if len(osVersions) == 0:
@@ -251,7 +251,7 @@ class MachineTemplate(yaml.YAMLObject):
         raise InvalidMachineTemplateException("Invalid number of roles")
       else:
         for r in roles:
-          if not isinstance(r,str):
+          if not isinstance(r, str):
             raise InvalidMachineTemplateException("Invalid role")
       
       fileName = os.path.basename(path)
@@ -389,23 +389,23 @@ class MachineInstance(yaml.YAMLObject):
     # ##
     # Constructor
     # ##
-    @accepts(None, str, MachineTemplate, Architecture, str, Provider, Provisioner, list, str, list,None)
-    def __init__(self, name, template, architecture, osVersion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders,templateHash):
+    @accepts(None, str, MachineTemplate, Architecture, str, Provider, Provisioner, list, str, list, None)
+    def __init__(self, name, template, architecture, osVersion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders, templateHash):
       # Check the arguments
       if len(osVersion) == 0:
-        raise InvalidArgumentValue("osVersion",osVersion)
+        raise InvalidArgumentValue("osVersion", osVersion)
 
       if len(name) == 0:
-        raise InvalidArgumentValue("name",name)
+        raise InvalidArgumentValue("name", name)
         
       # Manually check the type of list elements
       for i in guestInterfaces:
         if not type(i) is NetworkInterface:
-          raise InvalidArgumentValue("guest_interfaces",i)
+          raise InvalidArgumentValue("guest_interfaces", i)
 
       for f in sharedFolders:
         if not type(f) is SharedFolder:
-          raise InvalidArgumentValue("shared_folder",f)
+          raise InvalidArgumentValue("shared_folder", f)
       self._name = name
       self._template = template
       self._architecture = architecture
@@ -438,13 +438,13 @@ class MachineInstance(yaml.YAMLObject):
       self.getProvider().generateFilesFor(self)
       self.getProvisioner().generateFilesFor(self)   
       
-      outfile = open(os.path.join(self.getPath(),MACHINATION_PACKERFILE_NAME),"w")
-      json.dump(self.getPackerFile(),outfile,indent=2)
+      outfile = open(os.path.join(self.getPath(), MACHINATION_PACKERFILE_NAME), "w")
+      json.dump(self.getPackerFile(), outfile, indent=2)
       outfile.close()
       templateHash = hashlib.sha1()
-      self.getProvisioner().generateHashFor(self,templateHash)
-      self.getProvisioner().generateHashFor(self,templateHash)
-      generateHashOfFile(os.path.join(self.getPath(), "Vagrantfile"),templateHash)
+      self.getProvisioner().generateHashFor(self, templateHash)
+      self.getProvisioner().generateHashFor(self, templateHash)
+      generateHashOfFile(os.path.join(self.getPath(), "Vagrantfile"), templateHash)
       self._templateHash = templateHash.hexdigest()
       # Create the machine config file
       configFile = yaml.dump(self)
@@ -569,7 +569,7 @@ class MachineInstance(yaml.YAMLObject):
     # ##
     def getInfos(self):
       i = 0
-      output =  "Machine '{0}':\n".format(self.getName())
+      output = "Machine '{0}':\n".format(self.getName())
       output += "  Architecture: {0}\n".format(self.getArchitecture())
       output += "  Provisioner: {0}\n".format(self.getProvisioner())
       output += "  Provider: {0}\n".format(self.getProvider())
@@ -578,14 +578,14 @@ class MachineInstance(yaml.YAMLObject):
           output += "  State: Running\n"
       else:
           output += "  State: Stopped\n"
-      output +="  Host interface: {0}\n".format(self.getHostInterface())
-      output +="  Network interfaces:\n"
+      output += "  Host interface: {0}\n".format(self.getHostInterface())
+      output += "  Network interfaces:\n"
       ipAddrSearchGroup = None
       if(isStarted):
-        p = subprocess.Popen("vagrant ssh-config", shell=True,  stderr=subprocess.PIPE, stdout=subprocess.PIPE, cwd=self.getPath())
+        p = subprocess.Popen("vagrant ssh-config", shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, cwd=self.getPath())
         out = p.communicate()[0]   
         if p.returncode == 0:
-          ipAddrSearchGroup = re.search("HostName (.*)",out)
+          ipAddrSearchGroup = re.search("HostName (.*)", out)
           
       if ipAddrSearchGroup == None:
         ipAddrSearch = "N/A"
@@ -605,7 +605,7 @@ class MachineInstance(yaml.YAMLObject):
             output += "      Hostname: {0}\n".format(intf.getHostname())
           i += 1
       if len(self.getSharedFolders()) != 0 :
-        output +="  Shared folders:\n"
+        output += "  Shared folders:\n"
         for f in self.getSharedFolders():
           output += "    - Host folder: {0}\n".format(f.getHostDir())
           output += "      Guest folder: {0}\n".format(f.getGuestDir())
@@ -615,7 +615,7 @@ class MachineInstance(yaml.YAMLObject):
     # ##
     # Function to ssh to an instance
     # ##
-    def ssh(self,command = None):
+    def ssh(self, command=None):
       if(self.isStarted()):
         # Start vagrant ssh to ssh into the instance
         if(command == None):
@@ -634,10 +634,10 @@ class MachineInstance(yaml.YAMLObject):
         raise RuntimeError("Machine instance not started")
 
     def isStarted(self):
-      p = subprocess.Popen("vagrant status", shell=True,  stderr=subprocess.PIPE, stdout=subprocess.PIPE, cwd=self.getPath())
+      p = subprocess.Popen("vagrant status", shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, cwd=self.getPath())
       isStarted = False
       out = p.communicate()[0]
-      isStarted = (isStarted or (re.search("(.*)machination-{0}(.*)running(.*)".format(self.getName()),out) != None)) 
+      isStarted = (isStarted or (re.search("(.*)machination-{0}(.*)running(.*)".format(self.getName()), out) != None)) 
       if p.returncode == 0 and isStarted:
         return True
       else:
