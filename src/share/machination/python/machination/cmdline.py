@@ -81,7 +81,7 @@ class CmdLine:
         COMMANDLINELOGGER.debug("Templates loaded.")
         # Create an array containing a set of informations about the template.
         # This array will be used to display the information to the user
-        data = {'name': [], 'version': [], 'path': [], 'provisioners': [], 'providers': [], 'architectures': [],'comments': []}
+        data = {'name': [], 'path': [], 'provisioners': [], 'providers': [], 'architectures': [],'comments': []}
         for f in templates.values():
           data['name'].append(f.getName())
           data['path'].append(os.path.abspath(f.getPath()))
@@ -194,7 +194,7 @@ class CmdLine:
     # ##
     def createMachineInstance(self, args):
       res = 0
-      COMMANDLINELOGGER.info("Creating a new machine instance named '{0}' using template '{1}'".format(args.name, args.template))
+      COMMANDLINELOGGER.info("Creating a new instance named '{0}' using template '{1}'".format(args.name, args.template))
       # Creating the template and instances registries
 
       try:
@@ -210,27 +210,26 @@ class CmdLine:
         # Check if the instance is already in the registry
         if args.force :
           if args.name in instances.keys():
-            COMMANDLINELOGGER.error("Machine instance named '{0}' already exists but creation was forced so firstly machination will delete it.".format(args.name))
+            COMMANDLINELOGGER.error("Instance named '{0}' already exists but creation was forced so firstly machination will delete it.".format(args.name))
             instances[args.name].destroy()
-      
+        
         if args.force == False and args.name in instances.keys():
-            COMMANDLINELOGGER.error("Unable to create machine: MachineInstance named '{0}' already exists. Change the name of your new machine or delete the existing one.".format(args.name))
+            COMMANDLINELOGGER.error("Unable to create machine: an instance named '{0}' already exists. Change the name of your new machine or delete the existing one.".format(args.name))
             res = errno.EALREADY
         else:
           (template, architecture, osversion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders) =  MachineInstanceCreationWizard().execute(args,templates)
-          # Try to create the new machine
-          instance = MachineInstance(args.name, template, architecture, osversion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders)
+          # Try to create the new machine 
+          instance = MachineInstance(args.name, template, architecture, osversion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders,None)
           instance.create()
-          COMMANDLINELOGGER.info("MachineInstance successfully created:")
+          COMMANDLINELOGGER.info("Instance '{0}' successfully created:".forma(args.name))
           instances = MACHINE_INSTANCE_REGISTRY.getInstances()
           COMMANDLINELOGGER.info(instances[args.name].getInfos())
-
-      
       except (KeyboardInterrupt, SystemExit):
-        COMMANDLINELOGGER.debug(traceback.format_exc())
-        res = errno.EINVAL          
+        if (not args.verbose):
+          COMMANDLINELOGGER.debug(traceback.format_exc())
+        res = errno.EINVAL
       except Exception as e:
-        COMMANDLINELOGGER.error("Unable to create machine instance '{0}': {1}.".format(args.name,str(e)))
+        COMMANDLINELOGGER.error("Unable to create instance '{0}': {1}.".format(args.name,str(e)))
         if (not args.verbose):
           COMMANDLINELOGGER.info("Run with --verbose flag for more details")
         COMMANDLINELOGGER.debug(traceback.format_exc())
@@ -258,16 +257,16 @@ class CmdLine:
                                                                                                                                    instances[name].getPath()),
                                                                                                                                    "Enter a Y or a N", COMMANDLINELOGGER, "Y").ask()
             if v == True:
-              COMMANDLINELOGGER.info("Destroying machine instance '{0}'...".format(name))
+              COMMANDLINELOGGER.info("Destroying instance '{0}'...".format(name))
               instances[name].destroy()
-              COMMANDLINELOGGER.info("MachineInstance instance successfully destroyed")
+              COMMANDLINELOGGER.info("Instance '{0]' successfully destroyed".format(name))
             else:
-              COMMANDLINELOGGER.info("MachineInstance not destroyed")
+              COMMANDLINELOGGER.info("Instance '{0]' not destroyed".format(name))
           else:
-            COMMANDLINELOGGER.error("MachineInstance instance '{0}' does not exist.".format(name))
+            COMMANDLINELOGGER.error("Instance '{0}' does not exist.".format(name))
             res = errno.EINVAL
         except Exception as e:
-          COMMANDLINELOGGER.error("Unable to destroy machine '{0}': {1}".format(name,str(e)))
+          COMMANDLINELOGGER.error("Unable to destroy instance '{0}': {1}".format(name,str(e)))
           if (not args.verbose):
             COMMANDLINELOGGER.info("Run with --verbose flag for more details")
           COMMANDLINELOGGER.debug(traceback.format_exc())
@@ -284,7 +283,7 @@ class CmdLine:
     def startMachineInstance(self, args):
       res = 0
       for name in args.names:
-        COMMANDLINELOGGER.info("Starting machine {0}".format(name))
+        COMMANDLINELOGGER.info("Starting instance {0}".format(name))
         try:
           # Getting the available instances
           instances = MACHINE_INSTANCE_REGISTRY.getInstances()
@@ -292,11 +291,11 @@ class CmdLine:
           if name in instances.keys():
             instances[name].start()
           else:
-            COMMANDLINELOGGER.error("MachineInstance instance '{0}' does not exist.".format(name))
+            COMMANDLINELOGGER.error("Instance '{0}' does not exist.".format(name))
             res = errno.EINVAL
-          COMMANDLINELOGGER.info("MachineInstance instance '{0}' successfully started.".format(name))
+          COMMANDLINELOGGER.info("Instance '{0}' successfully started.".format(name))
         except Exception as e:
-          COMMANDLINELOGGER.error("Unable to start machine instance '{0}': {1}.".format(name,str(e)))
+          COMMANDLINELOGGER.error("Unable to start instance '{0}': {1}.".format(name,str(e)))
           COMMANDLINELOGGER.debug(traceback.format_exc())
           if (not args.verbose):
             COMMANDLINELOGGER.info("Run with --verbose flag for more details")
@@ -306,6 +305,38 @@ class CmdLine:
           res = errno.EINVAL
       return res
 
+    def updateMachineInstance(self, args):
+      res = 0
+      for name in args.names:
+        COMMANDLINELOGGER.info("Updating instance {0}".format(name))
+        try:
+          # Getting the available instances
+          instances = MACHINE_INSTANCE_REGISTRY.getInstances()
+          # Check if the requested instance exists
+          if name in instances.keys():
+            if not instances[args.name].isStarted() :
+              COMMANDLINELOGGER.error("Instance '{0}' is not started, starting it before update process.".format(args.name))
+              instances[args.name].start()
+            try:
+              instances[args.name].ssh("sudo apt-get update && sudo apt-get dist-upgrade")
+              COMMANDLINELOGGER.error("Instance '{0}' successfuly updated.".format(args.name))
+            except Exception as e:
+              COMMANDLINELOGGER.error("Unable to update instance '{0}'. Please try manually.".format(args.name))
+          else:
+            COMMANDLINELOGGER.error("Instance '{0}' does not exist.".format(name))
+            res = errno.EINVAL
+          COMMANDLINELOGGER.info("Instance '{0}' successfully started.".format(name))
+        except Exception as e:
+          COMMANDLINELOGGER.error("Unable to start instance '{0}': {1}.".format(name,str(e)))
+          COMMANDLINELOGGER.debug(traceback.format_exc())
+          if (not args.verbose):
+            COMMANDLINELOGGER.info("Run with --verbose flag for more details")
+          res = errno.EINVAL
+        except (KeyboardInterrupt, SystemExit):
+          COMMANDLINELOGGER.debug(traceback.format_exc())
+          res = errno.EINVAL
+      return res
+    
     # ##
     # Function to stop a machine
     # User must be root to call this function juste to be symetric with the start operation
@@ -314,17 +345,17 @@ class CmdLine:
       res = 0
       for name in args.names:
         print(name)
-        COMMANDLINELOGGER.info("Stopping machine {0}".format(name))
+        COMMANDLINELOGGER.info("Stopping instance {0}".format(name))
         try:
           instances = MACHINE_INSTANCE_REGISTRY.getInstances()
           # # Search for the requested instnce
           if name in instances.keys():
             instances[name].stop()
           else:
-            COMMANDLINELOGGER.error("MachineInstance instance '{0}' does not exist.".format(name))
-          COMMANDLINELOGGER.info("MachineInstance instance '{0}' successfully stopped.".format(name))
+            COMMANDLINELOGGER.error("Instance '{0}' does not exist.".format(name))
+          COMMANDLINELOGGER.info("Instance '{0}' successfully stopped.".format(name))
         except Exception as e:
-          COMMANDLINELOGGER.error("Unable to stop machine instance '{0}': {1}.".format(name,str(e)))
+          COMMANDLINELOGGER.error("Unable to stop instance '{0}': {1}.".format(name,str(e)))
           if (not args.verbose):
             COMMANDLINELOGGER.info("Run with --verbose flag for more details")
           COMMANDLINELOGGER.debug(traceback.format_exc())
@@ -363,10 +394,10 @@ class CmdLine:
           if name in instances.keys():
             COMMANDLINELOGGER.info(instances[name].getInfos())
           else:
-            COMMANDLINELOGGER.error("MachineInstance instance '{0}' does not exist.".format(name))
+            COMMANDLINELOGGER.error("Instance '{0}' does not exist.".format(name))
             res = errno.EINVAL
         except Exception as e:
-          COMMANDLINELOGGER.error("Unable to get informations for machine instance '{0}': '{1}'.".format(name, str(e)))
+          COMMANDLINELOGGER.error("Unable to get informations for instance '{0}': '{1}'.".format(name, str(e)))
           if (not args.verbose):
             COMMANDLINELOGGER.info("Run with --verbose flag for more details")
           COMMANDLINELOGGER.debug(traceback.format_exc())
@@ -387,14 +418,14 @@ class CmdLine:
         instances = MACHINE_INSTANCE_REGISTRY.getInstances()
         if args.name in instances.keys():
           if not instances[args.name].isStarted() :
-            COMMANDLINELOGGER.error("MachineInstance instance '{0}' is not started, starting it before connecting to it.".format(args.name))
+            COMMANDLINELOGGER.error("Instance '{0}' is not started, starting it before connecting to it.".format(args.name))
             instances[args.name].start()
 
           instances[args.name].ssh(args.command)
         else:
-          COMMANDLINELOGGER.error("MachineInstance instance '{0}' does not exist.".format(args.name))
+          COMMANDLINELOGGER.error("Instance '{0}' does not exist.".format(args.name))
       except Exception as e:
-        COMMANDLINELOGGER.error("Unable to SSH into machine instance '{0}': ".format(str(e)))
+        COMMANDLINELOGGER.error("Unable to SSH into instance '{0}': ".format(str(e)))
         if (not args.verbose):
           COMMANDLINELOGGER.info("Run with --verbose flag for more details")
         COMMANDLINELOGGER.debug(traceback.format_exc())
@@ -428,7 +459,7 @@ class CmdLine:
       parser = argparse.ArgumentParser(prog="Machination", description='Machination utility, all your appliances belong to us.')
       rootSubparsers = parser.add_subparsers(dest="function")
       
-      versionParser = rootSubparsers.add_parser('version', help='Display version')      
+      rootSubparsers.add_parser('version', help='Display version')
       
       # Parser for list command
       listParser = rootSubparsers.add_parser('list', help='List templates and instances')

@@ -20,8 +20,6 @@ require 'yaml'
 
 cwd = File.dirname(File.expand_path(__FILE__))
 machine_config = YAML.load_file("#{cwd}/machine.config")
-hash = File.read("#{cwd}/hash")
-
 name = "machination-"+cwd.split('/').last
 
 if not machine_config["architecture"]
@@ -57,7 +55,7 @@ Vagrant.configure("2") do |config|
  
   config.vm.network "public_network"
   config.vm.provider :docker do |d|
-    d.image = imageName+":"+hash
+    d.image = imageName+":"+machine_config["template_hash"]
     d.name = name
     d.remains_running = true
     d.create_args = ["-t","-i"]
