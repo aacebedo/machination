@@ -649,15 +649,14 @@ class MachineInstance(yaml.YAMLObject):
     @classmethod
     def to_yaml(cls, dumper, data):
         representation = {
-                               "template" : "{0}".format(data.getTemplate().getName()),
+                               "template" : "{0}|{1}".format(data.getTemplate().getName(),data.getTemplateHash()),
                                "architecture" : str(data.getArchitecture()),
                                "os_version" : str(data.getOsVersion()),
                                "provider" : str(data.getProvider()),
                                "provisioner" : str(data.getProvisioner()),
                                "guest_interfaces" : data.getGuestInterfaces(),
                                "host_interface" : data.getHostInterface(),
-                               "shared_folders" :  data.getSharedFolders(),
-                               "template_hash": data.getTemplateHash()
+                               "shared_folders" :  data.getSharedFolders()
                                }
         node = dumper.represent_mapping(data.yaml_tag, representation)
         return node
@@ -685,9 +684,11 @@ class MachineInstance(yaml.YAMLObject):
         name = os.path.basename(os.path.dirname(loader.stream.name))
 
         template = None
+        templateHash = None
         if "template" in representation.keys():
-          template = MACHINE_TEMPLATE_REGISTRY.getTemplates()[representation["template"]]
-
+          templateName,templateHash = representation["template"].split("|")
+          template = MACHINE_TEMPLATE_REGISTRY.getTemplates()[templateName]
+          
         osVersion = None
         if "os_version" in representation.keys():
             osVersion = representation["os_version"]
@@ -704,11 +705,6 @@ class MachineInstance(yaml.YAMLObject):
         if "host_interface" in representation.keys():
             hostInterface = representation["host_interface"]
             
-        templateHash = None
-        if "template_hash" in representation.keys():
-            templateHash = representation["template_hash"]
-                
-        
         return MachineInstance(name,
                                    template,
                                    architecture,

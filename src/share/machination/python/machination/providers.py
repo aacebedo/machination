@@ -51,14 +51,14 @@ class DockerProvider(Provider):
       builder["type"] = "docker"
       builder["image"] = "aacebedo/ubuntu-{{user `osversion`}}-vagrant-{{user `architecture`}}"
       builder["export_path"] = "./machine.box"
-      builder["run_command"] = ["-d", "-i", "-t", "--privileged", "{{.Image}}", "/sbin/init"]
+      builder["run_command"] = ["-d", "-i" , "-t", "--privileged", "{{.Image}}", "/sbin/init"]
       builder["volumes"] = folders
       instance.getPackerFile()["builders"].append(builder) 
       
       postproc = {}
       postproc["type"] = "docker-import"
       postproc["repository"] = instance.getImageName()
-      postproc["tag"] = "{{user `template_hash`}}"
+      postproc["tag"] = "{{user `hash`}}"
       instance.getPackerFile()["post-processors"].append(postproc)
       
       shutil.copy(os.path.join(MACHINATION_INSTALLDIR, "share", "machination", "vagrant", "Vagrantfile_docker"), os.path.join(instance.getPath(), "Vagrantfile"))
@@ -132,7 +132,7 @@ class VBoxProvider(Provider):
       
       postproc = {}
       postproc["type"] = "vagrant-import"
-      postproc["import_name"] = instance.getImageName()+"-{{user `template_hash`}}"
+      postproc["import_name"] = instance.getImageName()+"-{{user `hash`}}"
       instance.getPackerFile()["post-processors"].append(postproc)
 
       shutil.copy(os.path.join(MACHINATION_INSTALLDIR, "share", "machination", "vagrant", "Vagrantfile_virtualbox"), os.path.join(instance.getPath(), "Vagrantfile"))
