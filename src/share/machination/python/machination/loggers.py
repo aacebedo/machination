@@ -17,7 +17,7 @@
 ##########################################################################
 import sys
 import logging
-from logging import StreamHandler
+from colorlog import ColoredFormatter
 
 formatter = logging.Formatter('%(message)s')
 strHandler = StreamHandler(sys.stdout)
@@ -27,26 +27,51 @@ strHandler.setFormatter(formatter)
 COMMANDLINELOGGER = logging.getLogger("cmdline")
 COMMANDLINELOGGER.addHandler(strHandler)
 
-REGISTRYLOGGER = logging.getLogger("registries")
-REGISTRYLOGGER.addHandler(strHandler)
+REGISTRYLOGGER = None
+CORELOGGER = None
+FILEGENERATORLOGGER = None
+PROVISIONERSLOGGER = None
+PROVIDERSLOGGER = None
+ROOTLOGGER = None
+COMMANDLINELOGGER = None
 
-CORELOGGER = logging.getLogger("core")
-CORELOGGER.addHandler(strHandler)
-
-FILEGENERATORLOGGER = logging.getLogger("filegenerator")
-FILEGENERATORLOGGER.addHandler(strHandler)
-
-PROVISIONERSLOGGER = logging.getLogger("provisioners")
-PROVISIONERSLOGGER.addHandler(strHandler)
-
-PROVIDERSLOGGER = logging.getLogger("providers")
-PROVIDERSLOGGER.addHandler(strHandler)
-
+def initLoggers():
+  formatter = ColoredFormatter("%(log_color)s%(levelname)-8s%(reset)s %(blue)s%(message)s",
+                               datefmt=None,
+                               reset=True,
+                               log_colors={
+                                       'DEBUG':    'cyan',
+                                       'INFO':     'green',
+                                       'WARNING':  'yellow',
+                                       'ERROR':    'red',
+                                       'CRITICAL': 'red,bg_white',
+                               },
+                               secondary_log_colors={},
+                               style='%'
+                               )
   
-def setGlobalLogLevel(lvl):
-  FILEGENERATORLOGGER.setLevel(lvl)
-  CORELOGGER.setLevel(lvl)
-  REGISTRYLOGGER.setLevel(lvl)
-  COMMANDLINELOGGER.setLevel(lvl)
-  PROVISIONERSLOGGER.setLevel(lvl)
-  PROVIDERSLOGGER.setLevel(lvl)
+
+  global ROOTLOGGER
+  ROOTLOGGER = logging.getLogger("machination")
+  
+  global COMMANDLINELOGGER
+  COMMANDLINELOGGER = logging.getLogger("machination.cmdline")
+
+  global REGISTRYLOGGER
+  REGISTRYLOGGER = logging.getLogger("machination.registries")
+
+  global CORELOGGER
+  CORELOGGER = logging.getLogger("machination.core")
+
+  global FILEGENERATORLOGGER
+  FILEGENERATORLOGGER = logging.getLogger("machination.filegenerator")
+
+  global PROVISIONERSLOGGER
+  PROVISIONERSLOGGER = logging.getLogger("machination.provisioners")
+  
+  global PROVIDERSLOGGER
+  PROVIDERSLOGGER = logging.getLogger("machination.providers")
+  
+def setLogLevel(lvl):
+  global logHandler
+  ROOTLOGGER.setLevel(lvl)
