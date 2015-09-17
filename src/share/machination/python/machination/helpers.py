@@ -26,11 +26,21 @@ import struct
 import array
 import hashlib
 import sys
-
+import logging
+import re
 from machination.exceptions import InvalidArgumentNumberError
 from machination.exceptions import ArgumentValidationError
 from abc import abstractmethod
+from loggers import ROOTLOGGER
 import thread
+
+from progressbar import AnimatedMarker, Bar, BouncingBar, Counter, ETA, \
+    FormatLabel, Percentage, ProgressBar, RotatingMarker, Timer, AdaptiveETA
+from threading import Thread
+import threading
+from machination.loggers import PROGRESSBARLOGGER
+import time
+  
 
 def ordinal(num):
     '''
@@ -139,45 +149,50 @@ def getAllNetInterfaces():
           lst.append(name)
     return lst
  
-class ProgressingTask:
+class ProgressingTask(logging.Handler):
   
   lines = {}
   progressBar = None
-  
-  lines = None
   progressBar = None
   running = False
   widgets = None
+  thread = None
+  
+  def __init__(self):
+    logging.Handler.__init__(self)
+    self.stream = sys.stdout
+    self.widgets = ['', Percentage(), ' ', RotatingMarker(), ' ', Bar(), ' ', Timer(), ' ', ETA()]
+    self.progressBar = ProgressBar(widgets=self.widgets, maxval=100)
     
   def run(self):
-    while self.running:
+    while self.running == True:
       self.progressBar.update()
+      time.sleep(0.5)
+    thread.exit()
       
   def start(self):
+    PROGRESSBARLOGGER.addHandler(self)
+    self.widgets[0] = ""
     self.running = True
+    self.thread = threading.Thread(target=self.run)
     self.progressBar.start()
-    thread.start_new_thread(ProgressingTask.run, (self,))
+    self.thread.start()
 
   def stop(self):
     self.running = False
+    self.thread.join()
     self.progressBar.finish()
     self.lines.clear()
-
-  def __init__(self):
-    self.widgets = ['', Percentage(), ' ', RotatingMarker(), ' ', Bar(), ' ', Timer(), ' ', ETA()]
-    self.progressBar = ProgressBar(widgets=self.widgets, maxval=100)
-    self.stream = sys.stdout
+    PROGRESSBARLOGGER.removeHandler(self)
     
   def appendLines(self,lines):
     self.lines.update(lines)
   
-  @abstractmethod
-  def getProgress(self):
-    pass
-  
-  def update(self, line):
-    if line in self.lines:
-      if self.lines[line][1]:
-        self.widgets[0] = line
-      self.progressBar.update(self.lines[line][0])
+  def emit(self, record):
+    for l in self.lines.keys():
+      if re.match(l,record.getMessage()):
+        if self.lines[l][1] != None:
+          self.widgets[0] = self.lines[l][1]
+        self.progressBar.update(self.lines[l][0])
+        break
   

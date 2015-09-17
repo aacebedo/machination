@@ -23,6 +23,10 @@ import sys
 import shutil
 import pwd
 sys.path.append(os.path.abspath(os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)),'..','share','machination','python'))))
+
+import machination.loggers
+machination.loggers.initLoggers()
+
 from machination.cmdline import CmdLine
 from machination.helpers import mkdir_p
 

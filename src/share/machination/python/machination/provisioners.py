@@ -17,10 +17,10 @@ from abc import abstractmethod
 
 class Provisioner(object):
     @abstractmethod
-    def generateFilesFor(self,instance):
+    def generateFilesFor(self, instance, progressBar = None):
       pass
     @abstractmethod
-    def generateHashFor(self,instance):
+    def generateHashFor(self, instance):
       pass
     
     @staticmethod
@@ -40,9 +40,9 @@ class Provisioner(object):
       
 class AnsibleProvisioner(Provisioner):
     @staticmethod
-    def copyRole(dest,role):
+    def copyRole(dest, role):
       roleDir = None
-      roleDirs = [os.path.join(MACHINATION_DEFAULTANSIBLEROLESDIR,role),os.path.join(MACHINATION_USERANSIBLEROLESDIR,role)]
+      roleDirs = [os.path.join(MACHINATION_DEFAULTANSIBLEROLESDIR, role), os.path.join(MACHINATION_USERANSIBLEROLESDIR, role)]
 
       for tmpRoleDir in roleDirs:
         if os.path.exists(tmpRoleDir):
@@ -52,41 +52,41 @@ class AnsibleProvisioner(Provisioner):
           roleDir = None
 
       if roleDir != None and os.path.exists(roleDir):
-        shutil.copytree(roleDir, os.path.join(dest,"roles",role), True)
-        metaPath = os.path.join(roleDir,"meta","main.yml")
+        shutil.copytree(roleDir, os.path.join(dest, "roles", role), True)
+        metaPath = os.path.join(roleDir, "meta", "main.yml")
         if os.path.exists(metaPath):
           openedFile = open(metaPath)
           metas = yaml.load(openedFile)
           if "dependencies" in metas.keys():
             for r in metas["dependencies"]:
-              if "role" in r.keys() and not os.path.exists(os.path.join(dest,"roles",r["role"])):
-                AnsibleProvisioner.copyRole(dest,r["role"])
+              if "role" in r.keys() and not os.path.exists(os.path.join(dest, "roles", r["role"])):
+                AnsibleProvisioner.copyRole(dest, r["role"])
       else:
         raise InvalidMachineTemplateException("Unable to find ansible role '{0}'.".format(role))
 
     @abstractmethod
-    def generateHashFor(self,instance,hashValue):
-      generateHashOfDir(os.path.join(instance.getPath(),"provisioners","ansible"),hashValue)
+    def generateHashFor(self, instance, hashValue):
+      generateHashOfDir(os.path.join(instance.getPath(), "provisioners", "ansible"), hashValue)
     
     @abstractmethod
-    def generateFilesFor(self,instance):
+    def generateFilesFor(self, instance, progressBar=None):
       if not os.path.exists(instance.getPath()):
         raise PathNotExistError(instance.getPath())
-      ansibleFilesDest = os.path.join(instance.getPath(),"provisioners","ansible")
+      ansibleFilesDest = os.path.join(instance.getPath(), "provisioners", "ansible")
       mkdir_p(os.path.join(ansibleFilesDest))
-      playbookPath = os.path.join(instance.getPath(),"provisioners","ansible","machine.playbook")
+      playbookPath = os.path.join(instance.getPath(), "provisioners", "ansible", "machine.playbook")
       playbook = [{}]
       playbook[0]["hosts"] = "all"
       playbook[0]["roles"] = instance.getTemplate().getRoles()
-      playbookFile = open(playbookPath,'w')
-      playbookFile.write(yaml.dump(playbook,default_flow_style=False))
+      playbookFile = open(playbookPath, 'w')
+      playbookFile.write(yaml.dump(playbook, default_flow_style=False))
     
       for r in playbook[0]["roles"]:
-          AnsibleProvisioner.copyRole(ansibleFilesDest,r)
+          AnsibleProvisioner.copyRole(ansibleFilesDest, r)
       
       provisioner = {}
       provisioner["type"] = "shell"
-      provisioner["inline"] = ["apt-get install -y python-apt python-software-properties software-properties-common", 
+      provisioner["inline"] = ["apt-get install -y python-apt python-software-properties software-properties-common",
                                 "add-apt-repository ppa:ansible/ansible -y",
                                 "apt-get update",
                                 "apt-get install -y ansible"]
@@ -113,7 +113,7 @@ class AnsibleProvisioner(Provisioner):
       
       provisioner = {}
       provisioner["type"] = "shell"
-      provisioner["inline"] =  [ "rm -rf /tmp/packer-provisioner-ansible-local"]
+      provisioner["inline"] = [ "rm -rf /tmp/packer-provisioner-ansible-local"]
       instance.getPackerFile()["provisioners"].append(provisioner)
       
       provisioner = {}

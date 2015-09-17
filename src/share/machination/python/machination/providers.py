@@ -13,7 +13,7 @@ from abc import abstractmethod
  
 class Provider(object):
     @abstractmethod
-    def generateFilesFor(self, instance):
+    def generateFilesFor(self, instance, progressBar=None):
       pass
 
     @abstractmethod
@@ -42,7 +42,7 @@ class Provider(object):
     
 class DockerProvider(Provider):
     @abstractmethod
-    def generateFilesFor(self, instance):
+    def generateFilesFor(self, instance, progressBar=None):
       folders = {}
       for f in instance.getSharedFolders():
         folders[f.getHostDir()] = f.getGuestDir()
@@ -84,7 +84,14 @@ class DockerProvider(Provider):
       
 class VBoxProvider(Provider):
     @abstractmethod
-    def generateFilesFor(self, instance):
+    def generateFilesFor(self, instance, progressBar=None):
+      if progressBar != None:
+        progressBar.appendLines({".*Downloading or copying ISO.*":[10, "Downloading ISO"]})
+        progressBar.appendLines({".*Starting the virtual machine.*":[20, "Starting the VM"]})
+        progressBar.appendLines({".*Waiting for SSH to become available.*":[25, "Installing VM"]})
+        progressBar.appendLines({".*Provisioning with shell script.*":[50, None]})
+        progressBar.appendLines({".*Exporting virtual machine.*":[60, None]})
+        
       req = requests.get("http://releases.ubuntu.com/{0}/MD5SUMS".format(instance.getOsVersion()))
       md5file = StringIO.StringIO(req.content) 
   
@@ -106,7 +113,8 @@ class VBoxProvider(Provider):
       builder = {}
       builder["type"] = "virtualbox-iso"
       builder["guest_os_type"] = "Linux_64"
-      builder["iso_url"] = "http://releases.ubuntu.com/{0}/{1}".format(instance.getOsVersion(), splittedVersionLine[1])
+      # builder["iso_url"] = "http://releases.ubuntu.com/{0}/{1}".format(instance.getOsVersion(), splittedVersionLine[1])
+      builder["iso_url"] = "/home/aacebedo/Downloads/ubuntu-14.04.3-server-amd64.iso"
       builder["iso_checksum_type"] = "md5"
       builder["iso_checksum"] = splittedVersionLine[0].rstrip(" ")
       builder["http_directory"] = "./"
@@ -132,7 +140,7 @@ class VBoxProvider(Provider):
       
       postproc = {}
       postproc["type"] = "vagrant-import"
-      postproc["import_name"] = instance.getImageName()+"-{{user `hash`}}"
+      postproc["import_name"] = instance.getImageName() + "-{{user `hash`}}"
       instance.getPackerFile()["post-processors"].append(postproc)
 
       shutil.copy(os.path.join(MACHINATION_INSTALLDIR, "share", "machination", "vagrant", "Vagrantfile_virtualbox"), os.path.join(instance.getPath(), "Vagrantfile"))
@@ -145,7 +153,7 @@ class VBoxProvider(Provider):
     @abstractmethod
     def needsProvisioning(self, instance):
       # virtualbox always needs provisioning
-      regex = "{0}-{1}(.*)".format(instance.getImageName(),instance.getTemplateHash())
+      regex = "{0}-{1}(.*)".format(instance.getImageName(), instance.getTemplateHash())
       p = subprocess.Popen("vagrant box list", shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
       out = p.communicate()[0]
       if p.returncode == 0:
@@ -155,5 +163,5 @@ class VBoxProvider(Provider):
 
     @abstractmethod
     def generateHashFor(self, instance, hashValue):
-      generateHashOfFile(os.path.join(instance.getPath(), "preseed.cfg"),hashValue)
+      generateHashOfFile(os.path.join(instance.getPath(), "preseed.cfg"), hashValue)
       

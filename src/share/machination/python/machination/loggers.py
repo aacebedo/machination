@@ -17,23 +17,23 @@
 ##########################################################################
 import sys
 import logging
+from logging import Handler
 from colorlog import ColoredFormatter
+import thread
+import re
 
-formatter = logging.Formatter('%(message)s')
-strHandler = StreamHandler(sys.stdout)
-strHandler.setLevel(logging.DEBUG)
-strHandler.setFormatter(formatter)
-
-COMMANDLINELOGGER = logging.getLogger("cmdline")
-COMMANDLINELOGGER.addHandler(strHandler)
-
+from progressbar import AnimatedMarker, Bar, BouncingBar, Counter, ETA, \
+    FormatLabel, Percentage, ProgressBar, RotatingMarker, Timer, AdaptiveETA
+  
+COMMANDLINELOGGER = None
 REGISTRYLOGGER = None
 CORELOGGER = None
 FILEGENERATORLOGGER = None
 PROVISIONERSLOGGER = None
 PROVIDERSLOGGER = None
 ROOTLOGGER = None
-COMMANDLINELOGGER = None
+PROGRESSBARLOGGER = None
+
 
 def initLoggers():
   formatter = ColoredFormatter("%(log_color)s%(levelname)-8s%(reset)s %(blue)s%(message)s",
@@ -41,7 +41,7 @@ def initLoggers():
                                reset=True,
                                log_colors={
                                        'DEBUG':    'cyan',
-                                       'INFO':     'green',
+                                       'INFO':     'white',
                                        'WARNING':  'yellow',
                                        'ERROR':    'red',
                                        'CRITICAL': 'red,bg_white',
@@ -50,9 +50,15 @@ def initLoggers():
                                style='%'
                                )
   
+  #global PROGRESSBARHANDLER
+  #PROGRESSBARHANDLER.setFormatter(formatter)
+
+  handler = logging.StreamHandler()
+  handler.setFormatter(formatter)
 
   global ROOTLOGGER
   ROOTLOGGER = logging.getLogger("machination")
+  ROOTLOGGER.addHandler(handler)
   
   global COMMANDLINELOGGER
   COMMANDLINELOGGER = logging.getLogger("machination.cmdline")
@@ -71,7 +77,12 @@ def initLoggers():
   
   global PROVIDERSLOGGER
   PROVIDERSLOGGER = logging.getLogger("machination.providers")
-  
+
+  global PROGRESSBARLOGGER
+  PROGRESSBARLOGGER = logging.getLogger("progressbar")
+  PROGRESSBARLOGGER.setLevel(logging.INFO)
+    
 def setLogLevel(lvl):
   global logHandler
   ROOTLOGGER.setLevel(lvl)
+  #PROGRESSBARHANDLER.setLevel(lvl)

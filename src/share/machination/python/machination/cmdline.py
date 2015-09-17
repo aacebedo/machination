@@ -23,29 +23,18 @@ import traceback
 
 import logging
 from distutils.version import StrictVersion
-import machination.helpers
-from machination.core import MachineInstance, NetworkInterface
-from machination.core import SharedFolder
+from machination.core import MachineInstance
+from machination.loggers import COMMANDLINELOGGER, setLogLevel, CORELOGGER,\
+  ROOTLOGGER
 
-from machination.loggers import COMMANDLINELOGGER, setGlobalLogLevel
-
-from machination.questions import RegexedQuestion
 from machination.questions import BinaryQuestion
-from machination.questions import PathQuestion
 
-from machination.enums import Architecture
-from machination.providers import Provider
-from machination.provisioners import Provisioner
-
-from machination.exceptions import InvalidCmdLineArgument
-from machination.exceptions import InvalidHardwareSupport
-
-from machination.helpers import getAllNetInterfaces
 from machination.globals import MACHINE_INSTANCE_REGISTRY
 from machination.globals import MACHINE_TEMPLATE_REGISTRY
 from machination.constants import MACHINATION_VERSIONFILE
-from machination.wizards import MachineInstanceCreationWizard
 
+from machination.wizards import MachineInstanceCreationWizard
+from machination.helpers import ProgressingTask
 # ##
 # Class used to handle the arguments passed by the command line
 # ##
@@ -56,9 +45,9 @@ class CmdLine:
     # ##
     def listElements(self, args):
       listFunctions = {
-       "templates":self.listMachineTemplates,
-       "instances":self.listMachineInstances,
-      }
+                      "templates":self.listMachineTemplates,
+                      "instances":self.listMachineInstances
+                      }
       
       if(args.type == None or args.type not in listFunctions.keys()):
         self.listMachineTemplates(args)
@@ -196,34 +185,49 @@ class CmdLine:
       res = 0
       COMMANDLINELOGGER.info("Creating a new instance named '{0}' using template '{1}'".format(args.name, args.template))
       # Creating the template and instances registries
-
       try:
+        progressBar = None
+        if args.verbose == False:
+          progressBar = ProgressingTask()
+        
         templates = []
         instances = []
         # Get templates
         templates = MACHINE_TEMPLATE_REGISTRY.getTemplates()
         COMMANDLINELOGGER.debug("Templates loaded.")
-        
         # Get instances
         instances = MACHINE_INSTANCE_REGISTRY.getInstances()
         COMMANDLINELOGGER.debug("Instances loaded.")
+        # Try to create the new machine
         # Check if the instance is already in the registry
         if args.force :
           if args.name in instances.keys():
-            COMMANDLINELOGGER.error("Instance named '{0}' already exists but creation was forced so firstly machination will delete it.".format(args.name))
+            COMMANDLINELOGGER.warn("Instance named '{0}' already exists but creation was forced so firstly machination will delete it.".format(args.name))
+            if progressBar != None:
+              progressBar.start()
             instances[args.name].destroy()
-        
+            if progressBar != None:
+              progressBar.stop()
+              
         if args.force == False and args.name in instances.keys():
             COMMANDLINELOGGER.error("Unable to create machine: an instance named '{0}' already exists. Change the name of your new machine or delete the existing one.".format(args.name))
             res = errno.EALREADY
         else:
           (template, architecture, osversion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders) =  MachineInstanceCreationWizard().execute(args,templates)
-          # Try to create the new machine 
+
           instance = MachineInstance(args.name, template, architecture, osversion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders,None)
-          instance.create()
-          COMMANDLINELOGGER.info("Instance '{0}' successfully created:".format(args.name))
+          if progressBar != None:
+            progressBar.appendLines({".*Provisioning with shell script.*":[50,None]})
+            progressBar.appendLines({".*Running post-processor.*":[80,None]})
+            progressBar.start()
+            
+          instance.create(progressBar)
+          if progressBar != None:
+            progressBar.stop()
           instances = MACHINE_INSTANCE_REGISTRY.getInstances()
           COMMANDLINELOGGER.info(instances[args.name].getInfos())
+          COMMANDLINELOGGER.info("Instance '{0}' successfully created:".format(args.name))
+          
       except (KeyboardInterrupt, SystemExit):
         if (not args.verbose):
           COMMANDLINELOGGER.debug(traceback.format_exc())
@@ -234,7 +238,7 @@ class CmdLine:
           COMMANDLINELOGGER.info("Run with --verbose flag for more details")
         COMMANDLINELOGGER.debug(traceback.format_exc())
         res = errno.EINVAL
-        
+      
       return res
 
     # ##
@@ -529,9 +533,9 @@ class CmdLine:
                   }
       
       if("verbose" in args and args. verbose):
-        setGlobalLogLevel(logging.DEBUG)
+        setLogLevel(logging.DEBUG)
       else:
-        setGlobalLogLevel(logging.INFO)
+        setLogLevel(logging.INFO)
       
       res = 0
       if(args.function in functions.keys()):

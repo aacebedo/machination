@@ -43,7 +43,7 @@ from machination.exceptions import InvalidYAMLException
 from machination.exceptions import InvalidMachineTemplateException
 
 from machination.helpers import accepts
-from machination.loggers import CORELOGGER
+from machination.loggers import CORELOGGER, PROGRESSBARLOGGER
 from machination.helpers import generateHashOfFile
 
 
@@ -427,7 +427,7 @@ class MachineInstance(yaml.YAMLObject):
     def getPackerFile(self):
       return self._packerFile
     
-    def generateFiles(self, progressBar=None):
+    def generateFiles(self,progressBar = None):
       os.makedirs(self.getPath())
 
       # Generate the file related to the provisioner and the provider
@@ -435,8 +435,8 @@ class MachineInstance(yaml.YAMLObject):
       self.getPackerFile()["provisioners"] = []
       self.getPackerFile()["post-processors"] = []
       
-      self.getProvider().generateFilesFor(self)
-      self.getProvisioner().generateFilesFor(self)   
+      self.getProvider().generateFilesFor(self,progressBar)
+      self.getProvisioner().generateFilesFor(self,progressBar)
       
       outfile = open(os.path.join(self.getPath(), MACHINATION_PACKERFILE_NAME), "w")
       json.dump(self.getPackerFile(), outfile, indent=2)
@@ -451,8 +451,6 @@ class MachineInstance(yaml.YAMLObject):
       openedFile = open(os.path.join(self.getPath(), MACHINATION_CONFIGFILE_NAME), "w+")
       openedFile.write(configFile)
       openedFile.close()
-      if progressBar != None:
-        progressBar.update(progressBar.percentage() + 10)
           
           
     # ##
@@ -463,7 +461,7 @@ class MachineInstance(yaml.YAMLObject):
       if not os.path.exists(self.getPath()):
         try:
           self.generateFiles(progressBar)
-          self.pack(progressBar)
+          self.pack()
         except Exception as e:
           # shutil.rmtree(self.getPath())
           CORELOGGER.debug(traceback.format_exc())
@@ -473,7 +471,7 @@ class MachineInstance(yaml.YAMLObject):
         # Raise an error about the fact the machine already exists
         raise RuntimeError("MachineInstance instance '{0}' already exists".format(self.getPath()))
 
-    def pack(self, progressBar=None):
+    def pack(self):
       # If the machine does not exist yet
       if os.path.exists(self.getPath()):
         if self.getProvider().needsProvisioning(self):
@@ -494,6 +492,7 @@ class MachineInstance(yaml.YAMLObject):
               break
             else:
               CORELOGGER.debug(line.strip())
+              PROGRESSBARLOGGER.info(line.strip())
           if p.poll() != 0:
             raise RuntimeError("Error while creating packing '{0}'".format(self.getName()));
       else:
@@ -562,15 +561,15 @@ class MachineInstance(yaml.YAMLObject):
     # ##  
     def destroy(self, progressBar = None):
       # Destroy the vagrant machine
-      CORELOGGER.info("Deletings instance: ")
+      if progressBar != None:
+        progressBar.appendLines({"Deleting instance: ":[50,"Deleting instance"]})
+      CORELOGGER.info("Deleting instance: ")
       p = subprocess.Popen("vagrant destroy -f", shell=True, stdout=subprocess.PIPE, cwd=self.getPath())
       while True:
         line = p.stdout.readline()
         if line == '' and p.poll() is not None:
           break
         else:
-          if progressBar != None:
-            progressBar.update(line.strip())
           CORELOGGER.debug(line.strip())
       if p.poll() != 0:
         raise RuntimeError("Error while destroying machine instance '{0}'".format(self.getName()));

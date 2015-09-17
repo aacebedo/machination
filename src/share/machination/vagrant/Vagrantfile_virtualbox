@@ -39,7 +39,8 @@ if not machine_config["guest_interfaces"]
   abort("Guest interfaces are missing from the configuration file. Check the machine_instance_config file.")
 end
 
-imageName = "machination-"+machine_config["template"]+"-"+machine_config["architecture"]+"-"+machine_config["os_version"]+"-"+machine_config["provisioner"]+"-"+machine_config["template_hash"]
+templateName, templateHash = machine_config["template"].split("|")
+imageName = "machination-"+templateName+"-"+machine_config["architecture"]+"-"+machine_config["os_version"]+"-"+machine_config["provisioner"]+"-"+templateHash
 imageName = imageName.downcase
     
 Vagrant.configure("2") do |config|
