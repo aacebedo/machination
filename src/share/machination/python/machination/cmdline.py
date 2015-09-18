@@ -149,21 +149,27 @@ class CmdLine:
           COMMANDLINELOGGER.debug("Instances loaded.")
 
           # Create an array to display the available templates
-          data = {'name': [], 'path': [], 'started': []}
+          data = {'name': [], 'path': [], 'addr' : [], 'started': []}
           for i in instances.values():
             data['name'].append(i.getName())
             data['path'].append(i.getPath())
-           
+            data['addr'].append(i.getHostname())
+            data['started'].append(i.isStarted())
 
           # Display the array of templates
           # Check if there is an item in the resulting array using the length of the column name
           if len(data['name']) != 0:
             name_col_width = max(len(word) for word in data['name']) + len("Name") + 2
+            addr_col_width = max(len(word) for word in data['addr']) + len("Address") + 2
             path_col_width = max(len(word) for word in data['path']) + len("Path") + 2
+            started_col_width = max(len(str(word)) for word in data['started']) + len("Started") + 2
 
-            COMMANDLINELOGGER.info("Name".ljust(name_col_width) + "Path".ljust(path_col_width))
+            COMMANDLINELOGGER.info("Name".ljust(name_col_width) + "Started".ljust(started_col_width) + "Address".ljust(addr_col_width) + "Path".ljust(path_col_width))
             for row in range(0, len(data['name'])):
-              COMMANDLINELOGGER.info(data['name'][row].ljust(name_col_width) + data['path'][row].ljust(name_col_width))
+              COMMANDLINELOGGER.info(data['name'][row].ljust(name_col_width) + 
+                                     str(data['started'][row]).ljust(started_col_width) +
+                                     data['addr'][row].ljust(addr_col_width) + 
+                                     data['path'][row].ljust(path_col_width))
           else:
             COMMANDLINELOGGER.info("No instances available")
         except Exception as e:

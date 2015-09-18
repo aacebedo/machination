@@ -592,7 +592,6 @@ class MachineInstance(yaml.YAMLObject):
     # ##
     # ##
     def getInfos(self):
-      i = 0
       output = "Machine '{0}':\n".format(self.getName())
       output += "  Architecture: {0}\n".format(self.getArchitecture())
       output += "  Provisioner: {0}\n".format(self.getProvisioner())
@@ -603,23 +602,11 @@ class MachineInstance(yaml.YAMLObject):
       else:
           output += "  State: Stopped\n"
       output += "  Host interface: {0}\n".format(self.getHostInterface())
+      output += "  SSH Address: {0}\n".format(self.getHostname())
       output += "  Network interfaces:\n"
-      ipAddrSearchGroup = None
-      if(isStarted):
-        p = subprocess.Popen("vagrant ssh-config", shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, cwd=self.getPath())
-        out = p.communicate()[0]   
-        if p.returncode == 0:
-          ipAddrSearchGroup = re.search("HostName (.*)", out)
-          
-      if ipAddrSearchGroup == None:
-        ipAddrSearch = "N/A"
-      else:
-        ipAddrSearch = ipAddrSearchGroup.group(1)
-        
-      output += "    - Name: eth{0}\n".format(i)
-      output += "      IPAddress: {0}\n".format(ipAddrSearch)
-      i += 1
+      
       if len(self.getGuestInterfaces()) != 0 :
+        i = 0
         for intf in self.getGuestInterfaces():
           output += "    - Name: eth{0}\n".format(i)
           output += "      IPAddress: {0}\n".format(intf.getIPAddr())
@@ -636,6 +623,19 @@ class MachineInstance(yaml.YAMLObject):
             
       return output
 
+    # ##
+    # ##
+    def getHostname(self):
+      isStarted = self.isStarted()
+      res = "N/A" 
+      if(isStarted):
+        p = subprocess.Popen("vagrant ssh-config", shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, cwd=self.getPath())
+        out = p.communicate()[0]   
+        if p.returncode == 0:
+          ipAddrSearchGroup = re.search("HostName (.*)", out)
+          res = str(ipAddrSearchGroup.group(1))
+      return res
+ 
     # ##
     # Function to ssh to an instance
     # ##
@@ -661,7 +661,7 @@ class MachineInstance(yaml.YAMLObject):
       p = subprocess.Popen("vagrant status", shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, cwd=self.getPath())
       isStarted = False
       out = p.communicate()[0]
-      isStarted = (isStarted or (re.search("(.*)machination-{0}(.*)running(.*)".format(self.getName()), out) != None)) 
+      isStarted = (isStarted or (re.search("(.*)running(.*)".format(self.getName()), out) != None)) 
       if p.returncode == 0 and isStarted:
         return True
       else:
