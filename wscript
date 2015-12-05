@@ -47,17 +47,21 @@ def checkVersion(name,cmd,regex,requiredVersion,returnCode):
         Logs.pprint('RED','Unable to get version ({0}).'.format(e))
     return res
 
-def checkBinary(name,cmd):
+def checkBinary(name,*cmds):
     res = False
-    Logs.pprint('WHITE','{0: <40}'.format('Checking {0} version'.format(name)),sep=': ')
-    try:
-    	res = distutils.spawn.find_executable(cmd)
+    for cmd in cmds:
+      Logs.pprint('WHITE','{0: <40}'.format('Checking {0}'.format(cmd)),sep=': ')
+      try:
+        res = distutils.spawn.find_executable(cmd)
         if res is None:
-           Logs.pprint('RED','{0} is not available. Cannot continue.'.format(name))
+           Logs.pprint('RED','no')
         else:
            Logs.pprint('GREEN',"present")
-    except:
-        Logs.pprint('RED','Unable to check binary.')
+	   break
+      except:
+          Logs.pprint('RED','Unable to check binary.')
+    if res is False:
+      Logs.pprint('RED','{0} is not available. Cannot continue.'.format(name))
     return res
 
 def checkPythonModule(*moduleNames):
@@ -94,7 +98,7 @@ def configure(ctx):
       ctx.fatal("Missing requirements. Installation will not continue.")
     if not checkVersion("Docker","docker --version","Docker version ([0-9\.]*)(.*)","1.4.1",0):
       ctx.fatal("Missing requirements. Installation will not continue.")
-    if not checkBinary("Udhcpc","udhcpc"):
+    if not checkBinary("Dhcp","udhcpc", "dhcpd", "dhclient"):
       ctx.fatal("Missing requirements. Installation will not continue.")
     if not checkVersion("packer","packer --version","(.*)([0-9\.]*)(.*)","0.8.1",1):
       ctx.fatal("Missing requirements. Installation will not continue.")
