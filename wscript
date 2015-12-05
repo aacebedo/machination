@@ -60,16 +60,19 @@ def checkBinary(name,cmd):
         Logs.pprint('RED','Unable to check binary.')
     return res
 
-def checkPythonModule(moduleName):
+def checkPythonModule(*moduleNames):
     res = False
-    Logs.pprint('WHITE','{0: <40}'.format('Checking python module {0}'.format(moduleName)),sep=': ')
-    try:
-      imp.find_module(moduleName)
-      res = True
-    except ImportError:
-      res = False
+    for mod in moduleNames:
+      Logs.pprint('WHITE','{0: <40}'.format('Checking python module {0}'.format(mod)),sep=': ')
+      try:
+        imp.find_module(mod)
+        res = True
+	break
+      except ImportError:
+        Logs.pprint('RED','no')
+        res = False
     if not res:
-       Logs.pprint('RED','{0} python module is not available. Cannot continue'.format(moduleName))
+       Logs.pprint('RED','Required Python module is not available. Cannot continue')
     else :
       Logs.pprint('GREEN',"ok")
       res = True
@@ -95,7 +98,7 @@ def configure(ctx):
       ctx.fatal("Missing requirements. Installation will not continue.")
     if not checkVersion("packer","packer --version","(.*)([0-9\.]*)(.*)","0.8.1",1):
       ctx.fatal("Missing requirements. Installation will not continue.")
-    if not checkPythonModule("enum34"):
+    if not checkPythonModule("enum34", "enum"):
       ctx.fatal("Missing requirements. Installation will not continue.")
     if not checkPythonModule("argcomplete"):
       ctx.fatal("Missing requirements. Installation will not continue.")
