@@ -42,7 +42,7 @@ class MachineInstanceRegistry():
   # ##
   # Function to retrieve the available instances
   # ##
-  def getInstances(self):
+  def get_instances(self):
     _instances = {}
     for d in self._instanceDirs:
       path = listPath(d)
@@ -75,7 +75,7 @@ class MachineTemplateRegistry():
       self._templateDirs = templateDirs
       REGISTRYLOGGER.debug("Templates are searched in the following directories: {0}".format(','.join(self._templateDirs)))
 
-    def getTemplates(self):
+    def get_templates(self):
       machineTemplates = {}
       for d in self._templateDirs:
         files = listPath(d)
@@ -84,7 +84,7 @@ class MachineTemplateRegistry():
             try:
               openedFile = open(os.path.join(f), "r")
               template = yaml.load(openedFile)
-              machineTemplates["{0}".format(template.getName())] = template
+              machineTemplates["{}".format(template.getName())] = template
               REGISTRYLOGGER.debug("Template stored in '{0}' loaded".format(f))
             except Exception as e:
               REGISTRYLOGGER.warning("Unable to load template stored in '{0}: {1}".format(f,str(e)))

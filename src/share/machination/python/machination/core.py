@@ -568,8 +568,8 @@ class MachineInstance(yaml.YAMLObject):
 
     # ##
     # ##
-    def getInfos(self):
-      i = 0
+    def get_infos(self):
+      i=0
       output = "Machine '{0}':\n".format(self.getName())
       output += "  Architecture: {0}\n".format(self.getArchitecture())
       output += "  Provisioner: {0}\n".format(self.getProvisioner())
@@ -688,7 +688,7 @@ class MachineInstance(yaml.YAMLObject):
         templateHash = None
         if "template" in representation.keys():
           templateName,templateHash = representation["template"].split("|")
-          template = MACHINE_TEMPLATE_REGISTRY.getTemplates()[templateName]
+          template = MACHINE_TEMPLATE_REGISTRY.get_templates()[templateName]
           
         osVersion = None
         if "os_version" in representation.keys():

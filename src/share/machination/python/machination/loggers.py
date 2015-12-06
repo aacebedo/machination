@@ -24,29 +24,28 @@ strHandler = StreamHandler(sys.stdout)
 strHandler.setLevel(logging.DEBUG)
 strHandler.setFormatter(formatter)
 
-COMMANDLINELOGGER = logging.getLogger("cmdline")
+ROOTLOGGER = logging.getLogger("machination")
+ROOTLOGGER.addHandler(strHandler)
+
+COMMANDLINELOGGER = logging.getLogger("machination.cmdline")
 COMMANDLINELOGGER.addHandler(strHandler)
 
-REGISTRYLOGGER = logging.getLogger("registries")
+REGISTRYLOGGER = logging.getLogger("machination.registries")
 REGISTRYLOGGER.addHandler(strHandler)
 
-CORELOGGER = logging.getLogger("core")
+CORELOGGER = logging.getLogger("machination.core")
 CORELOGGER.addHandler(strHandler)
 
-FILEGENERATORLOGGER = logging.getLogger("filegenerator")
+FILEGENERATORLOGGER = logging.getLogger("machination.filegenerator")
 FILEGENERATORLOGGER.addHandler(strHandler)
 
-PROVISIONERSLOGGER = logging.getLogger("provisioners")
+PROVISIONERSLOGGER = logging.getLogger("machination.provisioners")
 PROVISIONERSLOGGER.addHandler(strHandler)
 
-PROVIDERSLOGGER = logging.getLogger("providers")
+PROVIDERSLOGGER = logging.getLogger("machination.providers")
 PROVIDERSLOGGER.addHandler(strHandler)
 
-  
-def setGlobalLogLevel(lvl):
-  FILEGENERATORLOGGER.setLevel(lvl)
-  CORELOGGER.setLevel(lvl)
-  REGISTRYLOGGER.setLevel(lvl)
-  COMMANDLINELOGGER.setLevel(lvl)
-  PROVISIONERSLOGGER.setLevel(lvl)
-  PROVIDERSLOGGER.setLevel(lvl)
+def set_log_level(lvl):
+  global logHandler
+  ROOTLOGGER.setLevel(lvl)
+  #PROGRESSBARHANDLER.setLevel(lvl)
