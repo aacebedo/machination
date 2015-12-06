@@ -541,8 +541,9 @@ class MachineInstance(yaml.YAMLObject):
       # Fire up the vagrant machine
       self.pack()
       p = subprocess.Popen("vagrant up --provider={0}".format(str(self.getProvider())), shell=True, stderr=subprocess.PIPE, cwd=self.getPath())
-      p.communicate()[0]
+      err = p.communicate()[0]
       if p.returncode != 0:
+        CORELOGGER.critical(err)
         raise RuntimeError("Error while starting machine instance: '{0}'".format(self.getName()));
 
     # ##
