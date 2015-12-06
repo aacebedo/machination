@@ -20,7 +20,7 @@ import yaml
 import os
 import traceback
 
-from machination.helpers import listPath
+from machination.helpers import list_path
 from machination.helpers import accepts
 from machination.loggers import REGISTRYLOGGER
 from machination.constants import MACHINATION_CONFIGFILE_NAME
@@ -45,7 +45,7 @@ class MachineInstanceRegistry():
   def get_instances(self):
     _instances = {}
     for d in self._instanceDirs:
-      path = listPath(d)
+      path = list_path(d)
       # For each path to scan
       for iDir in path:
         # Check if the file exists and if there is a VagrantFile and a config file in it
@@ -78,7 +78,7 @@ class MachineTemplateRegistry():
     def get_templates(self):
       machineTemplates = {}
       for d in self._templateDirs:
-        files = listPath(d)
+        files = list_path(d)
         for f in files:
           if os.path.isfile(f) and  os.path.splitext(os.path.basename(f))[1] == ".template":
             try:

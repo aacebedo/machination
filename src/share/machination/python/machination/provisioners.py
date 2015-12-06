@@ -3,7 +3,7 @@ import yaml
 import os
 
 from machination.helpers import accepts
-from machination.helpers import generateHashOfDir
+from machination.helpers import generate_hash_of_dir
 from machination.exceptions import InvalidArgumentValue
 from machination.exceptions import PathNotExistError
 from machination.exceptions import InvalidMachineTemplateException
@@ -70,14 +70,14 @@ class AnsibleProvisioner(Provisioner):
 
     @abstractmethod
     def generateHashFor(self,instance,hashValue):
-      generateHashOfDir(os.path.join(instance.getPath(),"provisioners","ansible"),hashValue)
+      generate_hash_of_dir(os.path.join(instance.getPath(),"provisioners","ansible"),hashValue)
     
     @abstractmethod
     def generateFilesFor(self,instance):
       if not os.path.exists(instance.getPath()):
         raise PathNotExistError(instance.getPath())
       ansibleFilesDest = os.path.join(instance.getPath(),"provisioners","ansible")
-      mkdir_p(os.path.join(ansibleFilesDest))
+      os.makedirs(ansibleFilesDest,exist_ok=True)
       playbookPath = os.path.join(instance.getPath(),"provisioners","ansible","machine.playbook")
       playbook = [{}]
       playbook[0]["hosts"] = "all"

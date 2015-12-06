@@ -4,7 +4,7 @@ import requests
 import StringIO
 import shutil
 import os
-from machination.helpers import generateHashOfFile
+from machination.helpers import generate_hash_of_file
 from machination.helpers import accepts
 from machination.exceptions import InvalidArgumentValue
 from machination.loggers import PROVIDERSLOGGER
@@ -155,5 +155,5 @@ class VBoxProvider(Provider):
 
     @abstractmethod
     def generateHashFor(self, instance, hashValue):
-      generateHashOfFile(os.path.join(instance.getPath(), "preseed.cfg"),hashValue)
+      generate_hash_of_file(os.path.join(instance.getPath(), "preseed.cfg"),hashValue)
       

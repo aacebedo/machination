@@ -45,7 +45,7 @@ from machination.exceptions import InvalidMachineTemplateException
 
 from machination.helpers import accepts
 from machination.loggers import CORELOGGER
-from machination.helpers import generateHashOfFile
+from machination.helpers import generate_hash_of_file
 
 # #
 # Class representing a network interface
@@ -444,7 +444,7 @@ class MachineInstance(yaml.YAMLObject):
       templateHash = hashlib.sha1()
       self.getProvisioner().generateHashFor(self, templateHash)
       self.getProvisioner().generateHashFor(self, templateHash)
-      generateHashOfFile(os.path.join(self.getPath(), "Vagrantfile"), templateHash)
+      generate_hash_of_file(os.path.join(self.getPath(), "Vagrantfile"), templateHash)
       self._templateHash = templateHash.hexdigest()
       # Create the machine config file
       configFile = yaml.dump(self)

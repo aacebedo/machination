@@ -11,7 +11,7 @@ from machination.loggers import COMMANDLINELOGGER
 from machination.providers import Provider
 from machination.provisioners import Provisioner
 from machination.enums import Architecture
-from machination.helpers import getAllNetInterfaces
+from machination.helpers import get_all_net_interfaces
 from machination.core import NetworkInterface, SharedFolder
 
 class MachineInstanceCreationWizard:
@@ -24,7 +24,7 @@ class MachineInstanceCreationWizard:
     else:
         raise InvalidCmdLineArgument("guestinterface", strCmdLine )
     if(macAddr == "auto" or macAddr == None):
-        macAddr = machination.helpers.randomMAC()
+        macAddr = machination.helpers.generate_random_mac()
     print((ipAddr,macAddr,hostname))
     return (ipAddr,macAddr,hostname)
   
@@ -45,7 +45,7 @@ class MachineInstanceCreationWizard:
     macAddr = RegexedQuestion("Enter a MAC address for the interface",
                               "MAC address must be of form XX:XX:XX:XX:XX",
                               COMMANDLINELOGGER,
-                              "^{0}$".format(macAddrRegex), machination.helpers.randomMAC()).ask()
+                              "^{0}$".format(macAddrRegex), machination.helpers.generate_random_mac()).ask()
     return (hostname,ipAddr,macAddr)
   
   def requestProvider(self,args,template):
@@ -161,7 +161,7 @@ class MachineInstanceCreationWizard:
     guestInterfaces = []
     sharedFolders = []
     hostInterface = None
-    networkInterfaces = getAllNetInterfaces();
+    networkInterfaces = get_all_net_interfaces();
     architecture = None
     osversion = None
     provisioner = None
@@ -172,7 +172,7 @@ class MachineInstanceCreationWizard:
       guestInterfaces = []
       sharedFolders = []
       hostInterface = None
-      networkInterfaces = getAllNetInterfaces();
+      networkInterfaces = get_all_net_interfaces();
       
       hostInterface = None
       if len(networkInterfaces) == 0:
