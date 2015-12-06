@@ -328,20 +328,20 @@ class MachineTemplate(yaml.YAMLObject):
       # Check if architectures are present in the template
       if "architectures" in representation.keys() and type(representation["architectures"]) is list:
           for p in representation["architectures"]:
-              architecture = Architecture.fromString(p);
+              architecture = Architecture.from_string(p);
               architectures.append(architecture)
 
       providers = []
       # Check if providers are present in the template
       if "providers" in representation.keys() and type(representation["providers"]) is list:
           for p in representation["providers"]:
-              providers.append(Provider.fromString(p)())
+              providers.append(Provider.from_string(p)())
 
       provisioners = []
       # Check if provisioners are present in the template
       if "provisioners" in representation.keys() and type(representation["provisioners"]) is list:
           for p in representation["provisioners"]:
-              provisioners.append(Provisioner.fromString(p)())
+              provisioners.append(Provisioner.from_string(p)())
 
       osVersions = None
       # Check if osVersions are present in the template
@@ -672,15 +672,15 @@ class MachineInstance(yaml.YAMLObject):
         # Retrieve the elements to create an instance
         architecture = None
         if "architecture" in representation.keys():
-            architecture = Architecture.fromString(representation["architecture"])
+            architecture = Architecture.from_string(representation["architecture"])
 
         provider = None
         if "provider" in representation.keys():
-            provider = Provider.fromString(representation["provider"])()
+            provider = Provider.from_string(representation["provider"])()
 
         provisioner = None
         if "provisioner" in representation.keys():
-            provisioner = Provisioner.fromString(representation["provisioner"])()
+            provisioner = Provisioner.from_string(representation["provisioner"])()
 
         name = os.path.basename(os.path.dirname(loader.stream.name))
 

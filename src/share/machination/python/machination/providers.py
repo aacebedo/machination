@@ -22,7 +22,7 @@ class Provider(object):
     
     @staticmethod
     @accepts(str)
-    def fromString(val):
+    def from_string(val):
       vals = {
                 "docker" : DockerProvider,
                 "virtualbox" : VBoxProvider,

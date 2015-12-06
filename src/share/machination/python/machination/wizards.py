@@ -56,12 +56,12 @@ class MachineInstanceCreationWizard:
     else:
       if args.provider != None:
         try:
-          provider = Provider.fromString(args.provider)()
+          provider = Provider.from_string(args.provider)()
         except:
           raise InvalidCmdLineArgument("provider", args.provider)
       else:
         if args.no_interactive == False:
-          provider = Provider.fromString(RegexedQuestion("Select a Provider [{0}]".format(",".join(map(str, template.getProviders()))),
+          provider = Provider.from_string(RegexedQuestion("Select a Provider [{0}]".format(",".join(map(str, template.getProviders()))),
                                                          "Provider must be from {0}".format(",".join(map(str, template.getProviders()))),
                                                          COMMANDLINELOGGER,
                                                          "[{0}]".format("\\b|\\b".join(map(str, template.getProviders()))), str(template.getProviders()[0])).ask())()
@@ -79,7 +79,7 @@ class MachineInstanceCreationWizard:
       if args.provisioner != None:
         COMMANDLINELOGGER.debug("A provisioner has been given by the user.")
         try:
-          provisioner = Provisioner.fromString(args.provisioner)()
+          provisioner = Provisioner.from_string(args.provisioner)()
         except:
           COMMANDLINELOGGER.debug("Given provisioner is not supported by machination.")
           raise InvalidCmdLineArgument("provisioner", args.provisioner)
@@ -89,7 +89,7 @@ class MachineInstanceCreationWizard:
       else:
         if args.no_interactive == False:
           COMMANDLINELOGGER.debug("Request a provisioner to the user.")
-          provisioner = Provisioner.fromString(RegexedQuestion("Select an Provisioner [{0}]".format(",".join(map(str, template.getProvisioners()))),
+          provisioner = Provisioner.from_string(RegexedQuestion("Select an Provisioner [{0}]".format(",".join(map(str, template.getProvisioners()))),
                                                              "Provisioner must be from {0}".format(",".join(map(str, template.getProvisioners()))),
                                                              COMMANDLINELOGGER,
                                                              "[{0}]".format("\\b|\\b".join(map(str, template.getProvisioners()))),
@@ -130,7 +130,7 @@ class MachineInstanceCreationWizard:
       if args.architecture != None:
         COMMANDLINELOGGER.debug("An architecture has been given in by the user.")
         try:
-          architecture = Architecture.fromString(self.args.architecture)
+          architecture = Architecture.from_string(self.args.architecture)
         except:                        
           COMMANDLINELOGGER.debug("Given architecture is not supported by machination.")
           raise InvalidCmdLineArgument("architecture", self.args.architecture)
@@ -140,7 +140,7 @@ class MachineInstanceCreationWizard:
       else:
         if args.no_interactive == False: 
           COMMANDLINELOGGER.debug("Request an architecture...")
-          architecture = Architecture.fromString(RegexedQuestion("Select an architecture [{0}]".format(",".join(map(str, template.getArchitectures()))),
+          architecture = Architecture.from_string(RegexedQuestion("Select an architecture [{0}]".format(",".join(map(str, template.getArchitectures()))),
                                                          "Architecture must be from {0}".format(",".join(map(str, template.getArchitectures()))),
                                                          COMMANDLINELOGGER,
                                                          "^[{0}]$".format("\\b|\\b".join(map(str, template.getArchitectures()))), architecture.name).ask())

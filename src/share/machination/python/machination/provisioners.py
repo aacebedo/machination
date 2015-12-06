@@ -29,7 +29,7 @@ class Provisioner(object):
     
     @staticmethod
     @accepts(str)
-    def fromString(val):
+    def from_string(val):
       vals = {
                 "ansible" : AnsibleProvisioner,
                 }
