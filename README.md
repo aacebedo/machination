@@ -1,10 +1,10 @@
 # Machination
-All your appliances are belongs to us !
+All your appliances are belong to us!
 
 Machination helps you to create virtual machines running with vagrant.
 It relies on a customizable template system that can be applied to instantiate machines.
-Currently, only Docker is supported to execute the machines. Adding Virtualbox is a work in progress.
-Installation of software in the machine is handled by Ansible. Again support for additionnal install utilities will be added.
+Currently, only Docker is supported to execute the machines. Adding Virtualbox is work in progress.
+Installation of software in the machine is handled by Ansible. Support for additionnal install utilities will be added later...
 
 ### Requirements
 - Vagrant 1.7.0 (www.vagrantup.com)
@@ -12,21 +12,21 @@ Installation of software in the machine is handled by Ansible. Again support for
 - Python 2.7.8
 - Docker 1.4.1
 - Packer 0.8.1 (www.packer.io)
-- Udhcpc (dhcp client) 
+- Udhcpc (dhcp client)
 - Enum34 for Python 2.7
 - Argcomplete for Python 2.7 (allows tab autocomplete)
 - Host-side-provisioner for vagrant (https://github.com/phinze/vagrant-host-shell)
 - Docker's pipework (https://github.com/jpetazzo/pipework)
 
 ### Principle
-Machination is based on templates (overcoming docker main limitation: passing arguments and/or sharing parts of dockerfiles).
+Machination is based on templates, overcoming docker main limitation: passing arguments and/or sharing parts of dockerfiles.
 
-A template define:
-- the provider (provides the virtual infrastructure): docker
-- the provisioner (executes installation instructions): ansible
-- the system version (ubuntu trusty, vivid,...)
-- optionnal additionnal network interfaces
-- the role(s) of the machine
+A template defines:
+- the provider (provides the virtual infrastructure): docker;
+- the provisioner (executes installation instructions): ansible;
+- the system version (ubuntu trusty, vivid,...);
+- optionnal additionnal network interfaces;
+- the role(s) of the machine.
 The file is named <templateName>.template
 
 Each template can pick from different roles.
@@ -39,6 +39,7 @@ $ tar xvzf machination.tar.gz
 $ cd machination
 $ ./waf configure --prefix=<install_prefix> --templates=<templates_to_install>
 $ ./waf build
+# ./waf install
 ```
 ### Commands
 List the available templates or instances:
