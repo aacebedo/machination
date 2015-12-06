@@ -435,15 +435,15 @@ class MachineInstance(yaml.YAMLObject):
       self.getPackerFile()["provisioners"] = []
       self.getPackerFile()["post-processors"] = []
       
-      self.getProvider().generateFilesFor(self)
-      self.getProvisioner().generateFilesFor(self)   
+      self.getProvider().generate_instance_files(self)
+      self.getProvisioner().generate_instance_files(self)   
       
       outfile = open(os.path.join(self.getPath(), MACHINATION_PACKERFILE_NAME), "w")
       json.dump(self.getPackerFile(), outfile, indent=2)
       outfile.close()
       templateHash = hashlib.sha1()
-      self.getProvisioner().generateHashFor(self, templateHash)
-      self.getProvisioner().generateHashFor(self, templateHash)
+      self.getProvisioner().generate_instance_hash(self, templateHash)
+      self.getProvisioner().generate_instance_hash(self, templateHash)
       generate_hash_of_file(os.path.join(self.getPath(), "Vagrantfile"), templateHash)
       self._templateHash = templateHash.hexdigest()
       # Create the machine config file
@@ -473,14 +473,14 @@ class MachineInstance(yaml.YAMLObject):
     def pack(self):
       # If the machine does not exist yet
       if os.path.exists(self.getPath()):
-        if self.getProvider().needsProvisioning(self):
+        if self.getProvider().needs_provisioning(self):
           CORELOGGER.debug("Image needs provisioning, starting packer...")
           
           # Fire up the vagrant machine
           cmd = "packer build -var 'provisioner={0}' -var 'provider={1}' -var 'architecture={2}' -var 'osversion={3}' -var 'hash={4}' {5}".format(
                                                                                str(self.getProvisioner()).lower(),
                                                                                str(self.getProvider()).lower(),
-                                                                               str(self.getArchitecture()).lower(),
+                                                                               str(self.get_architecture()).lower(),
                                                                                self.getOsVersion().lower(),
                                                                               self.getTemplateHash(),os.path.join(".",MACHINATION_PACKERFILE_NAME))
           CORELOGGER.info("executed command {0}".format(cmd))
@@ -500,7 +500,7 @@ class MachineInstance(yaml.YAMLObject):
     def getTemplateHash(self):
       return self._templateHash
 
-    def getArchitecture(self):
+    def get_architecture(self):
       return self._architecture
 
     def getProvisioner(self):
@@ -526,7 +526,7 @@ class MachineInstance(yaml.YAMLObject):
 
     def getImageName(self):
       return "machination-{0}-{1}-{2}-{3}".format(self.getTemplate().getName().lower(),
-                                                           str(self.getArchitecture()).lower(),
+                                                           str(self.get_architecture()).lower(),
                                                            self.getOsVersion().lower(),
                                                            str(self.getProvisioner()).lower())
 
@@ -571,7 +571,7 @@ class MachineInstance(yaml.YAMLObject):
     def get_infos(self):
       i=0
       output = "Machine '{0}':\n".format(self.getName())
-      output += "  Architecture: {0}\n".format(self.getArchitecture())
+      output += "  Architecture: {0}\n".format(self.get_architecture())
       output += "  Provisioner: {0}\n".format(self.getProvisioner())
       output += "  Provider: {0}\n".format(self.getProvider())
       isStarted = self.isStarted() 
@@ -651,7 +651,7 @@ class MachineInstance(yaml.YAMLObject):
     def to_yaml(cls, dumper, data):
         representation = {
                                "template" : "{0}|{1}".format(data.getTemplate().getName(),data.getTemplateHash()),
-                               "architecture" : str(data.getArchitecture()),
+                               "architecture" : str(data.get_architecture()),
                                "os_version" : str(data.getOsVersion()),
                                "provider" : str(data.getProvider()),
                                "provisioner" : str(data.getProvisioner()),

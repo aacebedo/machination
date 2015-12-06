@@ -21,10 +21,10 @@ from abc import abstractmethod
 
 class Provisioner(object):
     @abstractmethod
-    def generateFilesFor(self,instance):
+    def generate_instance_files(self,instance):
       pass
     @abstractmethod
-    def generateHashFor(self,instance):
+    def generate_instance_hash(self,instance):
       pass
     
     @staticmethod
@@ -69,11 +69,11 @@ class AnsibleProvisioner(Provisioner):
         raise InvalidMachineTemplateException("Unable to find ansible role '{0}'.".format(role))
 
     @abstractmethod
-    def generateHashFor(self,instance,hashValue):
-      generate_hash_of_dir(os.path.join(instance.getPath(),"provisioners","ansible"),hashValue)
+    def generate_instance_hash(self,instance,hash_value):
+      generate_hash_of_dir(os.path.join(instance.getPath(),"provisioners","ansible"),hash_value)
     
     @abstractmethod
-    def generateFilesFor(self,instance):
+    def generate_instance_files(self,instance):
       if not os.path.exists(instance.getPath()):
         raise PathNotExistError(instance.getPath())
       ansibleFilesDest = os.path.join(instance.getPath(),"provisioners","ansible")
