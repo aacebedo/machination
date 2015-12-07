@@ -67,10 +67,6 @@ class Provider(object):
             raise InvalidArgumentValue("Unknown provider", val)
 
     @abstractmethod
-    def __str__(self):
-        pass
-
-    @abstractmethod
     def needs_provisioning(self, instance):
         """
         Returns true if the instance needs to be provisioned
