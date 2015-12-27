@@ -54,7 +54,7 @@ class MachineInstanceRegistry():
             filename = os.path.join(iDir, MACHINATION_CONFIGFILE_NAME)
             openedFile = open(filename, "r")
             instance = yaml.load(openedFile)
-            _instances[instance.getName()] = instance
+            _instances[instance.get_name()] = instance
             REGISTRYLOGGER.debug("Instance stored in '{0}' loaded".format(filename))
             
           except Exception as e:
@@ -84,7 +84,7 @@ class MachineTemplateRegistry():
             try:
               openedFile = open(os.path.join(f), "r")
               template = yaml.load(openedFile)
-              machineTemplates["{}".format(template.getName())] = template
+              machineTemplates["{}".format(template.get_name())] = template
               REGISTRYLOGGER.debug("Template stored in '{0}' loaded".format(f))
             except Exception as e:
               REGISTRYLOGGER.warning("Unable to load template stored in '{0}: {1}".format(f,str(e)))

@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.
 #
+import hashlib
 """
 This file contains the providers definition of machination
 """
@@ -42,14 +43,14 @@ class Provider(object):
         """
         Generate files for the given instance
         """
-        pass
+        raise NotImplementedError("Abstract method is not implemented")
 
     @abstractmethod
     def generate_instance_hash(self, instance, hash_value):
         """
         Generate hash for the given instance
         """
-        pass
+        raise NotImplementedError("Abstract method is not implemented")
 
     @staticmethod
     @accepts(str)
@@ -72,7 +73,7 @@ class Provider(object):
         Returns true if the instance needs to be provisioned
         false otherwise
         """
-        pass
+        raise NotImplementedError("Abstract method is not implemented")
 
 
 class DockerProvider(Provider):
@@ -81,15 +82,14 @@ class DockerProvider(Provider):
     """
     def generate_instance_files(self, instance):
         folders = {}
-        for file_to_process in instance.getSharedFolders():
-            folders[file_to_process.getHostDir()] = \
-            file_to_process.getGuestDir()
+        for file_to_process in instance.get_shared_folders():
+            folders[file_to_process.get_host_dir()] = \
+            file_to_process.get_guest_dir()
 
         builder = {}
         builder["type"] = "docker"
-        builder[
-            "image"] = "aacebedo/ubuntu-{{user `osversion`}}-vagrant-\
-                        {{user `architecture`}}"
+        builder["image"] = "aacebedo/ubuntu-{{user `operating_system_name`}}-vagrant-\
+{{user `operating_system_architecture`}}"
         builder["export_path"] = "./machine.box"
         builder[
             "run_command"] = [
@@ -100,13 +100,13 @@ class DockerProvider(Provider):
                 "{{.Image}}",
                 "/sbin/init"]
         builder["volumes"] = folders
-        instance.getPackerFile()["builders"].append(builder)
+        instance.get_packer_file()["builders"].append(builder)
 
         postproc = {}
         postproc["type"] = "docker-import"
-        postproc["repository"] = instance.getImageName()
+        postproc["repository"] = instance.get_image_name()
         postproc["tag"] = "{{user `hash`}}"
-        instance.getPackerFile()["post-processors"].append(postproc)
+        instance.get_packer_file()["post-processors"].append(postproc)
 
         shutil.copy(
             os.path.join(MACHINATION_INSTALLDIR,
@@ -114,32 +114,31 @@ class DockerProvider(Provider):
                          "machination",
                          "vagrant",
                          "Vagrantfile_docker"),
-            os.path.join(instance.getPath(),
+            os.path.join(instance.get_path(),
                          "Vagrantfile"))
         PROVIDERSLOGGER.debug("Files generated for docker provider.")
 
     def __str__(self):
         return "docker"
-
-    def generate_instance_hash(self, instance, hashValue):
+      
+    def generate_instance_hash(self, instance, hash_value):
         pass
 
     def needs_provisioning(self, instance):
         regex = "(.*){0}( *){1}(.*)".format(
-            instance.getImageName(),
-            str(instance.getTemplateHash()))
+            instance.get_image_name(),
+            str(instance.get_template_hash()))
         process = subprocess.Popen(
-            "docker images -a",
-            shell=True,
+            ["docker","images", "-a"],
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE)
         out = process.communicate()[0]
         if process.returncode == 0:
-            return re.search(regex, out) == None
+            return re.search(regex, out.decode()) == None
         else:
             raise RuntimeError(
                 "Internal error when processing provider \
-                of instance '{}'".format(instance.getName()))
+                of instance '{}'".format(instance.get_name()))
 
 
 class VBoxProvider(Provider):
@@ -149,35 +148,35 @@ class VBoxProvider(Provider):
     def generate_instance_files(self, instance):
         req = requests.get(
             "http://releases.ubuntu.com/{}/MD5SUMS"
-            .format(instance.getOsVersion()))
+            .format(instance.get_operating_system().get_name()))
         md5file = StringIO.StringIO(req.content)
 
         version_line = ""
         for line in md5file:
-            if "server-{0}".format(instance.get_architecture()) in line:
+            if "server-{0}".format(instance.get_operating_system().get_architecture()) in line:
                 version_line = line.rstrip('\n\r ')
                 break
         splitted_version_line = version_line.split('*')
         if len(splitted_version_line) != 2:
             raise RuntimeError(
                 "Unable to find OS version {} \
-                in checksum file of ubuntu".format(instance.getOsVersion()))
+                in checksum file of ubuntu".format(instance.get_operating_system().get_name()))
 
         shutil.copy2(
             os.path.join(MACHINATION_VBOXDIR,
                          "preseed.cfg"),
-            os.path.join(instance.getPath(),
+            os.path.join(instance.get_path(),
                          "preseed.cfg"))
 
         folders = {}
-        for file in instance.getSharedFolders():
-            folders[file.getHostDir()] = file.getGuestDir()
+        for file in instance.get_shared_folders():
+            folders[file.get_host_dir()] = file.get_guest_dir()
 
         builder = {}
         builder["type"] = "virtualbox-iso"
         builder["guest_os_type"] = "Linux_64"
         builder["iso_url"] = "http://releases.ubuntu.com/{0}/{1}".format(
-            instance.getOsVersion(), splitted_version_line[1])
+            instance.get_operating_system().get_name(), splitted_version_line[1])
         builder["iso_checksum_type"] = "md5"
         builder["iso_checksum"] = splitted_version_line[0].rstrip(" ")
         builder["http_directory"] = "./"
@@ -196,7 +195,7 @@ class VBoxProvider(Provider):
                                    {{ .HTTPPort }}/preseed.cfg ",
                                    "debian-installer=en_US auto \
                                    locale=en_US kbd-chooser/method=us ",
-                                   "hostname={0} ".format(instance.getName()),
+                                   "hostname={0} ".format(instance.get_name()),
                                    "fb=false debconf/frontend=noninteractive ",
                                    "keyboard-configuration/modelcode=SKIP \
                                    keyboard-configuration/layout=FR ",
@@ -204,12 +203,12 @@ class VBoxProvider(Provider):
                                    console-setup/ask_detect=false ",
                                    "initrd=/install/initrd.gz -- <enter>"
                                   ]
-        instance.getPackerFile()["builders"].append(builder)
+        instance.get_packer_file()["builders"].append(builder)
 
         postproc = {}
         postproc["type"] = "vagrant-import"
-        postproc["import_name"] = instance.getImageName() + "-{{user `hash`}}"
-        instance.getPackerFile()["post-processors"].append(postproc)
+        postproc["import_name"] = instance.get_image_name() + "-{{user `hash`}}"
+        instance.get_packer_file()["post-processors"].append(postproc)
 
         shutil.copy(
             os.path.join(MACHINATION_INSTALLDIR,
@@ -217,7 +216,7 @@ class VBoxProvider(Provider):
                          "machination",
                          "vagrant",
                          "Vagrantfile_virtualbox"),
-            os.path.join(instance.getPath(),
+            os.path.join(instance.get_path(),
                          "Vagrantfile"))
 
         PROVIDERSLOGGER.debug("Files generated for virtualbox provider.")
@@ -228,11 +227,10 @@ class VBoxProvider(Provider):
     def needs_provisioning(self, instance):
         # virtualbox always needs provisioning
         regex = "{0}-{1}(.*)".format(
-            instance.getImageName(),
-            instance.getTemplateHash())
+            instance.get_image_name(),
+            instance.get_template_hash())
         process = subprocess.Popen(
-            "vagrant box list",
-            shell=True,
+            ["vagrant","box","list"],
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE)
         out = process.communicate()[0]
@@ -241,10 +239,10 @@ class VBoxProvider(Provider):
         else:
             raise RuntimeError(
                 "Internal error when processing provider \
-                of instance '{0}'".format(instance.getName()))
+                of instance '{0}'".format(instance.get_name()))
 
-    def generate_instance_hash(self, instance, hashValue):
+    def generate_instance_hash(self, instance, hash_value):
         generate_hash_of_file(
-            os.path.join(instance.getPath(),
+            os.path.join(instance.get_path(),
                          "preseed.cfg"),
-            hashValue)
+            hash_value)
