@@ -20,7 +20,7 @@ import yaml
 import os
 import traceback
 
-from machination.helpers import listPath
+from machination.helpers import list_path
 from machination.helpers import accepts
 from machination.loggers import REGISTRYLOGGER
 from machination.constants import MACHINATION_CONFIGFILE_NAME
@@ -42,10 +42,10 @@ class MachineInstanceRegistry():
   # ##
   # Function to retrieve the available instances
   # ##
-  def getInstances(self):
+  def get_instances(self):
     _instances = {}
     for d in self._instanceDirs:
-      path = listPath(d)
+      path = list_path(d)
       # For each path to scan
       for iDir in path:
         # Check if the file exists and if there is a VagrantFile and a config file in it
@@ -75,16 +75,16 @@ class MachineTemplateRegistry():
       self._templateDirs = templateDirs
       REGISTRYLOGGER.debug("Templates are searched in the following directories: {0}".format(','.join(self._templateDirs)))
 
-    def getTemplates(self):
+    def get_templates(self):
       machineTemplates = {}
       for d in self._templateDirs:
-        files = listPath(d)
+        files = list_path(d)
         for f in files:
           if os.path.isfile(f) and  os.path.splitext(os.path.basename(f))[1] == ".template":
             try:
               openedFile = open(os.path.join(f), "r")
               template = yaml.load(openedFile)
-              machineTemplates["{0}".format(template.getName())] = template
+              machineTemplates["{}".format(template.getName())] = template
               REGISTRYLOGGER.debug("Template stored in '{0}' loaded".format(f))
             except Exception as e:
               REGISTRYLOGGER.warning("Unable to load template stored in '{0}: {1}".format(f,str(e)))

@@ -1,4 +1,4 @@
-##########################################################################
+#
 # Machination
 # Copyright (c) 2014, Alexandre ACEBEDO, All rights reserved.
 #
@@ -14,28 +14,41 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.
-##########################################################################
-
+#
+"""
+This file contains the project's enumerations
+"""
 from enum import Enum
 from machination.helpers import accepts
 from machination.exceptions import InvalidArgumentValue
 
-class StringifiedEnum(Enum):  
+
+class StringifiedEnum(Enum):
+    """
+    Base class for all "stringifable" enums
+    """
     def __str__(self):
-        return str(self.value)
-        
+        return str(self.value())
+
+
 class Architecture(StringifiedEnum):
+    """
+    Enum representing Architectures
+    """
     i386 = "i386"
     amd64 = "amd64"
-    
+
     @staticmethod
     @accepts(str)
-    def fromString(val):
-      vals = {
-              "i386" : Architecture.i386,
-              "amd64" : Architecture.amd64
-              }
-      if val in vals:
-        return vals[val]
-      else:
-        raise InvalidArgumentValue("Unknown architecture",val)
+    def from_string(val):
+        """
+        Turns a string into an enumeration
+        """
+        vals = {
+            "i386": Architecture.i386,
+            "amd64": Architecture.amd64
+        }
+        if val in vals:
+            return vals[val]
+        else:
+            raise InvalidArgumentValue("Unknown architecture", val)
