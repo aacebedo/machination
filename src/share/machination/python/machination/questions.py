@@ -42,7 +42,7 @@ class RegexedQuestion:
         questionTmp = self._question
         if self._default != "":
             questionTmp += " [{0}]".format(self._default)
-        v = raw_input(questionTmp+ ": ")
+        v = input(questionTmp+ ": ")
         if v == "":
             v = self._default
         if re.match(self._regex,v) :
