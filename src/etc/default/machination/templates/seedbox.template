@@ -17,8 +17,9 @@
 ##########################################################################
 ---
 !MachineTemplate
-architectures: ["amd64"]
-os_versions: ["trusty","vivid"]
+operating_systems: 
+- !OperatingSystem { name: "trusty", arch: "amd64" }
+- !OperatingSystem { name: "vivid", arch: "amd64" }
 provisioners: ["ansible"]
 providers: ["docker"]
 guest_interfaces : 0
