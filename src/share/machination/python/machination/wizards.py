@@ -12,7 +12,7 @@ from machination.providers import Provider
 from machination.provisioners import Provisioner
 from machination.enums import Architecture
 from machination.helpers import get_all_net_interfaces
-from machination.core import NetworkInterface, SharedFolder
+from machination.core import NetworkInterface, SharedFolder, OperatingSystem
 
 class MachineInstanceCreationWizard:
   def unpackInterface(self,strCmdLine):
@@ -49,9 +49,9 @@ class MachineInstanceCreationWizard:
     return (hostname,ipAddr,macAddr)
   
   def requestProvider(self,args,template):
-    provider = template.getProviders()[0]
+    provider = template.get_providers()[0]
     # If there is more than one provider available for the template
-    if len(template.getProviders()) == 1:
+    if len(template.get_providers()) == 1:
       COMMANDLINELOGGER.debug("Template has only one providers. It will be used as the default value")
     else:
       if args.provider != None:
@@ -61,19 +61,19 @@ class MachineInstanceCreationWizard:
           raise InvalidCmdLineArgument("provider", args.provider)
       else:
         if args.no_interactive == False:
-          provider = Provider.from_string(RegexedQuestion("Select a Provider [{0}]".format(",".join(map(str, template.getProviders()))),
-                                                         "Provider must be from {0}".format(",".join(map(str, template.getProviders()))),
+          provider = Provider.from_string(RegexedQuestion("Select a Provider [{0}]".format(",".join(map(str, template.get_providers()))),
+                                                         "Provider must be from {0}".format(",".join(map(str, template.get_providers()))),
                                                          COMMANDLINELOGGER,
-                                                         "[{0}]".format("\\b|\\b".join(map(str, template.getProviders()))), str(template.getProviders()[0])).ask())()
+                                                         "[{0}]".format("\\b|\\b".join(map(str, template.get_providers()))), str(template.get_providers()[0])).ask())()
         else:
           COMMANDLINELOGGER.debug("Missing provider argument")
           raise InvalidCmdLineArgument("provider", args.provider)
     return provider
 
   def requestProvisionner(self,args,template):
-    provisioner = template.getProvisioners()[0]
+    provisioner = template.get_provisioners()[0]
     # If there is more than one provisioner available for the template
-    if len(template.getProvisioners()) == 1:
+    if len(template.get_provisioners()) == 1:
       COMMANDLINELOGGER.debug("Template has only one provisioner. It will be used as the default value")
     else:
       if args.provisioner != None:
@@ -83,16 +83,16 @@ class MachineInstanceCreationWizard:
         except:
           COMMANDLINELOGGER.debug("Given provisioner is not supported by machination.")
           raise InvalidCmdLineArgument("provisioner", args.provisioner)
-        if provisioner not in template.getProvisioners():
+        if provisioner not in template.get_provisioners():
           COMMANDLINELOGGER.debug("Given provisioner is not supported by this template.")
           raise InvalidCmdLineArgument("provisioner", args.provisioner)
       else:
         if args.no_interactive == False:
           COMMANDLINELOGGER.debug("Request a provisioner to the user.")
-          provisioner = Provisioner.from_string(RegexedQuestion("Select an Provisioner [{0}]".format(",".join(map(str, template.getProvisioners()))),
-                                                             "Provisioner must be from {0}".format(",".join(map(str, template.getProvisioners()))),
+          provisioner = Provisioner.from_string(RegexedQuestion("Select an Provisioner [{0}]".format(",".join(map(str, template.get_provisioners()))),
+                                                             "Provisioner must be from {0}".format(",".join(map(str, template.get_provisioners()))),
                                                              COMMANDLINELOGGER,
-                                                             "[{0}]".format("\\b|\\b".join(map(str, template.getProvisioners()))),
+                                                             "[{0}]".format("\\b|\\b".join(map(str, template.get_provisioners()))),
                                                               provisioner.name).ask())()
         else:
           COMMANDLINELOGGER.debug("Missing provisioner argument")
@@ -100,57 +100,57 @@ class MachineInstanceCreationWizard:
               
     return provisioner
 
-  def requestOsVersion(self,args,template):
-    osVersion = template.getOsVersions()[0]
+  def request_operating_system(self,args,template):
     # If there is more than one OS version available for the template
     # Ask the user to choose
-    if len(template.getOsVersions()) > 1 :
-      if args.osversion != None:
-        osVersion = args.osversion
-        COMMANDLINELOGGER.debug("An os version has been given by the user.")
-      else:
-        if args.no_interactive == False:
-          COMMANDLINELOGGER.debug("Request an os version to the user.")
-          osVersion = RegexedQuestion("Select an OS version [{0}]".format(",".join(map(str, template.getOsVersions()))),
-                                    "OS version must be from {0}".format(",".join(map(str, template.getOsVersions()))),
-                                    COMMANDLINELOGGER,
-                                      "[{0}]".format("\\b|\\b".join(map(str, template.getOsVersions()))), osVersion).ask()
-        else:
-          COMMANDLINELOGGER.debug("Missing os version argument")
-          raise InvalidCmdLineArgument("osversion", args.osversion)
+    
+    operating_system_name = None
+    operating_systems_names = set(operating_system.get_name() for operating_system in template.get_operating_systems())
+    if args.operatingsystem != None:
+        operating_system_name = args.operatingsystem
+        COMMANDLINELOGGER.debug("An operating system has been given by the user.")
     else:
-      COMMANDLINELOGGER.debug("Template has only one os version. It will be used as the default value")
-    return osVersion
-              
-  def requestArchitecture(self,args,template):
-    architecture = template.getArchitectures()[0]
-    # If there is more than one architecture available for the template
-    # Ask the user to choose
-    if len(template.getArchitectures()) > 1 :
-      if args.architecture != None:
-        COMMANDLINELOGGER.debug("An architecture has been given in by the user.")
-        try:
-          architecture = Architecture.from_string(self.args.architecture)
-        except:                        
-          COMMANDLINELOGGER.debug("Given architecture is not supported by machination.")
-          raise InvalidCmdLineArgument("architecture", self.args.architecture)
-        if architecture not in self.template.getArchitectures():
-          COMMANDLINELOGGER.debug("Given architecture is not supported by the template (shall be one of %s).".format(', '.join(template.getArchitectures())))
-          raise InvalidCmdLineArgument("architecture", self.args.architecture)
-      else:
-        if args.no_interactive == False: 
-          COMMANDLINELOGGER.debug("Request an architecture...")
-          architecture = Architecture.from_string(RegexedQuestion("Select an architecture [{0}]".format(",".join(map(str, template.getArchitectures()))),
-                                                         "Architecture must be from {0}".format(",".join(map(str, template.getArchitectures()))),
-                                                         COMMANDLINELOGGER,
-                                                         "^[{0}]$".format("\\b|\\b".join(map(str, template.getArchitectures()))), architecture.name).ask())
+        operating_system_name = next(iter(operating_systems_names))
+        if(len(operating_systems_names) > 1):
+          COMMANDLINELOGGER.debug("Request a base system to the user.")
+          operating_system_name = RegexedQuestion("Select an operating system [{0}]".format(",".join((str(x) for x in operating_systems_names))),
+                                      "Operating system must be from {0}".format(",".join((str(x) for x in operating_systems_names))),
+                                      COMMANDLINELOGGER,
+                                        "[{0}]".format("\\b|\\b".join((str(x) for x in operating_systems_names))), operating_system_name).ask()
         else:
-          COMMANDLINELOGGER.debug("Missing architecture argument")
-          raise InvalidCmdLineArgument("architecture", args.architecture)
+          COMMANDLINELOGGER.debug("Template has only one os version. It will be used as the default value")
+
+    operating_system_architectures = set()
+    for operating_system in template.get_operating_systems():
+        if operating_system.get_name() == operating_system_name:
+          operating_system_architectures.add(operating_system.get_architecture())
+
+    if args.architecture != None:
+      COMMANDLINELOGGER.debug("An architecture has been given in by the user.")
+      try:
+        architecture = Architecture.from_string(self.args.architecture)
+        if architecture not in operating_system_architectures:
+              COMMANDLINELOGGER.debug("Given architecture is not supported by the template (shall be one of %s).".format(', '.join(operating_system_architectures)))
+              raise InvalidCmdLineArgument("architecture", self.args.architecture)
+      except:
+        COMMANDLINELOGGER.debug("Given architecture is not supported by machination.")
+        raise InvalidCmdLineArgument("architecture", self.args.architecture)
     else:
-      COMMANDLINELOGGER.debug("Template has only one architecture. It will be used as the default value.")
-      
-    return architecture
+      if len(operating_system_architectures) > 1 :
+            if args.no_interactive == False: 
+              COMMANDLINELOGGER.debug("Request an architecture...")
+              architecture = Architecture.from_string(RegexedQuestion("Select an architecture [{0}]".format(",".join((str(x) for x in operating_system_architectures))),
+                                                           "Architecture must be from {0}".format(",".join((str(x) for x in operating_system_architectures))),
+                                                           COMMANDLINELOGGER,
+                                                           "^[{0}]$".format("\\b|\\b".join((str(x) for x in operating_system_architectures))), architecture.name).ask())
+            else:
+              COMMANDLINELOGGER.debug("Missing architecture argument")
+              raise InvalidCmdLineArgument("architecture", args.architecture)
+      else:
+          architecture = next(iter(operating_system_architectures))
+          COMMANDLINELOGGER.info("Architecture {} will be used as it is the \
+  only one supported by system {}".format(architecture, operating_system_name))
+    return OperatingSystem(operating_system_name, architecture)
       
   def execute(self,args,templates):
     # Check if the requested template exists
@@ -162,8 +162,7 @@ class MachineInstanceCreationWizard:
     sharedFolders = []
     hostInterface = None
     networkInterfaces = get_all_net_interfaces();
-    architecture = None
-    osversion = None
+    operating_system = None
     provisioner = None
     provider = None
       
@@ -185,15 +184,14 @@ class MachineInstanceCreationWizard:
                                     COMMANDLINELOGGER,
                                     "^{0}$".format("\\b|\\b".join(map(str, networkInterfaces))), networkInterfaces[0]).ask()
     
-      architecture = self.requestArchitecture(args,template)
-      osversion = self.requestOsVersion(args,template)
+      operating_system = self.request_operating_system(args,template)
       provisioner = self.requestProvisionner(args,template)
       provider = self.requestProvider(args,template) 
         
       # Ask for configuration of network interface of the template
       itfCounter = 0
       if args.guestinterface != None:
-        for i in range(0,template.getGuestInterfaces()):
+        for i in range(0,template.get_guest_interfaces()):
           (ipAddr,macAddr,hostname) = self.unpackInterface(args.guestinterface[itfCounter] )
           guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostname))
         for i in range(itfCounter, len(args.guestinterface)):
@@ -201,17 +199,17 @@ class MachineInstanceCreationWizard:
           guestInterfaces.append(NetworkInterface(ipAddr, macAddr,hostname))
           itfCounter += 1
       else:
-        for i in range(0,template.getGuestInterfaces()):
+        for i in range(0,template.get_guest_interfaces()):
           (ipAddr,macAddr,hostname) = self.requestInterface(networkInterfaces)
           guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostname))
 
       # Ask for additional network interfaces
       if args.no_interactive == False:
-        for i in range(itfCounter,template.getGuestInterfaces()):
+        for i in range(itfCounter,template.get_guest_interfaces()):
           (ipAddr,macAddr,hostname) = self.requestInterface(networkInterfaces)
           guestInterfaces.append(NetworkInterface(ipAddr, macAddr, hostname))
       else:
-        if(len(args.guestinterface) < template.getGuestInterfaces()):
+        if(len(args.guestinterface) < template.get_guest_interfaces()):
           COMMANDLINELOGGER.error("Not enough guestinterfaces given to fill requirement of template")
           raise InvalidCmdLineArgument("guestinterface", args.guestinterface)
       if args.no_interactive == False:
@@ -236,4 +234,4 @@ class MachineInstanceCreationWizard:
       COMMANDLINELOGGER.error("Unable to create machine: template '{0}' does not exists".format(args.template))
 
       
-    return (template, architecture, osversion, provider, provisioner, guestInterfaces, hostInterface, sharedFolders) 
+    return (template, operating_system, provider, provisioner, guestInterfaces, hostInterface, sharedFolders) 

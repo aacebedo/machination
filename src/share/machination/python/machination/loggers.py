@@ -28,22 +28,22 @@ ROOTLOGGER = logging.getLogger("machination")
 ROOTLOGGER.addHandler(strHandler)
 
 COMMANDLINELOGGER = logging.getLogger("machination.cmdline")
-COMMANDLINELOGGER.addHandler(strHandler)
+
 
 REGISTRYLOGGER = logging.getLogger("machination.registries")
-REGISTRYLOGGER.addHandler(strHandler)
+
 
 CORELOGGER = logging.getLogger("machination.core")
-CORELOGGER.addHandler(strHandler)
+
 
 FILEGENERATORLOGGER = logging.getLogger("machination.filegenerator")
-FILEGENERATORLOGGER.addHandler(strHandler)
+
 
 PROVISIONERSLOGGER = logging.getLogger("machination.provisioners")
-PROVISIONERSLOGGER.addHandler(strHandler)
+
 
 PROVIDERSLOGGER = logging.getLogger("machination.providers")
-PROVIDERSLOGGER.addHandler(strHandler)
+
 
 def set_log_level(lvl):
   global logHandler

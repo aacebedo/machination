@@ -52,12 +52,6 @@
     - tree
     - unzip
 
-  - name: Add default user group
-    group: name="{{ base_user }}" state=present
-
-  - name: Add default user
-    user: name="{{ base_user }}" group="{{ base_user }}" state=present shell=/sbin/zsh
-
   - stat: path="/home/{{ base_user }}/.oh-my-zsh"
     register: oh_my_zsh_user_dir_stats
 
