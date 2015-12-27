@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import sys
 from waflib.Task import Task
@@ -15,22 +16,16 @@ src = "src"
 
 def options(ctx):
 	ctx.add_option('--prefix', action='store', default="/usr/local", help='install prefix')
-	ctx.add_option('--templates', action='store', default="*", help='templates to install')
+	ctx.add_option('--templates', action='store', default=None, help='templates to install')
 
 def checkVersion(name,cmd,regex,requiredVersion,returnCode):
     res = False
     Logs.pprint('WHITE','{0: <40}'.format('Checking {0} version'.format(name)),sep=': ')
     try:
-        p = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE,stdout=subprocess.PIPE)
-        line=" "
-        p.wait()
-        lines = list()
-        for line in iter(p.stdout.readline,''):
-           lines.append(line)
-        for line in iter(p.stderr.readline,''):
-           lines.append(line)
-
-        res =  { "returncode": p.returncode, "out":lines[0][0:-1] }
+        
+        p = subprocess.Popen(cmd,stdout=subprocess.PIPE,)
+        out, err = p.communicate()
+        res =  { "returncode": p.returncode, "out":out.decode("utf-8") }
         if res["returncode"] != returnCode:
            Logs.pprint('RED','{0} is not available. Cannot continue.'.format(name))
         else:
@@ -85,28 +80,27 @@ def checkPythonModule(*moduleNames):
 def configure(ctx):
     ctx.env.PREFIX = ctx.options.prefix
 
-    if ctx.options.templates == "":
+    if ctx.options.templates == None:
     	ctx.env.TEMPLATES = None
     else:
     	ctx.env.TEMPLATES = ctx.options.templates.split(",")
 
-    if not checkVersion("Python","python --version","Python ([0-9\.]*)","2.7.0",0):
+    if not checkVersion("Python",["python3","--version"],"Python ([0-9\.]*)","2.7.0",0):
       ctx.fatal("Missing requirements. Installation will not continue.")
-    if not checkVersion("Vagrant","vagrant -v","Vagrant ([0-9\.]*)","1.7.0",0):
+    if not checkVersion("Vagrant",["vagrant","-v"],"Vagrant ([0-9\.]*)","1.7.0",0):
       ctx.fatal("Missing requirements. Installation will not continue.")
-    if not checkVersion("Ansible","ansible --version","ansible ([0-9\.]*)","1.7.0",0):
+    if not checkVersion("Ansible",["ansible","--version"],"ansible ([0-9\.]*)","1.7.0",0):
       ctx.fatal("Missing requirements. Installation will not continue.")
-    if not checkVersion("Docker","docker --version","Docker version ([0-9\.]*)(.*)","1.4.1",0):
+    if not checkVersion("Docker",["docker", "--version"],"Docker version ([0-9\.]*)(.*)","1.4.1",0):
       ctx.fatal("Missing requirements. Installation will not continue.")
     if not checkBinary("Dhcp","udhcpc", "dhcpd", "dhclient"):
       ctx.fatal("Missing requirements. Installation will not continue.")
-    if not checkVersion("packer","packer --version","(.*)([0-9\.]*)(.*)","0.8.1",1):
-      ctx.fatal("Missing requirements. Installation will not continue.")
-    if not checkPythonModule("enum34", "enum"):
+    if not checkVersion("packer",["packer","--version"],"(.*)([0-9\.]*)(.*)","0.8.1",1):
       ctx.fatal("Missing requirements. Installation will not continue.")
     if not checkPythonModule("argcomplete"):
       ctx.fatal("Missing requirements. Installation will not continue.")
-
+    if not checkPythonModule("yaml"):
+      ctx.fatal("Missing requirements. Installation will not continue.")
 
 def build(ctx):
   sharePath = ctx.path.find_dir('src/share/')
@@ -115,10 +109,11 @@ def build(ctx):
 
   etcFiles = etcPath.ant_glob('**/*',excl="**/machination/templates/*")
   templateFiles = []
-
-  for t in ctx.env.TEMPLATES:
-  	templateFiles.extend(etcPath.ant_glob('**/machination/templates/'+t+'.*.template'))
-
+  if len(ctx.env.TEMPLATES) != 0:
+    for t in ctx.env.TEMPLATES:
+      templateFiles.extend(etcPath.ant_glob('**/machination/templates/{0}.*.template'.format(t)))
+  else:
+    templateFiles = etcPath.ant_glob('**/machination/templates/*.template')
 
   ctx.install_files(os.path.join(ctx.env.PREFIX,'share'), sharePath.ant_glob('**/*'), cwd=sharePath, relative_trick=True)
   ctx.install_files(os.path.join(ctx.env.PREFIX,'bin'), binPath.ant_glob('**/*'),  chmod=0555, cwd=binPath, relative_trick=True)
