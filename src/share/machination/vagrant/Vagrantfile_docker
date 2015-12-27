@@ -22,7 +22,7 @@ cwd = File.dirname(File.expand_path(__FILE__))
 machine_config = YAML.load_file("#{cwd}/machine.config")
 name = "machination-"+cwd.split('/').last
 
-if not machine_config["architecture"]
+if not machine_config["operating_system"]["arch"]
 	abort("Architecture is missing from the configuration file. Check the machine_instance_config file.")
 end
 
@@ -37,8 +37,13 @@ end
 if not machine_config["guest_interfaces"]
   abort("Guest interfaces are missing from the configuration file. Check the machine_instance_config file.")
 end
+
+if not machine_config["operating_system"]["name"]
+  abort("Operating system is missing from the configuration file. Check the machine_instance_config file.")
+end
+
 templateName, templateHash = machine_config["template"].split("|")
-imageName = "machination-"+templateName+"-"+machine_config["architecture"]+"-"+machine_config["os_version"]+"-"+machine_config["provisioner"]
+imageName = "machination-"+templateName+"-"+machine_config["operating_system"]["arch"]+"-"+machine_config["operating_system"]["name"]+"-"+machine_config["provisioner"]
 imageName = imageName.downcase
     
 Vagrant.configure("2") do |config|

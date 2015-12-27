@@ -15,6 +15,9 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.
 #
+from argparse import ArgumentTypeError
+import re
+import subprocess
 """ Command line module for machination """
 from machination.exceptions import InvalidCmdLineArgument
 import argparse
@@ -83,68 +86,74 @@ class CmdLine(object):
                 'path': [],
                 'provisioners': [],
                 'providers': [],
-                'architectures': [],
+                'operating_systems': [],
                 'comments': []}
         for template in templates.values():
-            data['name'].append(template.getName())
+            data['name'].append(template.get_name())
             data['path'].append(
-                os.path.abspath(template.getPath()))
+                os.path.abspath(template.get_path()))
             data['provisioners'].append(
-                ",".join([str(s) for s in  template.getProvisioners()]))
+                ",".join([str(s) for s in  template.get_provisioners()]))
             data['providers'].append(
-                ",".join([str(s) for s in  template.getProviders()]))
-            data['architectures'].append(
-                ",".join([str(s) for s in  template.getArchitectures()]))
-            data['comments'].append(template.getComments())
+                ",".join([str(s) for s in  template.get_providers()]))
+            
+            operating_systems = {}
+            for operating_sys in template.get_operating_systems():
+              if operating_sys.get_name() not in operating_systems:
+                operating_systems[operating_sys.get_name()] = []
+              operating_systems[operating_sys.get_name()].append(operating_sys.get_architecture())
+            
+            for operating_sys, archs in operating_systems.items():
+              data['operating_systems'].append('{} ({})'.format(operating_sys,
+                  ",".join([str(s) for s in archs])))
+            
+            data['comments'].append(template.get_comments())
 
         # Getting the max for each column
         name_col_width = max(len(word)
                              for word in data['name'])\
-            + len("Name") + 2
+            + len("Name") + 1
         path_col_width = max(len(word)
                              for word in data['path'])\
-            + len("Path") + 2
+            + len("Path") + 1
         provisioner_col_width = max(len(word)
                                     for word in data['provisioners'])\
-            + len("Provisioners") + 2
+            + len("Provisioners") + 1
         providers_col_width = max(len(word)
                                   for word in data['providers'])\
-            + len("Providers") + 2
-        architectures_col_width = max(len(word)
-                                      for word in data['architectures'])\
-            + len("Architectures") + 2
+            + len("Providers") + 1
+        os_col_width = max(len(word)
+                                      for word in data['operating_systems'])\
+            + len("Operating Systems") + 1
         comments_col_width = max(len(word)
                                  for word in data['comments'])\
-            + len("Comments") + 2
+            + len("Comments") + 1
 
         # Display the array
         # Checking number of items in the column name to know if there is
         # something to display or not
         if len(data['name']) != 0:
             # Display the array titles
-            COMMANDLINELOGGER.info("Name".ljust(name_col_width) +
-                                   "Path".ljust(path_col_width) +
+            COMMANDLINELOGGER.info("{}{}{}{}{}{}".format(
+                                    "Name".ljust(name_col_width),
+                                   "Path".ljust(path_col_width),
                                    "Provisioners".ljust(
-                                       provisioner_col_width) +
+                                       provisioner_col_width),
                                    "Providers".ljust(
-                                       providers_col_width) +
-                                   "Architectures".ljust(
-                                       architectures_col_width) +
-                                   "Comments".ljust(comments_col_width))
+                                       providers_col_width),
+                                   "Operating systems".ljust(
+                                       os_col_width),
+                                   "Comments").ljust(
+                                       comments_col_width))
 
             for row in range(0, len(data['name'])):
-                COMMANDLINELOGGER.info(data['name'][row].ljust(
-                    name_col_width) +
-                                       data['path'][row].ljust(
-                                           path_col_width) +
-                                       data['provisioners'][row].ljust(
-                                           provisioner_col_width) +
-                                       data['providers'][row].ljust(
-                                           providers_col_width) +
-                                       data['architectures'][row].ljust(
-                                           architectures_col_width) +
-                                       data['comments'][row].ljust(
-                                           comments_col_width))
+                COMMANDLINELOGGER.info("{}{}{}{}{}{}".format(
+                      data['name'][row].ljust(name_col_width),
+                      data['path'][row].ljust(path_col_width),
+                      data['provisioners'][row].ljust(provisioner_col_width),
+                      data['providers'][row].ljust(providers_col_width),
+                      data['operating_systems'][row].ljust(os_col_width),
+                      data['comments'][row].ljust(comments_col_width)).strip())
         else:
             COMMANDLINELOGGER.info("No templates available")
 
@@ -164,10 +173,14 @@ class CmdLine(object):
         COMMANDLINELOGGER.debug("Instances loaded.")
 
         # Create an array to display the available templates
-        data = {'name': [], 'path': [], 'addr': [], 'started': []}
+        data = {'name': [], 'path': [], 'addr': [], 'started': [], 'template': [], 'provider': []}
         for i in instances.values():
-            data['name'].append(i.getName())
-            data['path'].append(i.getPath())
+            data['name'].append(i.get_name())
+            data['path'].append(i.get_path())
+            data['template'].append(i.get_template())
+            data['provider'].append(str(i.get_provider()))
+            data['addr'].append(i.get_infos_at_runtime()[0]["ip"])
+            data['started'].append(i.is_started())
 
         # Display the array of templates
         # Check if there is an item in the resulting array using the length
@@ -175,37 +188,72 @@ class CmdLine(object):
         if len(data['name']) != 0:
             name_col_width = max(len(word)
                                  for word in data['name'])\
-                + len("Name") + 2
+                + len("Name") + 1
             addr_col_width = max(len(word)
                                  for word in data['addr'])\
-                + len("Address") + 2
+                + len("Address") + 1
             path_col_width = max(len(word)
                                  for word in data['path'])\
-                + len("Path") + 2
+                + len("Path") + 1
             started_col_width = max(len(str(word))
                                     for word in data['started'])\
-                + len("Started") + 2
+                + len("Started") + 1
+            template_col_width = max(len(str(word))
+                                    for word in data['template'])\
+                + len("Template") + 1
+            provider_col_width = max(len(str(word))
+                                    for word in data['provider'])\
+                + len("Provider") + 1
 
-            COMMANDLINELOGGER.info(
-                "Name".ljust(
-                    name_col_width) + "Started".ljust(
-                        started_col_width) + "Address".ljust(
-                            addr_col_width) + "Path".ljust(
-                                path_col_width))
+            COMMANDLINELOGGER.info("{}{}{}{}{}{}".format(
+                "Name".ljust(name_col_width),
+                "Started".ljust(started_col_width),
+                "Address".ljust(addr_col_width),
+                "Path".ljust(path_col_width),
+                "Provider".ljust(provider_col_width),
+                "Template".ljust(template_col_width)
+                )
+                )
             for row in range(0, len(data['name'])):
-                COMMANDLINELOGGER.info(data['name'][row].ljust(
-                    name_col_width) +
-                                       str(data['started'][row]).ljust(
-                                           started_col_width) +
-                                       data['addr'][row].ljust(
-                                           addr_col_width) +
-                                       data['path'][row].ljust(
-                                           path_col_width))
+                COMMANDLINELOGGER.info("{}{}{}{}{}{}".format(
+                  data['name'][row].ljust(name_col_width),
+                  str(data['started'][row]).ljust(started_col_width),
+                  data['addr'][row].ljust(addr_col_width),
+                  data['path'][row].ljust(path_col_width),
+                  data['provider'][row].ljust(provider_col_width),
+                  data['template'][row].ljust(template_col_width)
+                  ))
         else:
             COMMANDLINELOGGER.info("No instances available")
         COMMANDLINELOGGER.info("")
         return 0
 
+    @staticmethod
+    def print_infos(instance):
+        COMMANDLINELOGGER.info("Machine '{}':".format(instance.get_name()))
+        COMMANDLINELOGGER.info("  Architecture: {}".format(instance.get_operating_system().get_architecture()))
+        COMMANDLINELOGGER.info("  Operating sytem: {}".format(instance.get_operating_system().get_name()))
+        COMMANDLINELOGGER.info("  Provisioner: {}".format(instance.get_provisioner()))
+        COMMANDLINELOGGER.info("  Provider: {}".format(instance.get_provider()))
+        COMMANDLINELOGGER.info("  State: {}".format("Running" if instance.is_started() else "Stopped"))
+        COMMANDLINELOGGER.info("  Host interface: {}".format(instance.get_host_interface()))
+        if len(instance.get_shared_folders()) != 0:
+            COMMANDLINELOGGER.info("  Shared folders:")
+            for folder in instance.get_shared_folders():
+                COMMANDLINELOGGER.info("    - Host folder: \
+                  {}".format(folder.get_host_dir()))
+                COMMANDLINELOGGER.info("      Guest folder: \
+                  {}".format(folder.get_guest_dir()))
+        
+        infos = instance.get_infos_at_runtime()
+        COMMANDLINELOGGER.info("  Network interfaces:")
+        for info in infos:
+          COMMANDLINELOGGER.info("    - Name: {}".format(info["name"]))
+          COMMANDLINELOGGER.info("      IPAddress: {}".format(info["ip"]))
+          COMMANDLINELOGGER.info("      MACAddress: {}".format(info["mac"]))
+          COMMANDLINELOGGER.info("      Host interface: {}".format(info["host_interface"]))
+          COMMANDLINELOGGER.info("      Hostname: {}".format(info["hostname"]))
+      
     @staticmethod
     def create_machine_instance(args):
         """
@@ -232,8 +280,7 @@ class CmdLine(object):
                 if args.name in instances.keys():
                     COMMANDLINELOGGER.warn(
                         "Instance named '{}' already exists but creation \
-                         was forced so firstly machination will\
-                         delete it.".format(args.name))
+was forced so firstly machination will delete it.".format(args.name))
                     #progress_bar.start()
                     instances[args.name].destroy()
                     #progress_bar.stop()
@@ -241,19 +288,18 @@ class CmdLine(object):
             if args.force == False and args.name in instances.keys():
                 COMMANDLINELOGGER.error(
                     "Unable to create machine: an instance named '{}' \
-                    already exists. Change the name of your new machine or\
-                     delete the existing one.".format(args.name))
+already exists. Change the name of your new machine or\
+delete the existing one.".format(args.name))
                 res = errno.EALREADY
             else:
-                (template, architecture, osversion, provider,
+                (template, operating_system, provider,
                  provisioner, guest_interfaces,
                  host_interface, shared_folders) = \
                     MachineInstanceCreationWizard().execute(args, templates)
                 instance = MachineInstance(
                     args.name,
                     template,
-                    architecture,
-                    osversion,
+                    operating_system,
                     provider,
                     provisioner,
                     guest_interfaces,
@@ -266,11 +312,11 @@ class CmdLine(object):
                 #progress_bar.appendLines(
                 #    {".*Running post-processor.*": [80, None]})
                 #progress_bar.start()
-                #instance.create(progress_bar)
+                instance.create()
                 #progress_bar.stop()
-                COMMANDLINELOGGER.info(instance.get_infos())
+                CmdLine.print_infos(instance)
                 COMMANDLINELOGGER.info(
-                    "Instance '{}' successfully created:".format(args.name))
+                    "Instance '{}' successfully created.".format(args.name))
         except (RuntimeError, InvalidCmdLineArgument) as excpt:
             COMMANDLINELOGGER.error(
                 "Unable to create instance '{}': \
@@ -299,11 +345,11 @@ class CmdLine(object):
                     # Ask the user if it's ok to delete the machine
                     is_verbose = args.force
                     if is_verbose == False:
-                        is_verbose = BinaryQuestion("Are you sure you want\
-                        1to destroy the machine named {}. Directory {})\
-                        will be destroyed".format(
-                            instances[name].getName(),
-                            instances[name].getPath()),
+                        is_verbose = BinaryQuestion("Are you sure you want \
+to destroy the machine named {}. Directory {})\
+will be destroyed".format(
+                            instances[name].get_name(),
+                            instances[name].get_path()),
                                                     "Enter a Y or a N",
                                                     COMMANDLINELOGGER, "Y")\
                             .ask()
@@ -384,10 +430,10 @@ class CmdLine(object):
                 instances = MACHINE_INSTANCE_REGISTRY.get_instances()
                 # Check if the requested instance exists
                 if name in instances.keys():
-                    if not instances[args.name].isStarted():
+                    if not instances[args.name].is_started():
                         COMMANDLINELOGGER.error(
                             "Instance '{}' is not started, starting it \
-                            before update process.".format(args.name))
+before update process.".format(args.name))
                         instances[args.name].start()
                     try:
                         instances[args.name].ssh(
@@ -481,7 +527,7 @@ class CmdLine(object):
         for name in to_display:
             # Search for the requested instnce
             if name in instances.keys():
-                COMMANDLINELOGGER.info(instances[name].get_infos())
+                CmdLine.print_infos(instances[name])
             else:
                 COMMANDLINELOGGER.error(
                     "Instance '{}' does not exist.".format(name))
@@ -499,10 +545,10 @@ class CmdLine(object):
             # Search for the requested instance in the registry
             instances = MACHINE_INSTANCE_REGISTRY.get_instances()
             if args.name in instances.keys():
-                if not instances[args.name].isStarted():
+                if not instances[args.name].is_started():
                     COMMANDLINELOGGER.error(
                         "Instance '{}' is not started, starting it \
-                        before connecting to it.".format(args.name))
+before connecting to it.".format(args.name))
                     instances[args.name].start()
 
                 instances[args.name].ssh(args.command)
@@ -542,6 +588,13 @@ class CmdLine(object):
         templates = MACHINE_TEMPLATE_REGISTRY.get_templates()
         instances = MACHINE_INSTANCE_REGISTRY.get_instances()
 
+        def MachineInstanceName(v):
+          try:
+            return re.match("^[1-9a-zA-Z-]*$", v).group(0)
+          except:
+            raise ArgumentTypeError("Machine instance name '{}' shall contain \
+only numbers, letters and hyphens".format(v))
+            
         # Create main parser
         parser = argparse.ArgumentParser(
             prog="Machination",
@@ -580,7 +633,8 @@ class CmdLine(object):
         create_parser.add_argument(
             'name',
             help='Name of the machine to create',
-            type=str)
+            type=MachineInstanceName)
+        
         create_parser.add_argument(
             '--architecture',
             '-a',
@@ -597,9 +651,9 @@ class CmdLine(object):
             help='Provisioner to use',
             type=str)
         create_parser.add_argument(
-            '--osversion',
+            '--operatingsystem',
             '-o',
-            help='OS Version to use',
+            help='Operating system name',
             type=str)
         create_parser.add_argument(
             '--guestinterface',
@@ -641,7 +695,7 @@ class CmdLine(object):
             'names',
             help='Name of the machine to destroy',
             nargs="+",
-            type=str,
+            type=MachineInstanceName,
             choices=instances.keys())
         destroy_parser.add_argument(
             '--force',
@@ -662,7 +716,7 @@ class CmdLine(object):
             'names',
             help='Name of the machine to start',
             nargs="+",
-            type=str,
+            type=MachineInstanceName,
             choices=instances.keys())
         start_parser.add_argument(
             '--verbose',
@@ -678,7 +732,7 @@ class CmdLine(object):
             'names',
             help='Name of the machine to stop',
             nargs="+",
-            type=str,
+            type=MachineInstanceName,
             choices=instances.keys())
         stop_parser.add_argument(
             '--verbose',
@@ -694,7 +748,7 @@ class CmdLine(object):
             'names',
             help='Name of the machine to restart',
             nargs="+",
-            type=str,
+            type=MachineInstanceName,
             choices=instances.keys())
         restart_parser.add_argument(
             '--verbose',
@@ -711,7 +765,7 @@ class CmdLine(object):
             help='Name of the machine instance from which \
           infos shall be retrieved',
             nargs="?",
-            type=str,
+            type=MachineInstanceName,
             choices=instances.keys())
         infos_parser.add_argument(
             '--verbose',
@@ -726,7 +780,7 @@ class CmdLine(object):
             'name',
             help='Name of the machine to ssh in',
             choices=instances.keys(),
-            type=str)
+            type=MachineInstanceName)
         ssh_parser.add_argument(
             '--command',
             "-c",

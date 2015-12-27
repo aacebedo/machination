@@ -22,16 +22,11 @@ from enum import Enum
 from machination.helpers import accepts
 from machination.exceptions import InvalidArgumentValue
 
-
-class StringifiedEnum(Enum):
-    """
-    Base class for all "stringifable" enums
-    """
+class StringifableEnum(Enum):
     def __str__(self):
-        return str(self.value())
+        return str(self.value)
 
-
-class Architecture(StringifiedEnum):
+class Architecture(StringifableEnum):
     """
     Enum representing Architectures
     """
@@ -52,3 +47,4 @@ class Architecture(StringifiedEnum):
             return vals[val]
         else:
             raise InvalidArgumentValue("Unknown architecture", val)
+          

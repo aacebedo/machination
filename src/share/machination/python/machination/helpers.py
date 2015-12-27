@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.
 #
+from argparse import ArgumentTypeError
+from machination.loggers import ROOTLOGGER
 """
 This file contains a set of helpers used in machination
 """
@@ -27,7 +29,8 @@ import struct
 import array
 import hashlib
 
-from machination.exceptions import InvalidArgumentNumberError
+from machination.exceptions import InvalidArgumentNumberError,\
+  InvalidMachineTemplateException
 from machination.exceptions import ArgumentValidationError
 
 
@@ -62,7 +65,7 @@ def accepts(*accepted_arg_types):
         # amount of arguments, as Python will do this
         # automatically (also with a TypeError).
         @functools.wraps(validate_function)
-        def decorator_wrapper(*function_args, _):
+        def decorator_wrapper(*function_args, **function_args_dict):
             """
             Decorator wrapper
             """
@@ -108,6 +111,13 @@ def generate_random_mac():
     return ':'.join([print_hex(el) for el in mac])
 
 
+def check_list_elements(elements, element_type):
+  res = True
+  for el in elements:
+    if not isinstance(el, element_type):
+      res = False
+  return res
+
 def generate_hash_of_dir(directory, hash_value):
     """
     Compute the hash of a directory
@@ -124,12 +134,15 @@ def generate_hash_of_file(file_path, hash_value):
     Compute the hash of a file
     """
     if os.path.exists(file_path):
-        file_to_process = open(file_path, 'rb')
+        file_to_process = open(file_path, 'r', encoding="utf8")
         while True:
-            buf = file_to_process.read(4096)
-            if not buf:
+            try:
+              buf = file_to_process.read(4096)
+              if not buf:
                 break
-            hash_value.update(hashlib.sha1(buf).hexdigest())
+              hash_value.update(hashlib.sha1(buf.encode("utf8")).hexdigest().encode("utf8"))
+            except UnicodeDecodeError as _:
+              ROOTLOGGER.warning("Bad encoding of file {}, its hash will not be computed".format(file_path))
         file_to_process.close()
 
 
@@ -140,7 +153,7 @@ def get_all_net_interfaces():
     max_possible = 128  # arbitrary. raise if needed.
     vals = max_possible * 32
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    names = array.array('B', '\0' * vals)
+    names = array.array('B', b'\0' * vals)
     outbytes = struct.unpack('iL', fcntl.ioctl(
         sock.fileno(),
         0x8912,  # SIOCGIFCONF
@@ -149,7 +162,7 @@ def get_all_net_interfaces():
     namestr = names.tostring()
     lst = []
     for i in range(0, outbytes, 40):
-        name = namestr[i:i + 16].split('\0', 1)[0]
+        name = namestr[i:i + 16].split(b'\0', 1)[0]
         if name != "lo":
-            lst.append(name)
+            lst.append(name.decode("utf8"))
     return lst

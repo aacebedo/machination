@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.
 #
+import hashlib
 """
 This file contains the provisioners definition of machination
 """
@@ -44,14 +45,14 @@ class Provisioner(object):
         """
         Generates files for the given instance
         """
-        pass
+        raise NotImplementedError("Abstract method is not implemented")
 
     @abstractmethod
-    def generate_instance_hash(self, instance):
+    def generate_instance_hash(self, instance, hashvalue):
         """
         Generates hash for the given instance
         """
-        pass
+        raise NotImplementedError("Abstract method is not implemented")
 
     @staticmethod
     @accepts(str)
@@ -111,31 +112,29 @@ class AnsibleProvisioner(Provisioner):
             raise InvalidMachineTemplateException(
                 "Unable to find ansible role '{0}'.".format(role))
 
-    def generate_instance_hash(self, instance):
-        res = None
+    def generate_instance_hash(self, instance, hash_value):
         generate_hash_of_dir(
-            os.path.join(instance.getPath(),
+            os.path.join(instance.get_path(),
                          "provisioners",
                          "ansible"),
-            res)
-        return res
+            hash_value)
 
     def generate_instance_files(self, instance):
-        if not os.path.exists(instance.getPath()):
-            raise PathNotExistError(instance.getPath())
+        if not os.path.exists(instance.get_path()):
+            raise PathNotExistError(instance.get_path())
         ansible_files_dest = os.path.join(
-            instance.getPath(),
+            instance.get_path(),
             "provisioners",
             "ansible")
         os.makedirs(ansible_files_dest, exist_ok=True)
         playbook_path = os.path.join(
-            instance.getPath(),
+            instance.get_path(),
             "provisioners",
             "ansible",
             "machine.playbook")
         playbook = [{}]
         playbook[0]["hosts"] = "all"
-        playbook[0]["roles"] = instance.getTemplate().getRoles()
+        playbook[0]["roles"] = instance.get_template().get_roles()
         playbook_file = open(playbook_path, 'w')
         playbook_file.write(yaml.dump(playbook, default_flow_style=False))
 
@@ -145,39 +144,40 @@ class AnsibleProvisioner(Provisioner):
         provisioner = {}
         provisioner["type"] = "shell"
         provisioner[
-            "inline"] = ["apt-get install -y python-apt python-\
-                          software-properties software-properties-common",
+            "inline"] = ["apt-get update",
+                         "apt-get install -y python-apt \
+python-software-properties software-properties-common",
                          "add-apt-repository ppa:ansible/ansible -y",
                          "apt-get update",
                          "apt-get install -y ansible"]
         provisioner[
             "execute_command"] = "echo 'vagrant' | sudo -E -S sh '{{ .Path }}'"
-        instance.getPackerFile()["provisioners"].append(provisioner)
+        instance.get_packer_file()["provisioners"].append(provisioner)
 
         provisioner = {}
         provisioner["type"] = "shell"
         provisioner["inline"] = [
             "mkdir -p /tmp/packer-provisioner-ansible-local"]
-        instance.getPackerFile()["provisioners"].append(provisioner)
+        instance.get_packer_file()["provisioners"].append(provisioner)
 
         provisioner = {}
         provisioner["type"] = "file"
         provisioner["source"] = "provisioners/ansible/roles"
         provisioner["destination"] = "/tmp/packer-provisioner-ansible-local"
-        instance.getPackerFile()["provisioners"].append(provisioner)
+        instance.get_packer_file()["provisioners"].append(provisioner)
 
         provisioner = {}
         provisioner["type"] = "ansible-local"
         provisioner["playbook_file"] = "provisioners/ansible/machine.playbook"
         provisioner["command"] = "echo 'vagrant' | sudo -E -S ansible-playbook"
 
-        instance.getPackerFile()["provisioners"].append(provisioner)
+        instance.get_packer_file()["provisioners"].append(provisioner)
 
         provisioner = {}
         provisioner["type"] = "shell"
         provisioner["inline"] = [
             "rm -rf /tmp/packer-provisioner-ansible-local"]
-        instance.getPackerFile()["provisioners"].append(provisioner)
+        instance.get_packer_file()["provisioners"].append(provisioner)
 
         provisioner = {}
         provisioner["type"] = "shell"
@@ -185,7 +185,7 @@ class AnsibleProvisioner(Provisioner):
             "apt-get remove -y ansible && apt-get autoremove -y"]
         provisioner[
             "execute_command"] = "echo 'vagrant' | sudo -E -S sh '{{ .Path }}'"
-        instance.getPackerFile()["provisioners"].append(provisioner)
+        instance.get_packer_file()["provisioners"].append(provisioner)
 
     def __str__(self):
         return "ansible"
